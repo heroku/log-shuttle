@@ -27,13 +27,13 @@ func prepare(batch []string) string {
 func outlet(batches <-chan []string) {
 	for batch := range batches {
 		url := "http://httpbin.org/post"
-		b, _ := json.Marshal(prepare(batch))
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
-		defer resp.Body.Close()
+		b := prepare(batch)
+		resp, err := http.Post(url, "application/text", bytes.NewBuffer(b))
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
 		}
 		fmt.Printf("status=%v\n", resp.Status)
+		resp.Body.Close()
 	}
 }
 
