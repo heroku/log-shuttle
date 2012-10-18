@@ -3,13 +3,15 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 )
+
+var BuffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
+var Wait, _ = strconv.Atoi(os.Getenv("WAIT"))
 
 func prepare(batch []string) string {
 	result := ""
@@ -27,8 +29,8 @@ func prepare(batch []string) string {
 func outlet(batches <-chan []string) {
 	for batch := range batches {
 		url := "http://httpbin.org/post"
-		b := prepare(batch)
-		resp, err := http.Post(url, "application/text", bytes.NewBuffer(b))
+		b := bytes.NewBufferString(prepare(batch))
+		resp, err := http.Post(url, "application/text", b)
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
 		}
@@ -38,20 +40,18 @@ func outlet(batches <-chan []string) {
 }
 
 func handle(lines <-chan string, batches chan<- []string) {
-	buffsize, _ := strconv.Atoi(os.Getenv("BUFF_SIZE"))
-	wait, _ := strconv.Atoi(os.Getenv("WAIT"))
-	ticker := time.Tick(time.Millisecond * time.Duration(wait))
-	messages := make([]string, 0, buffsize)
+	ticker := time.Tick(time.Millisecond * time.Duration(Wait))
+	messages := make([]string, 0, BuffSize)
 	for {
 		select {
 		case <-ticker:
 			batches <- messages
-			messages = make([]string, 0, buffsize)
+			messages = make([]string, 0, BuffSize)
 		case l := <-lines:
 			messages = append(messages, l)
 			if len(messages) == cap(messages) {
 				batches <- messages
-				messages = make([]string, 0, buffsize)
+				messages = make([]string, 0, BuffSize)
 			}
 		}
 	}
@@ -59,7 +59,7 @@ func handle(lines <-chan string, batches chan<- []string) {
 
 func main() {
 	batches := make(chan []string)
-	lines := make(chan string)
+	lines := make(chan string, BuffSize)
 
 	go handle(lines, batches)
 	go outlet(batches)
@@ -68,7 +68,11 @@ func main() {
 	for {
 		line, err := rdr.ReadString('\n')
 		if err == nil {
-			lines <- line
+			select {
+			case lines <- line:
+			default:
+				fmt.Printf("drop\n")
+			}
 		}
 	}
 	return
