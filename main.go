@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"bufio"
-	"fmt"
-	"os"
-	"time"
-	"strconv"
-	"net/http"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
 )
 
 func prepare(batch []string) string {
