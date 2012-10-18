@@ -1,6 +1,6 @@
 # Log Shuttle
 
-[img](http://f.cl.ly/items/162g1W2b1b3Z0V3e3O3J/n119642.jpeg)
+![img](http://f.cl.ly/items/162g1W2b1b3Z0V3e3O3J/n119642.jpeg)
 
 Logplex suppoort HTTP inputs. Each Dyno will pipe it's $STDOUT to log-shuttle. Problems that log-shuttle solves:
 
