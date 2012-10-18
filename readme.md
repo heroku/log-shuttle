@@ -6,7 +6,7 @@ Logplex suppoorts HTTP inputs. Each Dyno will pipe it's `stdout` to log-shuttle.
 
 Problems that log-shuttle solves:
 
-* Remove TCP dependency between Dynos & Logplex.
+* Remove Syslog dependency between Dynos & Logplex.
 * More control over backpressure.
 
 ## Prior Art
