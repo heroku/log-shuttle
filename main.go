@@ -1,16 +1,26 @@
 package main
 
 import (
+	"bytes"
 	"bufio"
 	"fmt"
 	"os"
 	"time"
 	"strconv"
+	"net/http"
+	"encoding/json"
 )
 
 func outlet(batches <-chan []string) {
 	for batch := range batches {
-		fmt.Printf("count=%v\n", len(batch))
+		url := "http://httpbin.org/post"
+		b, _ := json.Marshal(batch)
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(b))
+		defer resp.Body.Close()
+		if err != nil {
+			fmt.Printf("error=%v\n", err)
+		}
+		fmt.Printf("status=%v\n", resp.Status)
 	}
 }
 
