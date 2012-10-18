@@ -1,12 +1,17 @@
+![img](http://f.cl.ly/items/3o1i1M3i250F1j0Y3r2O/Space-shuttle-Endeavour-008.jpeg)
+
 # Log Shuttle
 
-![img](http://f.cl.ly/items/162g1W2b1b3Z0V3e3O3J/n119642.jpeg)
+Logplex suppoorts HTTP inputs. Each Dyno will pipe it's `stdout` to log-shuttle. Log-shuttle will POST the data to Logplex. 
 
-Logplex suppoort HTTP inputs. Each Dyno will pipe it's $STDOUT to log-shuttle. Problems that log-shuttle solves:
+Problems that log-shuttle solves:
 
 * Remove TCP dependency between Dynos & Logplex.
 * More control over backpressure.
 
+## Prior Art
+
+* [replacing logger proposal](https://github.com/heroku/runtime-docs/blob/master/replacing-logger-proposal.md)
 
 ## Usage
 
