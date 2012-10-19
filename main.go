@@ -18,6 +18,7 @@ func prepare(batch []string) string {
 	length := 0
 	for _, msg := range batch {
 		t := time.Now().UTC().Format(time.RFC3339 + " ")
+		//http://tools.ietf.org/html/rfc5424
 		//<prival>version time app-name procid msgid msg \n
 		line := "<0>1 " + t + "1234 " + "5678 " + "- " + msg + " \n"
 		result += line
