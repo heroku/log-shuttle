@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -35,6 +37,7 @@ func outlet(batches <-chan []string) {
 			fmt.Printf("error=%v\n", err)
 		}
 		resp.Body.Close()
+		fmt.Printf("status=%v\n", resp.Status)
 	}
 }
 
@@ -56,6 +59,33 @@ func handle(lines <-chan string, batches chan<- []string) {
 	}
 }
 
+func newConns(l net.Listener) chan net.Conn {
+	ch := make(chan net.Conn)
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				log.Fatal(err)
+			}
+			ch <- conn
+		}
+	}()
+	return ch
+}
+
+func read(c net.Conn, lc chan<- string) {
+	rdr := bufio.NewReader(c)
+	for {
+		line, err := rdr.ReadString('\n')
+		if err == nil {
+			select {
+			case lc<-line:
+			default:
+			}
+		}
+	}
+}
+
 func main() {
 	batches := make(chan []string)
 	lines := make(chan string, BuffSize)
@@ -63,15 +93,14 @@ func main() {
 	go handle(lines, batches)
 	go outlet(batches)
 
-	rdr := bufio.NewReader(os.Stdin)
+	l, err := net.Listen("unix", "/tmp/shuttle.tmp")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := newConns(l)
 	for {
-		line, err := rdr.ReadString('\n')
-		if err == nil {
-			select {
-			case lines <- line:
-			default:
-			}
-		}
+		go read(<-c, lines)
 	}
 	return
 }
