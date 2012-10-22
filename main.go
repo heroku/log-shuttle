@@ -34,7 +34,6 @@ func outlet(batches <-chan []string) {
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
 		}
-		fmt.Printf("status=%v\n", resp.Status)
 		resp.Body.Close()
 	}
 }
@@ -71,7 +70,6 @@ func main() {
 			select {
 			case lines <- line:
 			default:
-				fmt.Printf("drop\n")
 			}
 		}
 	}
