@@ -2,7 +2,7 @@
 
 # Log Shuttle
 
-Logplex suppoorts HTTP inputs. Each Dyno will pipe it's `stdout` to log-shuttle. Log-shuttle will POST the data to Logplex. 
+Logplex suppoorts HTTP inputs. Each Dyno will pipe it's `stdout` to log-shuttle. Log-shuttle will POST the data to Logplex.
 
 Problems that log-shuttle solves:
 
@@ -18,5 +18,7 @@ Problems that log-shuttle solves:
 ```bash
 $ go get github.com/heroku/log-shuttle
 $ cd $GOPATH/src/github.com/heroku/log-shuttle
-$ echo 'hello world\n' | WAIT=100 BUFF_SIZE=100 go run main.go
+$ LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
+$ go run main.go your-logplex-token
+$ echo 'hi world' | nc -U /tmp/log-shuttle.tmp
 ```
