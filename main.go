@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -18,18 +19,14 @@ var BuffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
 var Wait, _ = strconv.Atoi(os.Getenv("WAIT"))
 var LogplexURL = os.Getenv("LOGPLEX_URL")
 
-func prepare(batch []string, token string) string {
-	result := ""
-	length := 0
+func prepare(w io.Writer, batch []string, token string) {
 	for _, msg := range batch {
 		t := time.Now().UTC().Format(time.RFC3339 + " ")
 		//http://tools.ietf.org/html/rfc5424
 		//<prival>version time host procid msgid msg \n
 		line := "<0>1 " + t + "1234 " + token + " web.1 " + "- - " + msg + " \n"
-		result += line
-		length += len(line)
+		fmt.Fprintf(w, "%d %s", len(line), line)
 	}
-	return fmt.Sprintf("%d", length) + " " + result
 }
 
 func outlet(batches <-chan []string, token string) {
@@ -39,11 +36,12 @@ func outlet(batches <-chan []string, token string) {
 			log.Fatal("can't parse LogplexURL")
 		}
 		u.User = url.UserPassword("", token)
-		b := bytes.NewBufferString(prepare(batch, token))
+		var b bytes.Buffer
+		prepare(&b, batch, token)
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-		req, _ := http.NewRequest("POST", u.String(), b)
+		req, _ := http.NewRequest("POST", u.String(), &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
 		client := &http.Client{Transport: tr}
 		resp, err := client.Do(req)
