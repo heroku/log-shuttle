@@ -119,5 +119,4 @@ func main() {
 	for c := range conns {
 		read(c, lines)
 	}
-	return
 }
