@@ -75,20 +75,6 @@ func handle(lines <-chan string, batches chan<- []string) {
 	}
 }
 
-func newConns(l net.Listener) chan net.Conn {
-	ch := make(chan net.Conn)
-	go func() {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				log.Fatal(err)
-			}
-			ch <- conn
-		}
-	}()
-	return ch
-}
-
 func read(c net.Conn, lines chan<- string) {
 	rdr := bufio.NewReader(c)
 	for {
@@ -114,9 +100,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	conns := newConns(l)
-	for c := range conns {
-		read(c, lines)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Printf("Accept error. err=%v", err)
+		}
+		go read(conn, lines)
 	}
 }
