@@ -18,7 +18,7 @@ Problems that log-shuttle solves:
 ```bash
 $ go get github.com/heroku/log-shuttle
 $ cd $GOPATH/src/github.com/heroku/log-shuttle
-$ LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
-$ go run main.go your-logplex-token
-$ echo 'hi world' | nc -U /tmp/log-shuttle.tmp
+$ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
+$ go run main.go -logplex-token="123" -soket="/tmp/log-shuttle"
+$ echo 'hi world' | nc -U /tmp/log-shuttle
 ```

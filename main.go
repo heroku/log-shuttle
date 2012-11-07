@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -18,26 +19,28 @@ import (
 var BuffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
 var Wait, _ = strconv.Atoi(os.Getenv("WAIT"))
 var LogplexURL = os.Getenv("LOGPLEX_URL")
+var socket = flag.String("socket", "/tmp/log-shuttle.tmp", "Location of UNIX domain socket.")
+var logplexToken = flag.String("logplex-token", "abc123", "Secret logplex token.")
 
-func prepare(w io.Writer, batch []string, token string) {
+func prepare(w io.Writer, batch []string) {
 	for _, msg := range batch {
 		t := time.Now().UTC().Format(time.RFC3339 + " ")
 		//http://tools.ietf.org/html/rfc5424
 		//<prival>version time host procid msgid msg \n
-		line := "<0>1 " + t + "1234 " + token + " web.1 " + "- - " + msg + " \n"
+		line := "<0>1 " + t + "1234 " + *logplexToken + " web.1 " + "- - " + msg + " \n"
 		fmt.Fprintf(w, "%d %s", len(line), line)
 	}
 }
 
-func outlet(batches <-chan []string, token string) {
+func outlet(batches <-chan []string) {
 	for batch := range batches {
 		u, err := url.Parse(LogplexURL)
 		if err != nil {
 			log.Fatal("can't parse LogplexURL")
 		}
-		u.User = url.UserPassword("", token)
+		u.User = url.UserPassword("", *logplexToken)
 		var b bytes.Buffer
-		prepare(&b, batch, token)
+		prepare(&b, batch)
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
@@ -47,9 +50,10 @@ func outlet(batches <-chan []string, token string) {
 		resp, err := client.Do(req)
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
+		} else {
+			fmt.Printf("status=%v\n", resp.StatusCode)
+			resp.Body.Close()
 		}
-		resp.Body.Close()
-		fmt.Printf("status=%v\n", resp.StatusCode)
 	}
 }
 
@@ -87,14 +91,15 @@ func read(c net.Conn, lines chan<- string) {
 }
 
 func main() {
-	token := os.Args[1]
+	flag.Parse()
+
 	batches := make(chan []string)
 	lines := make(chan string, BuffSize)
 
 	go handle(lines, batches)
-	go outlet(batches, token)
+	go outlet(batches)
 
-	l, err := net.Listen("unix", "/tmp/log-shuttle.tmp")
+	l, err := net.Listen("unix", *socket)
 	if err != nil {
 		log.Fatal(err)
 	}
