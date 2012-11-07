@@ -15,10 +15,27 @@ Problems that log-shuttle solves:
 
 ## Usage
 
+### Install
+
 ```bash
+# Assuming Go1.
 $ go get github.com/heroku/log-shuttle
 $ cd $GOPATH/src/github.com/heroku/log-shuttle
-$ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
-$ go run main.go -logplex-token="123" -soket="/tmp/log-shuttle"
-$ echo 'hi world' | nc -U /tmp/log-shuttle
 ```
+
+### Connect Via UNIX Socket
+
+```bash
+$ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
+$ ./log-shuttle -logplex-token="123" -soket="/tmp/log-shuttle"
+$ echo 'hi world\n' | nc -U /tmp/log-shuttle
+```
+
+### Connect Via STDOUT
+
+```bash
+$ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
+$ echo 'hi world\n' | ./log-shuttle -logplex-token="123"
+```
+
+

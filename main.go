@@ -19,7 +19,7 @@ import (
 var BuffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
 var Wait, _ = strconv.Atoi(os.Getenv("WAIT"))
 var LogplexURL = os.Getenv("LOGPLEX_URL")
-var socket = flag.String("socket", "/tmp/log-shuttle.tmp", "Location of UNIX domain socket.")
+var socket = flag.String("socket", "", "Location of UNIX domain socket.")
 var logplexToken = flag.String("logplex-token", "abc123", "Secret logplex token.")
 
 func prepare(w io.Writer, batch []string) {
@@ -77,10 +77,9 @@ func handle(lines <-chan string, batches chan<- []string) {
 	}
 }
 
-func read(c net.Conn, lines chan<- string) {
-	rdr := bufio.NewReader(c)
+func read(r *bufio.Reader, lines chan<- string) {
 	for {
-		line, err := rdr.ReadString('\n')
+		line, err := r.ReadString('\n')
 		if err == nil {
 			select {
 			case lines <- line:
@@ -99,15 +98,21 @@ func main() {
 	go handle(lines, batches)
 	go outlet(batches)
 
-	l, err := net.Listen("unix", *socket)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for {
-		conn, err := l.Accept()
+	if len(*socket) == 0 {
+		rdr := bufio.NewReader(os.Stdin)
+		read(rdr, lines)
+	} else {
+		l, err := net.Listen("unix", *socket)
 		if err != nil {
-			fmt.Printf("Accept error. err=%v", err)
+			log.Fatal(err)
 		}
-		go read(conn, lines)
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				fmt.Printf("Accept error. err=%v", err)
+			}
+			rdr := bufio.NewReader(conn)
+			go read(rdr, lines)
+		}
 	}
 }
