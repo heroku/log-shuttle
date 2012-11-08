@@ -28,7 +28,7 @@ $ cd $GOPATH/src/github.com/heroku/log-shuttle
 
 ```bash
 $ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
-$ ./log-shuttle -logplex-token="123" -soket="/tmp/log-shuttle"
+$ ./log-shuttle -logplex-token="123" -socket="/tmp/log-shuttle"
 $ echo 'hi world\n' | nc -U /tmp/log-shuttle
 ```
 
