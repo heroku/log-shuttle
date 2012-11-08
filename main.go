@@ -41,13 +41,9 @@ func outlet(batches <-chan []string) {
 		u.User = url.UserPassword("", *logplexToken)
 		var b bytes.Buffer
 		prepare(&b, batch)
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
 		req, _ := http.NewRequest("POST", u.String(), &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
-		client := &http.Client{Transport: tr}
-		resp, err := client.Do(req)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
 		} else {
@@ -97,6 +93,10 @@ func read(r io.ReadCloser, lines chan<- string) {
 
 func main() {
 	flag.Parse()
+
+	//TODO Require a good cert from Logplex.
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	http.DefaultTransport = tr
 
 	batches := make(chan []string)
 	lines := make(chan string, buffSize)
