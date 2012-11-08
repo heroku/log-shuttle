@@ -16,9 +16,9 @@ import (
 	"time"
 )
 
-var BuffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
-var Wait, _ = strconv.Atoi(os.Getenv("WAIT"))
-var LogplexURL = os.Getenv("LOGPLEX_URL")
+var buffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
+var wait, _ = strconv.Atoi(os.Getenv("WAIT"))
+var logplexURL = os.Getenv("LOGPLEX_URL")
 var socket = flag.String("socket", "", "Location of UNIX domain socket.")
 var logplexToken = flag.String("logplex-token", "abc123", "Secret logplex token.")
 
@@ -34,9 +34,9 @@ func prepare(w io.Writer, batch []string) {
 
 func outlet(batches <-chan []string) {
 	for batch := range batches {
-		u, err := url.Parse(LogplexURL)
+		u, err := url.Parse(logplexURL)
 		if err != nil {
-			log.Fatal("can't parse LogplexURL")
+			log.Fatal("can't parse logplexURL")
 		}
 		u.User = url.UserPassword("", *logplexToken)
 		var b bytes.Buffer
@@ -58,20 +58,20 @@ func outlet(batches <-chan []string) {
 }
 
 func handle(lines <-chan string, batches chan<- []string) {
-	ticker := time.Tick(time.Millisecond * time.Duration(Wait))
-	messages := make([]string, 0, BuffSize)
+	ticker := time.Tick(time.Millisecond * time.Duration(wait))
+	messages := make([]string, 0, buffSize)
 	for {
 		select {
 		case <-ticker:
 			if len(messages) > 0 {
 				batches <- messages
-				messages = make([]string, 0, BuffSize)
+				messages = make([]string, 0, buffSize)
 			}
 		case l := <-lines:
 			messages = append(messages, l)
 			if len(messages) == cap(messages) {
 				batches <- messages
-				messages = make([]string, 0, BuffSize)
+				messages = make([]string, 0, buffSize)
 			}
 		}
 	}
@@ -94,7 +94,7 @@ func main() {
 	flag.Parse()
 
 	batches := make(chan []string)
-	lines := make(chan string, BuffSize)
+	lines := make(chan string, buffSize)
 
 	go handle(lines, batches)
 	go outlet(batches)
