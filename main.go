@@ -77,7 +77,7 @@ func handle(lines <-chan string, batches chan<- []string) {
 	}
 }
 
-func read(r io.Reader, lines chan<- string) {
+func read(r io.ReadCloser, lines chan<- string) {
 	rdr := bufio.NewReader(r)
 	for {
 		line, err := rdr.ReadString('\n')
@@ -88,6 +88,9 @@ func read(r io.Reader, lines chan<- string) {
 			case lines <- line:
 			default:
 			}
+		} else {
+			r.Close()
+			return
 		}
 	}
 }
