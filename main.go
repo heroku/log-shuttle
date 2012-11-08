@@ -81,6 +81,8 @@ func read(r io.Reader, lines chan<- string) {
 	rdr := bufio.NewReader(r)
 	for {
 		line, err := rdr.ReadString('\n')
+		//Drop the line if the lines buffer is full.
+		//Set buffSize to reduce drops.
 		if err == nil {
 			select {
 			case lines <- line:
