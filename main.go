@@ -77,9 +77,10 @@ func handle(lines <-chan string, batches chan<- []string) {
 	}
 }
 
-func read(r *bufio.Reader, lines chan<- string) {
+func read(r io.Reader, lines chan<- string) {
+	rdr := bufio.NewReader(r)
 	for {
-		line, err := r.ReadString('\n')
+		line, err := rdr.ReadString('\n')
 		if err == nil {
 			select {
 			case lines <- line:
@@ -99,8 +100,7 @@ func main() {
 	go outlet(batches)
 
 	if len(*socket) == 0 {
-		rdr := bufio.NewReader(os.Stdin)
-		read(rdr, lines)
+		read(os.Stdin, lines)
 	} else {
 		l, err := net.Listen("unix", *socket)
 		if err != nil {
@@ -111,8 +111,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("Accept error. err=%v", err)
 			}
-			rdr := bufio.NewReader(conn)
-			go read(rdr, lines)
+			go read(conn, lines)
 		}
 	}
 }
