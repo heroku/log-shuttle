@@ -2,11 +2,12 @@
 
 # Log Shuttle
 
-Logplex suppoorts HTTP inputs. Each Dyno will pipe it's `stdout` to log-shuttle. Log-shuttle will POST the data to Logplex.
+[Logplex](https://github.com/heroku/logplex) suppoorts HTTP inputs. Each user process will pipe it's `stdout` to log-shuttle. Log-shuttle will POST the data to [Logplex](https://github.com/heroku/logplex).
 
 Problems that log-shuttle solves:
 
-* Remove Syslog dependency between Dynos & Logplex.
+* Remove Syslog dependency between user process & Logplex.
+* Improve cross-datacenter security model.
 * More control over backpressure.
 
 ## Prior Art
