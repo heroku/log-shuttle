@@ -17,7 +17,8 @@ Problems that log-shuttle solves:
 ```bash
 # Assuming Go1.
 $ go get github.com/heroku/log-shuttle
-$ cd $GOPATH/src/github.com/heroku/log-shuttle
+$ cd $GOPATH/src/github.com/ryandotsmith/log-shuttle
+$ go build
 ```
 
 ### Connect Via UNIX Socket
