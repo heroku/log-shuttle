@@ -106,6 +106,8 @@ func main() {
 
 	if len(*socket) == 0 {
 		read(os.Stdin, lines)
+		// Wait at least enough time to submit 1 batch.
+		time.Sleep(time.Millisecond * time.Duration(wait))
 	} else {
 		l, err := net.Listen("unix", *socket)
 		if err != nil {
