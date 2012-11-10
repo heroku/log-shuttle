@@ -74,18 +74,7 @@ func handle(lines <-chan string, batches chan<- []string) {
 	}
 }
 
-func read(r io.ReadCloser, lines chan<- string) {
-	var drops uint64 = 0
-	var reads uint64 = 0
-	go func() {
-		for _ = range time.Tick(time.Second) {
-			d := atomic.LoadUint64(&drops)
-			r := atomic.LoadUint64(&reads)
-			atomic.StoreUint64(&drops, 0)
-			atomic.StoreUint64(&reads, 0)
-			fmt.Fprintf(os.Stdout, "reads=%d drops=%d\n", r, d)
-		}
-	}()
+func read(r io.ReadCloser, lines chan<- string, drops *uint64, reads *uint64) {
 	rdr := bufio.NewReader(r)
 	for {
 		line, err := rdr.ReadString('\n')
@@ -94,14 +83,24 @@ func read(r io.ReadCloser, lines chan<- string) {
 		if err == nil {
 			select {
 			case lines <- line:
-				atomic.AddUint64(&reads, 1)
+				atomic.AddUint64(reads, 1)
 			default:
-				atomic.AddUint64(&drops, 1)
+				atomic.AddUint64(drops, 1)
 			}
 		} else {
 			r.Close()
 			return
 		}
+	}
+}
+
+func report(lines chan string, batches chan []string, drops *uint64, reads *uint64) {
+	for _ = range time.Tick(time.Second) {
+		d := atomic.LoadUint64(drops)
+		r := atomic.LoadUint64(reads)
+		atomic.StoreUint64(drops, 0)
+		atomic.StoreUint64(reads, 0)
+		fmt.Fprintf(os.Stdout, "reads=%d drops=%d lines=%d batches=%d\n", r, d, len(lines), len(batches))
 	}
 }
 
@@ -112,16 +111,18 @@ func main() {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	http.DefaultTransport = tr
 
+	var drops uint64 = 0
+	var reads uint64 = 0
+
 	batches := make(chan []string)
 	lines := make(chan string, buffSize)
 
+	go report(lines, batches, &drops, &reads)
 	go handle(lines, batches)
 	go outlet(batches)
 
 	if len(*socket) == 0 {
-		read(os.Stdin, lines)
-		// Wait at least enough time to submit 1 batch.
-		time.Sleep(time.Millisecond * time.Duration(wait))
+		read(os.Stdin, lines, &drops, &reads)
 	} else {
 		l, err := net.Listen("unix", *socket)
 		if err != nil {
@@ -132,7 +133,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("Accept error. err=%v", err)
 			}
-			go read(conn, lines)
+			go read(conn, lines, &drops, &reads)
 		}
 	}
 }
