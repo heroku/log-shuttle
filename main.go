@@ -56,19 +56,19 @@ func outlet(batches <-chan []string) {
 
 func handle(lines <-chan string, batches chan<- []string) {
 	ticker := time.Tick(time.Millisecond * time.Duration(wait))
-	messages := make([]string, 0, buffSize)
+	batch := make([]string, 0, buffSize)
 	for {
 		select {
 		case <-ticker:
-			if len(messages) > 0 {
-				batches <- messages
-				messages = make([]string, 0, buffSize)
+			if len(batch) > 0 {
+				batches <- batch
+				batch = make([]string, 0, buffSize)
 			}
 		case l := <-lines:
-			messages = append(messages, l)
-			if len(messages) == cap(messages) {
-				batches <- messages
-				messages = make([]string, 0, buffSize)
+			batch = append(batch, l)
+			if len(batch) == cap(batch) {
+				batches <- batch
+				batch = make([]string, 0, buffSize)
 			}
 		}
 	}
