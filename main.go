@@ -13,8 +13,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 var buffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
