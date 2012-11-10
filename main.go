@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"sync/atomic"
 )
 
 var buffSize, _ = strconv.Atoi(os.Getenv("BUFF_SIZE"))
@@ -47,7 +48,7 @@ func outlet(batches <-chan []string) {
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
 		} else {
-			fmt.Printf("status=%v\n", resp.StatusCode)
+			fmt.Printf("at=logplex-post status=%v\n", resp.StatusCode)
 			resp.Body.Close()
 		}
 	}
@@ -74,6 +75,17 @@ func handle(lines <-chan string, batches chan<- []string) {
 }
 
 func read(r io.ReadCloser, lines chan<- string) {
+	var drops uint64 = 0
+	var reads uint64 = 0
+	go func() {
+		for _ = range time.Tick(time.Second) {
+			d := atomic.LoadUint64(&drops)
+			r := atomic.LoadUint64(&reads)
+			atomic.StoreUint64(&drops, 0)
+			atomic.StoreUint64(&reads, 0)
+			fmt.Fprintf(os.Stdout, "reads=%d drops=%d\n", r, d)
+		}
+	}()
 	rdr := bufio.NewReader(r)
 	for {
 		line, err := rdr.ReadString('\n')
@@ -82,7 +94,9 @@ func read(r io.ReadCloser, lines chan<- string) {
 		if err == nil {
 			select {
 			case lines <- line:
+				atomic.AddUint64(&reads, 1)
 			default:
+				atomic.AddUint64(&drops, 1)
 			}
 		} else {
 			r.Close()
