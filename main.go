@@ -96,8 +96,8 @@ func report(lines chan string, batches chan []string, drops *uint64, reads *uint
 	for _ = range time.Tick(time.Second) {
 		d := atomic.LoadUint64(drops)
 		r := atomic.LoadUint64(reads)
-		atomic.StoreUint64(drops, 0)
-		atomic.StoreUint64(reads, 0)
+		atomic.AddUint64(drops, -d)
+		atomic.AddUint64(reads, -r)
 		fmt.Fprintf(os.Stdout, "reads=%d drops=%d lines=%d batches=%d\n", r, d, len(lines), len(batches))
 	}
 }
