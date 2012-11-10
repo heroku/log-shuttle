@@ -78,8 +78,6 @@ func read(r io.ReadCloser, lines chan<- string, drops *uint64, reads *uint64) {
 	rdr := bufio.NewReader(r)
 	for {
 		line, err := rdr.ReadString('\n')
-		//Drop the line if the lines buffer is full.
-		//Set buffSize to reduce drops.
 		if err == nil {
 			select {
 			case lines <- line:
@@ -111,9 +109,8 @@ func main() {
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	http.DefaultTransport = tr
 
-	var drops uint64 = 0
-	var reads uint64 = 0
-
+	var drops uint64 = 0 //count the number of droped lines
+	var reads uint64 = 0 //count the number of read lines
 	batches := make(chan []string)
 	lines := make(chan string, buffSize)
 
