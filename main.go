@@ -47,7 +47,7 @@ func outlet(batches <-chan []string, logplexToken string) {
 	}
 }
 
-func handle(lines <-chan string, batches chan<- []string, batcheSize int, wait int) {
+func handle(lines <-chan string, batches chan<- []string, batcheSize, wait int) {
 	ticker := time.Tick(time.Millisecond * time.Duration(wait))
 	batch := make([]string, 0, batcheSize)
 	for {
@@ -72,7 +72,7 @@ func handle(lines <-chan string, batches chan<- []string, batcheSize int, wait i
 // If you want 0 chance of dropped messages, use an unbufferd channel and
 // prepare the the process who is inputing data into log-shuttle to wait on
 // log-shuttle while it pushes all of the data to logplex.
-func read(r io.ReadCloser, lines chan<- string, drops *uint64, reads *uint64) {
+func read(r io.ReadCloser, lines chan<- string, drops, reads *uint64) {
 	rdr := bufio.NewReader(r)
 	for {
 		line, err := rdr.ReadString('\n')
@@ -97,7 +97,7 @@ func read(r io.ReadCloser, lines chan<- string, drops *uint64, reads *uint64) {
 	}
 }
 
-func report(lines chan string, batches chan []string, drops *uint64, reads *uint64) {
+func report(lines chan string, batches chan []string, drops, reads *uint64) {
 	for _ = range time.Tick(time.Second) {
 		d := atomic.LoadUint64(drops)
 		r := atomic.LoadUint64(reads)
