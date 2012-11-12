@@ -27,12 +27,13 @@ func prepare(w io.Writer, batch []string, logplexToken string) {
 }
 
 func outlet(batches <-chan []string, logplexToken, url string) {
+	var b bytes.Buffer
 	for batch := range batches {
-		var b bytes.Buffer
 		prepare(&b, batch, logplexToken)
 		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
 		resp, err := http.DefaultClient.Do(req)
+		b.Reset()
 		if err != nil {
 			fmt.Printf("error=%v\n", err)
 		} else {
