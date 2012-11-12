@@ -26,16 +26,11 @@ func prepare(w io.Writer, batch []string, logplexToken string) {
 	}
 }
 
-func outlet(batches <-chan []string, logplexToken string) {
+func outlet(batches <-chan []string, logplexToken, url string) {
 	for batch := range batches {
-		u, err := url.Parse(os.Getenv("LOGPLEX_URL"))
-		if err != nil {
-			log.Fatal("Can't parse LOGPLEX_URL")
-		}
-		u.User = url.UserPassword("", logplexToken)
 		var b bytes.Buffer
 		prepare(&b, batch, logplexToken)
-		req, _ := http.NewRequest("POST", u.String(), &b)
+		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -119,6 +114,12 @@ func main() {
 	logplexToken := flag.String("logplex-token", "abc123", "Secret logplex token.")
 	flag.Parse()
 
+	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
+	if err != nil {
+		log.Fatal("Can't parse LOGPLEX_URL")
+	}
+	logplexUrl.User = url.UserPassword("", *logplexToken)
+
 	//TODO Require a good cert from Logplex.
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	http.DefaultTransport = tr
@@ -130,7 +131,7 @@ func main() {
 
 	go report(lines, batches, &drops, &reads)
 	go handle(lines, batches, *batcheSize, *wait)
-	go outlet(batches, *logplexToken)
+	go outlet(batches, *logplexToken, logplexUrl.String())
 
 	if len(*socket) == 0 {
 		read(os.Stdin, lines, &drops, &reads)
