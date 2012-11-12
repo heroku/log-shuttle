@@ -47,6 +47,10 @@ func outlet(batches <-chan []string, logplexToken string) {
 	}
 }
 
+// Handle facilitates the handoff between stdin/sockets & logplex http
+// requests. If there is high volume traffic on the lines channel, we
+// create batchces based on the batcheSize flag. For low volume traffic,
+// we create batches based on a time interval.
 func handle(lines <-chan string, batches chan<- []string, batcheSize, wait int) {
 	ticker := time.Tick(time.Millisecond * time.Duration(wait))
 	batch := make([]string, 0, batcheSize)
