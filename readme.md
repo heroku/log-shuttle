@@ -36,7 +36,24 @@ $ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
 $ echo 'hi world\n' | ./log-shuttle -logplex-token="123"
 ```
 
+### Flags
+
+Run the following command for available flags: `$ log-shuttle -h`
+
+#### front-buff
+
+The front buffer holds lines while the backend sends them to logplex. If log-shuttle receives large amounts of data with a small front-buff, log-shuttle will drop data. The number of dropped lines will be visible in log-shuttle's STDOUT.
+
+#### wait
+
+The backend routine that delivers log lines to logplex will execute if the front-buff is full or on a timed schedule --whichever occurs first. The timer is configurable by the wait flag.
+
+#### batch-size
+
+The batch-size determines how many rfc5424 formatted log-lines to pack into an HTTP request.
+
 ## License
+
 Copyright (c) 2012 Ryan R. Smith
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
