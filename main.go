@@ -16,20 +16,20 @@ import (
 	"time"
 )
 
-func prepare(w io.Writer, batch []string, logplexToken string) {
+func prepare(w io.Writer, batch []string, logplexToken, procid string) {
 	for _, msg := range batch {
 		t := time.Now().UTC().Format(time.RFC3339 + " ")
 		//http://tools.ietf.org/html/rfc5424
 		//<prival>version time host procid msgid msg \n
-		line := "<0>1 " + t + "1234 " + logplexToken + " web.1 " + "- - " + msg
+		line := "<0>1 " + t + "1234 " + logplexToken + " " + procid + " - - " + msg
 		fmt.Fprintf(w, "%d %s", len(line), line)
 	}
 }
 
-func outlet(batches <-chan []string, logplexToken, url string) {
+func outlet(batches <-chan []string, logplexToken, url, procid string) {
 	var b bytes.Buffer
 	for batch := range batches {
-		prepare(&b, batch, logplexToken)
+		prepare(&b, batch, logplexToken, procid)
 		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
 		resp, err := http.DefaultClient.Do(req)
@@ -113,6 +113,7 @@ func main() {
 	wait := flag.Int("wait", 500, "Number of ms to flush messages to logplex")
 	socket := flag.String("socket", "", "Location of UNIX domain socket.")
 	logplexToken := flag.String("logplex-token", "abc123", "Secret logplex token.")
+	procid := flag.String("procid", "", "The procid for the syslog payload")
 	flag.Parse()
 
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
@@ -132,7 +133,7 @@ func main() {
 
 	go report(lines, batches, &drops, &reads)
 	go handle(lines, batches, *batcheSize, *wait)
-	go outlet(batches, *logplexToken, logplexUrl.String())
+	go outlet(batches, *logplexToken, logplexUrl.String(), *procid)
 
 	if len(*socket) == 0 {
 		read(os.Stdin, lines, &drops, &reads)
