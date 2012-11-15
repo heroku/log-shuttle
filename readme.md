@@ -40,15 +40,23 @@ $ echo 'hi world\n' | ./log-shuttle -logplex-token="123"
 
 Run the following command for available flags: `$ log-shuttle -h`
 
-#### front-buff
+#### -logplex-token
+
+Logplex requries HTTP authentication. log-shuttle uses this flag's value to authenticate against the API in addition to inflating each log's headers with the token.
+
+#### -skip-headers
+
+There are certain cases in which you would not want log-shuttle to prepend log messages with the rfc5424 approved headers. By using the `skip-headers` flag, log-shuttle will not prepend headers before submitting the logs to logplex. If you are skipping headers, please ensure that you have the logplex token included in the headers.
+
+#### -front-buff
 
 The front buffer holds lines while the backend sends them to logplex. If log-shuttle receives large amounts of data with a small front-buff, log-shuttle will drop data. The number of dropped lines will be visible in log-shuttle's STDOUT.
 
-#### wait
+#### -wait
 
 The backend routine that delivers log lines to logplex will execute if the front-buff is full or on a timed schedule --whichever occurs first. The timer is configurable by the wait flag.
 
-#### batch-size
+#### -batch-size
 
 The batch-size determines how many rfc5424 formatted log-lines to pack into an HTTP request.
 
