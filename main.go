@@ -25,7 +25,7 @@ var (
 // Flags
 var (
 	frontBuff            = flag.Int("front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
-	batcheSize           = flag.Int("batch-size", 50, "Number of messages to pack into a logplex http request.")
+	batchSize            = flag.Int("batch-size", 50, "Number of messages to pack into a logplex http request.")
 	wait                 = flag.Int("wait", 500, "Number of ms to flush messages to logplex")
 	socket               = flag.String("socket", "", "Location of UNIX domain socket.")
 	logplexToken         = flag.String("logplex-token", "abc123", "Secret logplex token.")
@@ -98,23 +98,23 @@ func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeade
 
 // Handle facilitates the handoff between stdin/sockets & logplex http
 // requests. If there is high volume traffic on the lines channel, we
-// create batchces based on the batcheSize flag. For low volume traffic,
+// create batches based on the batchSize flag. For low volume traffic,
 // we create batches based on a time interval.
-func handle(lines <-chan string, batches chan<- []string, batcheSize, wait int) {
+func handle(lines <-chan string, batches chan<- []string, batchSize, wait int) {
 	ticker := time.Tick(time.Millisecond * time.Duration(wait))
-	batch := make([]string, 0, batcheSize)
+	batch := make([]string, 0, batchSize)
 	for {
 		select {
 		case <-ticker:
 			if len(batch) > 0 {
 				batches <- batch
-				batch = make([]string, 0, batcheSize)
+				batch = make([]string, 0, batchSize)
 			}
 		case l := <-lines:
 			batch = append(batch, l)
 			if len(batch) == cap(batch) {
 				batches <- batch
-				batch = make([]string, 0, batcheSize)
+				batch = make([]string, 0, batchSize)
 			}
 		}
 	}
@@ -167,7 +167,7 @@ func main() {
 	lines := make(chan string, *frontBuff)
 
 	go report(lines, batches, &drops, &reads)
-	go handle(lines, batches, *batcheSize, *wait)
+	go handle(lines, batches, *batchSize, *wait)
 	go outlet(batches, *logplexToken, logplexUrl.String(), *procid, *skipHeaders)
 
 	if len(*socket) == 0 {
