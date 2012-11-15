@@ -24,7 +24,7 @@ $ go build
 ### Connect Via UNIX Socket
 
 ```bash
-$ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
+$ export LOGPLEX_URL=https://logplex.com
 $ ./log-shuttle -logplex-token="123" -socket="/tmp/log-shuttle"
 $ echo 'hi world\n' | nc -U /tmp/log-shuttle
 ```
@@ -32,7 +32,7 @@ $ echo 'hi world\n' | nc -U /tmp/log-shuttle
 ### Connect Via STDOUT
 
 ```bash
-$ export LOGPLEX_URL=https://logplex.com WAIT=100 BUFF_SIZE=100
+$ export LOGPLEX_URL=https://logplex.com
 $ echo 'hi world\n' | ./log-shuttle -logplex-token="123"
 ```
 
