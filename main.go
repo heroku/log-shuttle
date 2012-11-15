@@ -16,20 +16,21 @@ import (
 	"time"
 )
 
-func prepare(w io.Writer, batch []string, logplexToken, procid string) {
+func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
 	for _, msg := range batch {
-		t := time.Now().UTC().Format(time.RFC3339 + " ")
-		//http://tools.ietf.org/html/rfc5424
-		//<prival>version time host procid msgid msg \n
-		line := "<0>1 " + t + "1234 " + logplexToken + " " + procid + " - - " + msg
-		fmt.Fprintf(w, "%d %s", len(line), line)
+		if !skipHeaders {
+			//http://tools.ietf.org/html/rfc5424
+			t := time.Now().UTC().Format(time.RFC3339 + " ")
+			msg = "<0>1 " + t + "1234 " + logplexToken + " " + procid + " - - " + msg
+		}
+		fmt.Fprintf(w, "%d %s", len(msg), msg)
 	}
 }
 
-func outlet(batches <-chan []string, logplexToken, url, procid string) {
+func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
 	var b bytes.Buffer
 	for batch := range batches {
-		prepare(&b, batch, logplexToken, procid)
+		prepare(&b, batch, logplexToken, procid, skipHeaders)
 		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
 		resp, err := http.DefaultClient.Do(req)
@@ -114,6 +115,7 @@ func main() {
 	socket := flag.String("socket", "", "Location of UNIX domain socket.")
 	logplexToken := flag.String("logplex-token", "abc123", "Secret logplex token.")
 	procid := flag.String("procid", "", "The procid for the syslog payload")
+	skipHeaders := flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
 	flag.Parse()
 
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
@@ -133,7 +135,7 @@ func main() {
 
 	go report(lines, batches, &drops, &reads)
 	go handle(lines, batches, *batcheSize, *wait)
-	go outlet(batches, *logplexToken, logplexUrl.String(), *procid)
+	go outlet(batches, *logplexToken, logplexUrl.String(), *procid, *skipHeaders)
 
 	if len(*socket) == 0 {
 		read(os.Stdin, lines, &drops, &reads)
