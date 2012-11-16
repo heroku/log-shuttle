@@ -20,7 +20,8 @@ func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeade
 	for _, msg := range batch {
 		if !skipHeaders {
 			//http://tools.ietf.org/html/rfc5424
-			t := time.Now().UTC().Format(time.RFC3339 + " ")
+			//<PRIVAL>VERSION TIME HOST APPNAME
+			t := time.Now().UTC().Format("2006-01-02T15:04:05+00:00 ")
 			msg = "<0>1 " + t + "1234 " + logplexToken + " " + procid + " - - " + msg
 		}
 		fmt.Fprintf(w, "%d %s", len(msg), msg)
