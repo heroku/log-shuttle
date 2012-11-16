@@ -60,6 +60,10 @@ The backend routine that delivers log lines to logplex will execute if the front
 
 The batch-size determines how many rfc5424 formatted log-lines to pack into an HTTP request.
 
+### l2met
+
+[l2met](github.com/ryandotsmith/l2met) is a service that will convert log lines into librato metrics. You can point log-shuttle at an l2met service for maximum log leverage. Just set LOGPLEX_URL to your l2met drain URL.
+
 ## License
 
 Copyright (c) 2012 Ryan R. Smith
