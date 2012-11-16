@@ -16,7 +16,7 @@ Problems that log-shuttle solves:
 
 ```bash
 # Assuming Go1.
-$ go get github.com/heroku/log-shuttle
+$ go get github.com/ryandotsmith/log-shuttle
 $ cd $GOPATH/src/github.com/ryandotsmith/log-shuttle
 $ go build
 ```
@@ -62,7 +62,7 @@ The batch-size determines how many rfc5424 formatted log-lines to pack into an H
 
 ### l2met
 
-[l2met](github.com/ryandotsmith/l2met) is a service that will convert log lines into librato metrics. You can point log-shuttle at an l2met service for maximum log leverage. Just set LOGPLEX_URL to your l2met drain URL.
+[l2met](https://github.com/ryandotsmith/l2met) is a service that will convert log lines into librato metrics. You can point log-shuttle at an l2met service for maximum log leverage. Just set LOGPLEX_URL to your l2met drain URL.
 
 ## License
 
