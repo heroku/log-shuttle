@@ -5,7 +5,7 @@ control_dir="$tempdir/DEBIAN"
 mkdir -p -m 0755 "$control_dir"
 cat > "$control_dir/control" <<EOF
 Package: log-shuttle
-Version: 0.0.1
+Version: 0.1.0
 Architecture: amd64
 Maintainer: "Ryan R. Smith" <ryan@heroku.com>
 Section: heroku
