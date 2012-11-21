@@ -121,7 +121,7 @@ func main() {
 
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
 	if err != nil {
-		log.Fatal("Can't parse LOGPLEX_URL")
+		log.Fatal("Can't parse LOGPLEX_URL: ", err)
 	}
 	logplexUrl.User = url.UserPassword("", *logplexToken)
 
