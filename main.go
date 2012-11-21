@@ -125,9 +125,11 @@ func main() {
 	}
 	logplexUrl.User = url.UserPassword("", *logplexToken)
 
-	//TODO Require a good cert from Logplex.
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	http.DefaultTransport = tr
+	if logplexUrl.Scheme == "https" {
+		//TODO Require a good cert from Logplex.
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		http.DefaultTransport = tr
+	}
 
 	var drops uint64 = 0 //count the number of droped lines
 	var reads uint64 = 0 //count the number of read lines
