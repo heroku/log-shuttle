@@ -1,6 +1,8 @@
 #!/usr/bin/env make -f
 
-tempdir        := $(shell mktemp -d -t log-shuttle)
+VERSION := 0.1.0
+
+tempdir        := $(shell mktemp -d)
 controldir     := $(tempdir)/DEBIAN
 installpath    := $(tempdir)/usr/local/bin
 buildpath      := .build
@@ -9,7 +11,7 @@ buildpackcache := $(buildpath)/cache
 
 define DEB_CONTROL
 Package: log-shuttle
-Version: 0.1.0
+Version: $(VERSION)
 Architecture: amd64
 Maintainer: "Ryan R. Smith" <ryan@heroku.com>
 Section: heroku
@@ -32,7 +34,7 @@ build: $(buildpackpath)/bin
 
 deb: build
 	mkdir -p -m 0755 $(controldir)
-	echo $$DEB_CONTROL > $(controldir)/control
+	echo "$$DEB_CONTROL" > $(controldir)/control
 	mkdir -p $(installpath)
 	install bin/log-shuttle $(installpath)/log-shuttle
 	fakeroot dpkg-deb --build $(tempdir) .
@@ -40,3 +42,4 @@ deb: build
 
 clean:
 	rm -rf $(buildpath)
+	rm -f log-shuttle*.deb
