@@ -20,18 +20,6 @@ Description: Move logs from the Dyno to the Logplex.
 endef
 export DEB_CONTROL
 
-$(buildpackcache):
-	mkdir -p $(buildpath)
-	mkdir -p $(buildpackcache)
-	wget -P $(buildpath) http://codon-buildpacks.s3.amazonaws.com/buildpacks/fabiokung/go-git-only.tgz
-
-$(buildpackpath)/bin: $(buildpackcache)
-	mkdir -p $(buildpackpath)
-	tar -C $(buildpackpath) -zxf $(buildpath)/go-git-only.tgz
-
-build: $(buildpackpath)/bin
-	$(buildpackpath)/bin/compile . $(buildpackcache)
-
 deb: build
 	mkdir -p -m 0755 $(controldir)
 	echo "$$DEB_CONTROL" > $(controldir)/control
@@ -43,3 +31,15 @@ deb: build
 clean:
 	rm -rf $(buildpath)
 	rm -f log-shuttle*.deb
+
+build: $(buildpackpath)/bin
+	$(buildpackpath)/bin/compile . $(buildpackcache)
+
+$(buildpackcache):
+	mkdir -p $(buildpath)
+	mkdir -p $(buildpackcache)
+	wget -P $(buildpath) http://codon-buildpacks.s3.amazonaws.com/buildpacks/fabiokung/go-git-only.tgz
+
+$(buildpackpath)/bin: $(buildpackcache)
+	mkdir -p $(buildpackpath)
+	tar -C $(buildpackpath) -zxf $(buildpath)/go-git-only.tgz
