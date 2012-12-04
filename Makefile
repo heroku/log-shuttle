@@ -4,7 +4,7 @@ VERSION := 0.1.0
 
 tempdir        := $(shell mktemp -d)
 controldir     := $(tempdir)/DEBIAN
-installpath    := $(tempdir)/usr/local/bin
+installpath    := $(tempdir)/usr/bin
 buildpath      := .build
 buildpackpath  := $(buildpath)/pack
 buildpackcache := $(buildpath)/cache
