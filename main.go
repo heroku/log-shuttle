@@ -127,7 +127,7 @@ func main() {
 	// If the username and password weren't part of the URL, use the
 	// logplex-token as the password
 	if logplexUrl.User == nil {
-		logplexUrl.User = url.UserPassword("", *logplexToken)
+		logplexUrl.User = url.UserPassword("token", *logplexToken)
 	}
 
 	if logplexUrl.Scheme == "https" {
