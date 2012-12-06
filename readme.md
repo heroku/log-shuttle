@@ -21,10 +21,17 @@ $ cd $GOPATH/src/github.com/ryandotsmith/log-shuttle
 $ go build
 ```
 
-### Connect Via UNIX Socket
+### Set `LOGPLEX_URL`
 
 ```bash
 $ export LOGPLEX_URL=https://logplex.com
+$ # or with basic auth creds which will be used for HTTP requests:
+$ export LOGPLEX_URL=https://user:password@logplex.com
+```
+
+### Connect Via UNIX Socket
+
+```bash
 $ ./log-shuttle -logplex-token="123" -socket="/tmp/log-shuttle"
 $ echo 'hi world\n' | nc -U /tmp/log-shuttle
 ```
@@ -32,7 +39,6 @@ $ echo 'hi world\n' | nc -U /tmp/log-shuttle
 ### Connect Via STDOUT
 
 ```bash
-$ export LOGPLEX_URL=https://logplex.com
 $ echo 'hi world\n' | ./log-shuttle -logplex-token="123"
 ```
 
@@ -42,7 +48,7 @@ Run the following command for available flags: `$ log-shuttle -h`
 
 #### -logplex-token
 
-Logplex requries HTTP authentication. log-shuttle uses this flag's value to authenticate against the API in addition to inflating each log's headers with the token.
+log-shuttle uses this flag's value to inflate each log's headers with the token, which serves as an identifier of the source of the log message. If the `LOGPLEX_URL` does not contain a username or password, this value is also used as the HTTP Basic Auth password.
 
 #### -skip-headers
 

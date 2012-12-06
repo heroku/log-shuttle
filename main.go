@@ -123,7 +123,12 @@ func main() {
 	if err != nil {
 		log.Fatal("Can't parse LOGPLEX_URL: ", err)
 	}
-	logplexUrl.User = url.UserPassword("", *logplexToken)
+
+	// If the username and password weren't part of the URL, use the
+	// logplex-token as the password
+	if logplexUrl.User == nil {
+		logplexUrl.User = url.UserPassword("", *logplexToken)
+	}
 
 	if logplexUrl.Scheme == "https" {
 		//TODO Require a good cert from Logplex.
