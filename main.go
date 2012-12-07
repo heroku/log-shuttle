@@ -14,6 +14,7 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
+	"strconv"
 )
 
 func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
@@ -34,6 +35,7 @@ func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeade
 		prepare(&b, batch, logplexToken, procid, skipHeaders)
 		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
+		req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(batch)))
 		resp, err := http.DefaultClient.Do(req)
 		b.Reset()
 		if err != nil {
