@@ -117,6 +117,7 @@ func main() {
 	logplexToken := flag.String("logplex-token", "abc123", "Secret logplex token.")
 	procid := flag.String("procid", "", "The procid for the syslog payload")
 	skipHeaders := flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
+	skipCertVerification := flag.Bool("skip-cert-verification", false, "Disable SSL cert validation.")
 	flag.Parse()
 
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
@@ -132,7 +133,7 @@ func main() {
 
 	if logplexUrl.Scheme == "https" {
 		//TODO Require a good cert from Logplex.
-		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: *skipCertVerification}}
 		http.DefaultTransport = tr
 	}
 
