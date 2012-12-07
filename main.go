@@ -14,6 +14,7 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
+	"strconv"
 )
 
 func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
@@ -34,6 +35,7 @@ func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeade
 		prepare(&b, batch, logplexToken, procid, skipHeaders)
 		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
+		req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(batch)))
 		resp, err := http.DefaultClient.Do(req)
 		b.Reset()
 		if err != nil {
@@ -117,6 +119,7 @@ func main() {
 	logplexToken := flag.String("logplex-token", "abc123", "Secret logplex token.")
 	procid := flag.String("procid", "", "The procid for the syslog payload")
 	skipHeaders := flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
+	skipCertVerification := flag.Bool("skip-cert-verification", false, "Disable SSL cert validation.")
 	flag.Parse()
 
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
@@ -132,7 +135,7 @@ func main() {
 
 	if logplexUrl.Scheme == "https" {
 		//TODO Require a good cert from Logplex.
-		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: *skipCertVerification}}
 		http.DefaultTransport = tr
 	}
 
