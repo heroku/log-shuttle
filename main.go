@@ -29,6 +29,10 @@ var (
 	skipCertVerification = flag.Bool("skip-cert-verification", false, "Disable SSL cert validation.")
 )
 
+func init() {
+	flag.Parse()
+}
+
 func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
 	for _, msg := range batch {
 		if !skipHeaders {
@@ -124,8 +128,6 @@ func report(lines chan string, batches chan []string, drops, reads *uint64) {
 }
 
 func main() {
-	flag.Parse()
-
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
 	if err != nil {
 		log.Fatal("Can't parse LOGPLEX_URL: ", err)
