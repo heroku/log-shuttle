@@ -12,9 +12,21 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"sync/atomic"
 	"time"
-	"strconv"
+)
+
+// Flags
+var (
+	frontBuff            = flag.Int("front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
+	batcheSize           = flag.Int("batch-size", 50, "Number of messages to pack into a logplex http request.")
+	wait                 = flag.Int("wait", 500, "Number of ms to flush messages to logplex")
+	socket               = flag.String("socket", "", "Location of UNIX domain socket.")
+	logplexToken         = flag.String("logplex-token", "abc123", "Secret logplex token.")
+	procid               = flag.String("procid", "", "The procid for the syslog payload")
+	skipHeaders          = flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
+	skipCertVerification = flag.Bool("skip-cert-verification", false, "Disable SSL cert validation.")
 )
 
 func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
@@ -112,14 +124,6 @@ func report(lines chan string, batches chan []string, drops, reads *uint64) {
 }
 
 func main() {
-	frontBuff := flag.Int("front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
-	batcheSize := flag.Int("batch-size", 50, "Number of messages to pack into a logplex http request.")
-	wait := flag.Int("wait", 500, "Number of ms to flush messages to logplex")
-	socket := flag.String("socket", "", "Location of UNIX domain socket.")
-	logplexToken := flag.String("logplex-token", "abc123", "Secret logplex token.")
-	procid := flag.String("procid", "", "The procid for the syslog payload")
-	skipHeaders := flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
-	skipCertVerification := flag.Bool("skip-cert-verification", false, "Disable SSL cert validation.")
 	flag.Parse()
 
 	logplexUrl, err := url.Parse(os.Getenv("LOGPLEX_URL"))
