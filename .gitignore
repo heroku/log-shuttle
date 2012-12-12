@@ -1,9 +1,0 @@
-.gitignore
-scratch
-log-shuttle
-demo
-sample-logs
-.build
-bin/
-log-shuttle*.deb
-.env
