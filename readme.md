@@ -33,13 +33,13 @@ $ export LOGPLEX_URL=https://user:password@logplex.com
 
 ```bash
 $ ./log-shuttle -logplex-token="123" -socket="/tmp/log-shuttle"
-$ echo 'hi world\n' | nc -U /tmp/log-shuttle
+$ echo 'hi world' | nc -U /tmp/log-shuttle
 ```
 
 ### Connect Via STDOUT
 
 ```bash
-$ echo 'hi world\n' | ./log-shuttle -logplex-token="123"
+$ echo 'hi world' | ./log-shuttle -logplex-token="123" -procid="demo" -batch-size=1
 ```
 
 ### Flags
