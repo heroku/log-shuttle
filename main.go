@@ -66,6 +66,8 @@ func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeade
 	}
 }
 
+// Outlet takes batches of log lines and submits them to logplex via HTTP.
+// Additionaly it can wrap each log line with a syslog header.
 func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
 	var b bytes.Buffer
 	for batch := range batches {
