@@ -17,27 +17,6 @@ import (
 	"time"
 )
 
-//Env
-var (
-	logplexUrl = os.Getenv("LOGPLEX_URL")
-)
-
-func init() {
-	url, err := url.Parse(logplexUrl)
-	if err != nil {
-		log.Fatal("Can't parse LOGPLEX_URL: ", err)
-	}
-	// If the username and password weren't part of the URL, use the
-	// logplex-token as the password
-	if logplexUrl.User == nil {
-		logplexUrl.User = url.UserPassword("token", *logplexToken)
-	}
-	if logplexUrl.Scheme == "https" {
-		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: *skipCertVerification}}
-		http.DefaultTransport = tr
-	}
-}
-
 // Flags
 var (
 	frontBuff            = flag.Int("front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
@@ -53,6 +32,30 @@ var (
 func init() {
 	flag.Parse()
 }
+
+//Env
+var (
+	logplexUrl *url.URL
+	logplexUrlString = os.Getenv("LOGPLEX_URL")
+)
+
+func init() {
+	var err error
+	logplexUrl, err = url.Parse(logplexUrlString)
+	if err != nil {
+		log.Fatal("Can't parse LOGPLEX_URL: ", err)
+	}
+	// If the username and password weren't part of the URL, use the
+	// logplex-token as the password
+	if logplexUrl.User == nil {
+		logplexUrl.User = url.UserPassword("token", *logplexToken)
+	}
+	if logplexUrl.Scheme == "https" {
+		tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: *skipCertVerification}}
+		http.DefaultTransport = tr
+	}
+}
+
 
 func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
 	for _, msg := range batch {
