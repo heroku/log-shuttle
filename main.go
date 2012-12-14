@@ -13,8 +13,13 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
+)
+
+var (
+	reqInFlight sync.WaitGroup
 )
 
 // Flags
@@ -74,6 +79,7 @@ func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeade
 func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
 	var b bytes.Buffer
 	for batch := range batches {
+		reqInFlight.Add(1)
 		prepare(&b, batch, logplexToken, procid, skipHeaders)
 		req, _ := http.NewRequest("POST", url, &b)
 		req.Header.Add("Content-Type", "application/logplex-1")
@@ -86,6 +92,7 @@ func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeade
 			fmt.Printf("at=logplex-post status=%v\n", resp.StatusCode)
 			resp.Body.Close()
 		}
+		reqInFlight.Done()
 	}
 }
 
@@ -165,6 +172,7 @@ func main() {
 
 	if len(*socket) == 0 {
 		read(os.Stdin, lines, &drops, &reads)
+		reqInFlight.Wait()
 	} else {
 		l, err := net.Listen("unix", *socket)
 		if err != nil {
