@@ -84,19 +84,23 @@ func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeade
 	var b bytes.Buffer
 	for batch := range batches {
 		reqInFlight.Add(1)
-		prepare(&b, batch, logplexToken, procid, skipHeaders)
-		req, _ := http.NewRequest("POST", url, &b)
-		req.Header.Add("Content-Type", "application/logplex-1")
-		req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(batch)))
-		resp, err := http.DefaultClient.Do(req)
-		b.Reset()
-		if err != nil {
-			fmt.Printf("error=%v\n", err)
-		} else {
-			fmt.Printf("at=logplex-post status=%v\n", resp.StatusCode)
-			resp.Body.Close()
-		}
-		reqInFlight.Done()
+		defer reqInFlight.Done()
+		postLogs(b, batch, logplexToken, url, procid, skipHeaders)
+	}
+}
+
+func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, skipHeaders bool) {
+	prepare(&b, batch, logplexToken, procid, skipHeaders)
+	req, _ := http.NewRequest("POST", url, &b)
+	req.Header.Add("Content-Type", "application/logplex-1")
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(batch)))
+	resp, err := http.DefaultClient.Do(req)
+	b.Reset()
+	if err != nil {
+		fmt.Printf("error=%v\n", err)
+	} else {
+		fmt.Printf("at=logplex-post status=%v\n", resp.StatusCode)
+		resp.Body.Close()
 	}
 }
 
