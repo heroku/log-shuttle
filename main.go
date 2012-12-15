@@ -40,7 +40,7 @@ func init() {
 
 //Env
 var (
-	logplexUrl *url.URL
+	logplexUrl       *url.URL
 	logplexUrlString = os.Getenv("LOGPLEX_URL")
 )
 
@@ -60,7 +60,6 @@ func init() {
 		http.DefaultTransport = tr
 	}
 }
-
 
 func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
 	for _, msg := range batch {
