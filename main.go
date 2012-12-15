@@ -78,6 +78,8 @@ func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeade
 }
 
 func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, skipHeaders bool) {
+	reqInFlight.Add(1)
+	defer reqInFlight.Done()
 	prepare(&b, batch, logplexToken, procid, skipHeaders)
 	req, _ := http.NewRequest("POST", url, &b)
 	req.Header.Add("Content-Type", "application/logplex-1")
@@ -97,8 +99,6 @@ func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, 
 func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
 	var b bytes.Buffer
 	for batch := range batches {
-		reqInFlight.Add(1)
-		defer reqInFlight.Done()
 		postLogs(b, batch, logplexToken, url, procid, skipHeaders)
 	}
 }
