@@ -37,10 +37,10 @@ var (
 
 func init() {
 	flag.Parse()
-		
-  if workerCount < 1 {
-    workerCount = 1 // workerCount needs to be >= 1
-  }
+
+	if workerCount < 1 {
+		workerCount = 1 // workerCount needs to be >= 1
+	}
 }
 
 //Env
