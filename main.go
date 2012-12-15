@@ -77,17 +77,6 @@ func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeade
 	}
 }
 
-// Outlet takes batches of log lines and submits them to logplex via HTTP.
-// Additionaly it can wrap each log line with a syslog header.
-func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
-	var b bytes.Buffer
-	for batch := range batches {
-		reqInFlight.Add(1)
-		defer reqInFlight.Done()
-		postLogs(b, batch, logplexToken, url, procid, skipHeaders)
-	}
-}
-
 func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, skipHeaders bool) {
 	prepare(&b, batch, logplexToken, procid, skipHeaders)
 	req, _ := http.NewRequest("POST", url, &b)
@@ -100,6 +89,17 @@ func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, 
 	} else {
 		fmt.Printf("at=logplex-post status=%v\n", resp.StatusCode)
 		resp.Body.Close()
+	}
+}
+
+// Outlet takes batches of log lines and submits them to logplex via HTTP.
+// Additionaly it can wrap each log line with a syslog header.
+func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
+	var b bytes.Buffer
+	for batch := range batches {
+		reqInFlight.Add(1)
+		defer reqInFlight.Done()
+		postLogs(b, batch, logplexToken, url, procid, skipHeaders)
 	}
 }
 
