@@ -87,9 +87,9 @@ func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, 
 	resp, err := http.DefaultClient.Do(req)
 	b.Reset()
 	if err != nil {
-		fmt.Printf("error=%v\n", err)
+		fmt.Fprintf(os.Stderr, "error=%v\n", err)
 	} else {
-		fmt.Printf("at=logplex-post status=%v\n", resp.StatusCode)
+		fmt.Fprintf(os.Stderr, "at=logplex-post status=%v\n", resp.StatusCode)
 		resp.Body.Close()
 	}
 }
@@ -163,7 +163,7 @@ func report(lines chan string, batches chan []string, drops, reads *uint64) {
 		r := atomic.LoadUint64(reads)
 		atomic.AddUint64(drops, -d)
 		atomic.AddUint64(reads, -r)
-		fmt.Fprintf(os.Stdout, "reads=%d drops=%d lines=%d batches=%d\n", r, d, len(lines), len(batches))
+		fmt.Fprintf(os.Stderr, "reads=%d drops=%d lines=%d batches=%d\n", r, d, len(lines), len(batches))
 	}
 }
 
@@ -190,7 +190,7 @@ func main() {
 		for {
 			conn, err := l.Accept()
 			if err != nil {
-				fmt.Printf("Accept error. err=%v", err)
+				fmt.Fprintf(os.Stderr, "Accept error. err=%v", err)
 			}
 			go read(conn, lines, &drops, &reads)
 		}
