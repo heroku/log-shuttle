@@ -14,7 +14,7 @@ Design decisions:
 
 * 1 log-shuttle per logplex token disables noisy neighbors.
 * Many logplex tokens on 1 log-shuttle is possible but dangerous.
-* Fail fast and in contain failure inside the log-shuttle process.
+* Fail fast and contain failure inside the log-shuttle process.
 
 ## Usage
 
