@@ -25,14 +25,14 @@ var (
 // Flags
 var (
 	frontBuff            = flag.Int("front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
-	batchSize            = flag.Int("batch-size", 50, "Number of messages to pack into a logplex http request.")
+	batchSize            = flag.Int("batch-size", 1, "Number of messages to pack into a logplex http request.")
 	wait                 = flag.Int("wait", 500, "Number of ms to flush messages to logplex")
 	workerCount          = flag.Int("workers", 1, "Number of concurrent outlet workers (and HTTP connections)")
 	socket               = flag.String("socket", "", "Location of UNIX domain socket.")
-	logplexToken         = flag.String("logplex-token", "abc123", "Secret logplex token.")
-	procid               = flag.String("procid", "", "The procid for the syslog payload")
+	logplexToken         = flag.String("logplex-token", "token", "Secret logplex token.")
+	procid               = flag.String("procid", "shuttle", "The procid for the syslog payload")
 	skipHeaders          = flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
-	skipCertVerification = flag.Bool("skip-cert-verification", false, "Disable SSL cert validation.")
+	skipCertVerification = flag.Bool("skip-cert-verification", true, "Disable SSL cert validation.")
 )
 
 func init() {
