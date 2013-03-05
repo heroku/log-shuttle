@@ -69,7 +69,7 @@ func prepare(w io.Writer, batch []string) {
 	for _, msg := range batch {
 		var packet string
 		if !*skipHeaders {
-			prival := 0
+			prival := 190 //local7/info
 			version := 1
 			timestamp := time.Now().UTC().Format("2006-01-02T15:04:05+00:00")
 			hostname := "hostname"
