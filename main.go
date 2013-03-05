@@ -30,7 +30,7 @@ var (
 	workerCount          = flag.Int("workers", 1, "Number of concurrent outlet workers (and HTTP connections)")
 	socket               = flag.String("socket", "", "Location of UNIX domain socket.")
 	logplexToken         = flag.String("logplex-token", "token", "Secret logplex token.")
-	procid               = flag.String("procid", "shuttle", "The procid for the syslog payload")
+	procid               = flag.String("procid", "shuttle", "The app-name field for the syslog header.")
 	skipHeaders          = flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
 	skipCertVerification = flag.Bool("skip-cert-verification", true, "Disable SSL cert validation.")
 )
@@ -65,23 +65,30 @@ func init() {
 	}
 }
 
-func prepare(w io.Writer, batch []string, logplexToken, procid string, skipHeaders bool) {
+func prepare(w io.Writer, batch []string) {
 	for _, msg := range batch {
-		if !skipHeaders {
-			//http://tools.ietf.org/html/rfc5424
-			//<PRIVAL>VERSION TIME HOST APPNAME
-			t := time.Now().UTC().Format("2006-01-02T15:04:05+00:00 ")
-			msg = "<0>1 " + t + "1234 " + logplexToken + " " + procid + " - - " + msg
+		var packet string
+		if !*skipHeaders {
+			prival := 0
+			version := 1
+			timestamp := time.Now().UTC().Format("2006-01-02T15:04:05+00:00")
+			hostname := "hostname"
+			appname := *logplexToken
+			msgid := "- -"
+			layout := "<%d>%d %s %s %s %s %s %s"
+			packet = fmt.Sprintf(layout,
+				prival, version, timestamp, hostname, appname, *procid, msgid,
+				msg)
 		}
-		fmt.Fprintf(w, "%d %s", len(msg), msg)
+		fmt.Fprintf(w, "%d %s", len(packet), packet)
 	}
 }
 
-func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, skipHeaders bool) {
+func postLogs(b bytes.Buffer, batch []string) {
 	reqInFlight.Add(1)
 	defer reqInFlight.Done()
-	prepare(&b, batch, logplexToken, procid, skipHeaders)
-	req, _ := http.NewRequest("POST", url, &b)
+	prepare(&b, batch)
+	req, _ := http.NewRequest("POST", logplexUrl.String(), &b)
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(batch)))
 	resp, err := http.DefaultClient.Do(req)
@@ -96,10 +103,10 @@ func postLogs(b bytes.Buffer, batch []string, logplexToken, url, procid string, 
 
 // Outlet takes batches of log lines and submits them to logplex via HTTP.
 // Additionaly it can wrap each log line with a syslog header.
-func outlet(batches <-chan []string, logplexToken, url, procid string, skipHeaders bool) {
+func outlet(batches <-chan []string) {
 	var b bytes.Buffer
 	for batch := range batches {
-		postLogs(b, batch, logplexToken, url, procid, skipHeaders)
+		postLogs(b, batch)
 	}
 }
 
@@ -176,7 +183,7 @@ func main() {
 	go report(lines, batches, &drops, &reads)
 	go handle(lines, batches, *batchSize, *wait)
 	for i := 0; i < *workerCount; i++ {
-		go outlet(batches, *logplexToken, logplexUrl.String(), *procid, *skipHeaders)
+		go outlet(batches)
 	}
 
 	if len(*socket) == 0 {
