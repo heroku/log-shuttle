@@ -81,6 +81,7 @@ The batch-size determines how many rfc5424 formatted log-lines to pack into an H
 * Keep changes in a feature branch
 * Submit PR
 * Update `logShuttleVersion` in main.go
+* Update `VERSION` in Makefile
 * Add entry in CHANGELOG
 * git tag -a vX.Y.Z -m 'vX.Y.Z had this change' HEAD
 
