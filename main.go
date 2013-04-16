@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+var logShuttleVersion = "0.0.1"
+
 var (
 	reqInFlight sync.WaitGroup
 )
@@ -33,6 +35,7 @@ var (
 	procid               = flag.String("procid", "shuttle", "The app-name field for the syslog header.")
 	skipHeaders          = flag.Bool("skip-headers", false, "Skip the prepending of rfc5424 headers.")
 	skipCertVerification = flag.Bool("skip-cert-verification", true, "Disable SSL cert validation.")
+	printVersion         = flag.Bool("version", false, "Print log-shuttle version.")
 )
 
 func init() {
@@ -175,6 +178,10 @@ func report(lines chan string, batches chan []string, drops, reads *uint64) {
 }
 
 func main() {
+	if *printVersion {
+		fmt.Println(logShuttleVersion)
+		os.Exit(0)
+	}
 	var drops uint64 = 0 //count the number of droped lines
 	var reads uint64 = 0 //count the number of read lines
 	batches := make(chan []string)
