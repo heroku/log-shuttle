@@ -76,6 +76,14 @@ The batch-size determines how many rfc5424 formatted log-lines to pack into an H
 
 [l2met](https://github.com/ryandotsmith/l2met) is a service that will convert log lines into librato metrics. You can point log-shuttle at an l2met service for maximum log leverage. Just set LOGPLEX_URL to your l2met drain URL.
 
+## Hacking on log-shuttle
+
+* Keep changes in a feature branch
+* Submit PR
+* Update `logShuttleVersion` in main.go
+* Add entry in CHANGELOG
+* git tag -a vX.Y.Z -m 'vX.Y.Z had this change' HEAD
+
 ## License
 
 Copyright (c) 2012 Ryan R. Smith
