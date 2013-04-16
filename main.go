@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-var logShuttleVersion = "0.1.3"
+var logShuttleVersion = "0.1.4"
 
 var (
 	reqInFlight sync.WaitGroup
