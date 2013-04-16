@@ -82,6 +82,8 @@ func prepare(w io.Writer, batch []string) {
 			packet = fmt.Sprintf(layout,
 				prival, version, timestamp, hostname, appname, *procid, msgid,
 				msg)
+		} else {
+			packet = msg
 		}
 		fmt.Fprintf(w, "%d %s", len(packet), packet)
 	}
