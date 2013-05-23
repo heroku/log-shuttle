@@ -4,6 +4,24 @@ See the project's [website](http://log-shuttle.io) for synopsis, setup, and usag
 
 ## Hacking on log-shuttle
 
+### Local Setup
+
+```bash
+$ go version
+go version go1.1 darwin/amd64
+$ git clone https://github.com/heroku/log-shuttle.git
+$ cd log-shuttle
+$ go build
+```
+
+### Testing
+
+```bash
+$ go test
+```
+
+### Submitting Code
+
 Before starting to work an a feature, drop a line to the [mailing list](https://groups.google.com/d/forum/log-shuttle) to get feedback and pro-tips.
 
 * Keep changes in a feature branch
