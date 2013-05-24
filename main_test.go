@@ -18,10 +18,10 @@ func (i *testInput) Close() error {
 }
 
 func TestIntegration(t *testing.T) {
-	var requestBody []byte
+	var actual []byte
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
-		requestBody, err = ioutil.ReadAll(r.Body)
+		actual, err = ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -43,7 +43,7 @@ func TestIntegration(t *testing.T) {
 	outlet.InFLight.Wait()
 
 	pat := regexp.MustCompile(`71 <190>1 [0-9T:\\+\\-]+ shuttle token shuttle - - Hello World`)
-	if !pat.Match(requestBody) {
-		t.Fatalf("actual=%s\n", string(requestBody))
+	if !pat.Match(actual) {
+		t.Fatalf("actual=%s\n", string(actual))
 	}
 }
