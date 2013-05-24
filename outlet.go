@@ -15,14 +15,12 @@ type HttpOutlet struct {
 	Outbox   chan []string
 	InFLight sync.WaitGroup
 	Config   *ShuttleConfig
-	Stop     chan int
 }
 
 func NewOutlet(conf *ShuttleConfig, inbox chan string) *HttpOutlet {
 	h := new(HttpOutlet)
 	h.Config = conf
 	h.Inbox = inbox
-	h.Stop = make(chan int)
 	h.Outbox = make(chan []string, h.Config.BatchSize)
 	return h
 }
@@ -47,8 +45,6 @@ func (h *HttpOutlet) Transfer() error {
 				h.Outbox <- batch
 				batch = make([]string, 0, h.Config.BatchSize)
 			}
-		case <-h.Stop:
-			return nil
 		}
 	}
 }
