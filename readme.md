@@ -4,6 +4,8 @@ See the project's [website](http://log-shuttle.io) for synopsis, setup, and usag
 
 ## Hacking on log-shuttle
 
+[![Build Status](https://drone.io/github.com/heroku/log-shuttle/status.png)](https://drone.io/github.com/heroku/log-shuttle/latest)
+
 ### Local Setup
 
 ```bash
