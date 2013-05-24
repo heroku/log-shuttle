@@ -1,6 +1,6 @@
 ### 0.2 2013-05-23 Ryan Smith <r@32k.io>
 
-* [linux](), [osx](), [deb]()
+* [linux](https://s3-us-west-2.amazonaws.com/log-shuttle.io/v0.2/linux/amd64/log-shuttle.tar.gz), [osx](https://s3-us-west-2.amazonaws.com/log-shuttle.io/v0.2/osx/log-shuttle.tar.gz), [deb](https://s3-us-west-2.amazonaws.com/log-shuttle.io/v0.2/linux/amd64/log-shuttle_0.2_amd64.deb)
 * Remove read/drop reports from stdout.
 * Refactor & adding tests.
 
