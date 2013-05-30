@@ -56,19 +56,20 @@ func (h *HttpOutlet) Outlet() {
 	//This is to make fewer memory allocations.
 	var b bytes.Buffer
 	for logs := range h.Outbox {
-		if err := h.post(b, logs); err != nil {
+		if err := h.post(&b, logs); err != nil {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
 		}
+		b.Reset()
 	}
 }
 
-func (h *HttpOutlet) post(b bytes.Buffer, logs []string) error {
+func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 	//Track the number of http requests we have in flight.
 	h.InFLight.Add(1)
 	defer h.InFLight.Done()
 
-	SyslogFmt(&b, logs, h.Config)
-	req, err := http.NewRequest("POST", h.Config.OutletURL(), &b)
+	SyslogFmt(b, logs, h.Config)
+	req, err := http.NewRequest("POST", h.Config.OutletURL(), b)
 	if err != nil {
 		return err
 	}
@@ -76,8 +77,6 @@ func (h *HttpOutlet) post(b bytes.Buffer, logs []string) error {
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(logs)))
 	resp, err := http.DefaultClient.Do(req)
-	//We need to reset the buffer when we are done with it.
-	b.Reset()
 	if err != nil {
 		return err
 	}
