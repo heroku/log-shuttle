@@ -42,7 +42,7 @@ func TestIntegration(t *testing.T) {
 	reader.Read()
 	outlet.InFLight.Wait()
 
-	pat := regexp.MustCompile(`71 <190>1 [0-9T:\\+\\-]+ shuttle token shuttle - - Hello World`)
+	pat := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	if !pat.Match(actual) {
 		t.Fatalf("actual=%s\n", string(actual))
 	}

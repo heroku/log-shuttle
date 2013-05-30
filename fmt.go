@@ -17,7 +17,7 @@ func SyslogFmt(w io.Writer, logs []string, conf *ShuttleConfig) {
 			packet = fmt.Sprintf(layout,
 				conf.Prival,
 				conf.Version,
-				time.Now().UTC().Format("2006-01-02T15:04:05+00:00"),
+				time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00"),
 				conf.Hostname,
 				conf.Appname,
 				conf.Procid,
