@@ -24,6 +24,7 @@ type ShuttleConfig struct {
 	Appname      string
 	Msgid        string
 	SkipHeaders  bool
+	SkipVerify   bool
 	PrintVersion bool
 	Verbose      bool
 }
@@ -32,6 +33,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.BoolVar(&c.PrintVersion, "version", false, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", false, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
+	flag.BoolVar(&c.SkipVerify, "skip-verify", false, "Skip the verification of HTTPS server certificate.")
 	flag.StringVar(&c.Prival, "prival", "190", "The primary value of the rfc5424 header.")
 	flag.StringVar(&c.Version, "syslog-version", "1", "The version of syslog.")
 	flag.StringVar(&c.Procid, "procid", "shuttle", "The procid field for the syslog header.")
