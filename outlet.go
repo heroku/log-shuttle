@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ type HttpOutlet struct {
 	Outbox   chan []string
 	InFLight sync.WaitGroup
 	Config   *ShuttleConfig
+	client   *http.Client
 }
 
 func NewOutlet(conf *ShuttleConfig, inbox chan string) *HttpOutlet {
@@ -22,6 +24,8 @@ func NewOutlet(conf *ShuttleConfig, inbox chan string) *HttpOutlet {
 	h.Config = conf
 	h.Inbox = inbox
 	h.Outbox = make(chan []string, h.Config.BatchSize)
+	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: conf.SkipVerify}}
+	h.client = &http.Client{Transport: httpTransport}
 	return h
 }
 
@@ -76,7 +80,7 @@ func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(logs)))
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return err
 	}
