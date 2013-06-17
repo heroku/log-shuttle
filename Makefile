@@ -5,9 +5,6 @@ VERSION := 0.1.4
 tempdir        := $(shell mktemp -d)
 controldir     := $(tempdir)/DEBIAN
 installpath    := $(tempdir)/usr/bin
-buildpath      := .build
-buildpackpath  := $(buildpath)/pack
-buildpackcache := $(buildpath)/cache
 
 define DEB_CONTROL
 Package: log-shuttle
@@ -29,17 +26,11 @@ deb: build
 	rm -rf $(tempdir)
 
 clean:
-	rm -rf $(buildpath)
+	rm -rf ./bin/
+	rm -rf .build/
+	rm -rf ./.profile.d/
 	rm -f log-shuttle*.deb
 
-build: $(buildpackpath)/bin
-	$(buildpackpath)/bin/compile . $(buildpackcache)
-
-$(buildpackcache):
-	mkdir -p $(buildpath)
-	mkdir -p $(buildpackcache)
-	wget -P $(buildpath) http://codon-buildpacks.s3.amazonaws.com/buildpacks/fabiokung/go-git-only.tgz
-
-$(buildpackpath)/bin: $(buildpackcache)
-	mkdir -p $(buildpackpath)
-	tar -C $(buildpackpath) -zxf $(buildpath)/go-git-only.tgz
+build:
+	git clone git://github.com/kr/heroku-buildpack-go.git .build
+	.build/bin/compile . .build/cache/
