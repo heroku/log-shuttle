@@ -17,7 +17,7 @@ Description: Move logs from the Dyno to the Logplex.
 endef
 export DEB_CONTROL
 
-deb: build
+deb: bin/log-shuttle
 	mkdir -p -m 0755 $(controldir)
 	echo "$$DEB_CONTROL" > $(controldir)/control
 	mkdir -p $(installpath)
@@ -25,12 +25,14 @@ deb: build
 	fakeroot dpkg-deb --build $(tempdir) .
 	rm -rf $(tempdir)
 
+bin/log-shuttle:
+	git clone git://github.com/kr/heroku-buildpack-go.git .build
+	.build/bin/compile . .build/cache/
+
 clean:
 	rm -rf ./bin/
 	rm -rf .build/
 	rm -rf ./.profile.d/
 	rm -f log-shuttle*.deb
 
-build:
-	git clone git://github.com/kr/heroku-buildpack-go.git .build
-	.build/bin/compile . .build/cache/
+build: bin/log-shuttle
