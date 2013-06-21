@@ -33,6 +33,15 @@ Before starting to work an a feature, drop a line to the [mailing list](https://
 * Add entry in CHANGELOG
 * git tag -a vX.Y -m 'vX.Y had this change' HEAD
 
+### Building on Heroku
+
+```bash
+> heroku create -r build -b https://github.com/kr/heroku-buildpack-go.git log-shuttle-build
+> git push build master
+> heroku open -r build
+```
+Download deb
+
 ## License
 
 Copyright (c) 2012 Ryan R. Smith
