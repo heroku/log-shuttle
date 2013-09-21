@@ -19,8 +19,9 @@ func main() {
 	}
 
 	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox)
+	go reader.Report()
 
+	outlet := NewOutlet(conf, reader.Outbox)
 	go outlet.Transfer()
 	go outlet.Outlet()
 

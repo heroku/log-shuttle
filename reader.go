@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"sync/atomic"
+	"time"
 )
 
 type Reader struct {
@@ -44,4 +46,14 @@ func (rdr *Reader) Read() error {
 		}
 	}
 	return nil
+}
+
+func (rdr *Reader) Report() {
+	for _ = range time.Tick(rdr.Config.StatInterval) {
+		r := atomic.LoadUint64(&rdr.reads)
+		d := atomic.LoadUint64(&rdr.drops)
+		atomic.AddUint64(&rdr.reads, -r)
+		atomic.AddUint64(&rdr.drops, -d)
+		rdr.Outbox <- fmt.Sprintf(rdr.Config.StatsLayout, r, d)
+	}
 }

@@ -27,6 +27,8 @@ type ShuttleConfig struct {
 	SkipVerify   bool
 	PrintVersion bool
 	Verbose      bool
+	StatsLayout  string
+	StatInterval time.Duration
 }
 
 func (c *ShuttleConfig) ParseFlags() {
@@ -47,6 +49,8 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.Wait, "wait", 500, "Number of ms to flush messages to logplex")
 	flag.IntVar(&c.BatchSize, "batch-size", 1, "Number of messages to pack into a logplex http request.")
 	flag.IntVar(&c.FrontBuff, "front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
+	flag.StringVar(&c.StatsLayout, "stat-layout", "reads=%d drops=%d", "L2met prints stats on reads and drops. This string determines the layout. Include at least 2 %ds in the layout.")
+	flag.DurationVar(&c.StatInterval, "stat-interval", 10*time.Second, "L2met prints stats on reads and drops. This duration determines how often the stat is printed.")
 	flag.Parse()
 }
 
