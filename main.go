@@ -19,7 +19,7 @@ func main() {
 	}
 
 	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox)
+	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight)
 
 	go outlet.Transfer()
 	go outlet.Outlet()
@@ -27,7 +27,8 @@ func main() {
 	if conf.UseStdin() {
 		reader.Input = os.Stdin
 		reader.Read()
-		outlet.InFLight.Wait()
+		//This could possibly race with Read()
+		outlet.InFlight.Wait()
 		os.Exit(0)
 	}
 

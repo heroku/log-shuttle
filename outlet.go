@@ -14,15 +14,16 @@ import (
 type HttpOutlet struct {
 	Inbox    chan string
 	Outbox   chan []string
-	InFLight sync.WaitGroup
+	InFlight *sync.WaitGroup
 	Config   *ShuttleConfig
 	client   *http.Client
 }
 
-func NewOutlet(conf *ShuttleConfig, inbox chan string) *HttpOutlet {
+func NewOutlet(conf *ShuttleConfig, inbox chan string, inflight *sync.WaitGroup) *HttpOutlet {
 	h := new(HttpOutlet)
 	h.Config = conf
 	h.Inbox = inbox
+	h.InFlight = inflight
 	h.Outbox = make(chan []string, h.Config.BatchSize)
 	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: conf.SkipVerify}}
 	h.client = &http.Client{Transport: httpTransport}
@@ -69,10 +70,12 @@ func (h *HttpOutlet) Outlet() {
 
 func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 	//Track the number of http requests we have in flight.
-	h.InFLight.Add(1)
-	defer h.InFLight.Done()
+	defer h.InFlight.Add(-len(logs))
 
-	SyslogFmt(b, logs, h.Config)
+	for _, line := range logs {
+		fmt.Fprintf(b, "%d %s", len(line), line)
+	}
+
 	req, err := http.NewRequest("POST", h.Config.OutletURL(), b)
 	if err != nil {
 		return err
