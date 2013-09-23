@@ -13,6 +13,10 @@ type testInput struct {
 	*bytes.Buffer
 }
 
+func NewTestInput() *testInput {
+	return &testInput{bytes.NewBufferString("Hello World\nTest Line 2\n")}
+}
+
 func (i *testInput) Close() error {
 	return nil
 }
@@ -39,11 +43,8 @@ func TestIntegration(t *testing.T) {
 	go outlet.Transfer()
 	go outlet.Outlet()
 
-	reader.Input = &testInput{bytes.NewBufferString("Hello World\nTest Line 2\n")}
-	reader.Read()
-
-	//This could possibly race with Read()
-	outlet.InFlight.Wait()
+	reader.Read(NewTestInput())
+	reader.InFlight.Wait()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)

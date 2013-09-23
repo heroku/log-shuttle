@@ -25,10 +25,8 @@ func main() {
 	go outlet.Outlet()
 
 	if conf.UseStdin() {
-		reader.Input = os.Stdin
-		reader.Read()
-		//This could possibly race with Read()
-		outlet.InFlight.Wait()
+		reader.Read(os.Stdin)
+		reader.InFlight.Wait()
 		os.Exit(0)
 	}
 
@@ -37,14 +35,16 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		for {
 			conn, err := l.Accept()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "accept-err=%s\n", err)
 				continue
 			}
-			reader.Input = conn
-			go reader.Read()
+
+			go reader.Read(conn)
 		}
 	}
+
 }

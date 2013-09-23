@@ -28,12 +28,17 @@ func NewReader(cfg *ShuttleConfig) *Reader {
 	return r
 }
 
-func (rdr *Reader) Read() error {
-	rdrIo := bufio.NewReader(rdr.Input)
+func (rdr *Reader) Read(input io.ReadCloser) error {
+	// This is here so as long as this function is running anything
+	// Wait() on InFlight will actually block
+	rdr.InFlight.Add(1)
+	defer rdr.InFlight.Done()
+
+	rdrIo := bufio.NewReader(input)
 	for {
 		line, err := rdrIo.ReadString('\n')
 		if err != nil {
-			rdr.Input.Close()
+			input.Close()
 			return err
 		}
 
