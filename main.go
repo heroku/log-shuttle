@@ -7,14 +7,16 @@ import (
 	"os"
 )
 
-var LogShuttleVersion = "0.2.0"
+const (
+	VERSION = "0.2.0"
+)
 
 func main() {
 	conf := new(ShuttleConfig)
 	conf.ParseFlags()
 
 	if conf.PrintVersion {
-		fmt.Println(LogShuttleVersion)
+		fmt.Println(VERSION)
 		os.Exit(0)
 	}
 
