@@ -13,6 +13,10 @@ type testInput struct {
 	*bytes.Buffer
 }
 
+func NewTestInput() *testInput {
+	return &testInput{bytes.NewBufferString("Hello World\nTest Line 2\n")}
+}
+
 func (i *testInput) Close() error {
 	return nil
 }
@@ -30,20 +34,25 @@ func TestIntegration(t *testing.T) {
 
 	conf := new(ShuttleConfig)
 	conf.ParseFlags()
+	conf.BatchSize = 2
 	conf.LogsURL = ts.URL
 
 	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox)
+	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight)
 
 	go outlet.Transfer()
 	go outlet.Outlet()
 
-	reader.Input = &testInput{bytes.NewBufferString("Hello World\n")}
-	reader.Read()
-	outlet.InFLight.Wait()
+	reader.Read(NewTestInput())
+	reader.InFlight.Wait()
 
-	pat := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
-	if !pat.Match(actual) {
+	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
+	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
+
+	if !pat1.Match(actual) {
+		t.Fatalf("actual=%s\n", string(actual))
+	}
+	if !pat2.Match(actual) {
 		t.Fatalf("actual=%s\n", string(actual))
 	}
 }
