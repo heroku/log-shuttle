@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -16,8 +15,8 @@ type Reader struct {
 	Outbox   chan string
 	Config   *ShuttleConfig
 	InFlight *sync.WaitGroup
-	reads    uint64
-	drops    uint64
+	Drops    Counter
+	Reads    Counter
 }
 
 func NewReader(cfg *ShuttleConfig) *Reader {
@@ -56,15 +55,15 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 		// In this case we will apply back-pressure to callers of read.
 		if cap(rdr.Outbox) == 0 {
 			rdr.Outbox <- sline
-			atomic.AddUint64(&rdr.reads, 1)
+			rdr.Reads.Increment()
 			rdr.InFlight.Add(1)
 		} else {
 			select {
 			case rdr.Outbox <- sline:
-				atomic.AddUint64(&rdr.reads, 1)
+				rdr.Reads.Increment()
 				rdr.InFlight.Add(1)
 			default:
-				atomic.AddUint64(&rdr.drops, 1)
+				rdr.Drops.Increment()
 			}
 		}
 	}

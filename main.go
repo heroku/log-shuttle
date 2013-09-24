@@ -21,7 +21,7 @@ func main() {
 	}
 
 	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight)
+	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight, &reader.Drops)
 
 	go outlet.Transfer()
 	go outlet.Outlet()
