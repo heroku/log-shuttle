@@ -1,6 +1,6 @@
 #!/usr/bin/env make -f
 
-VERSION := 0.1.5
+VERSION := 0.2.0
 
 tempdir        := $(shell mktemp -d)
 controldir     := $(tempdir)/DEBIAN
@@ -10,7 +10,7 @@ define DEB_CONTROL
 Package: log-shuttle
 Version: $(VERSION)
 Architecture: amd64
-Maintainer: "Ryan R. Smith" <ryan@heroku.com>
+Maintainer: "Edward Muller" <edward@heroku.com>
 Section: heroku
 Priority: optional
 Description: Move logs from the Dyno to the Logplex.

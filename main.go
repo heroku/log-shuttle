@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-var LogShuttleVersion = "0.2"
+var LogShuttleVersion = "0.2.0"
 
 func main() {
 	conf := new(ShuttleConfig)
