@@ -41,7 +41,6 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Appname, "logplex-token", "token", "Secret logplex token.")
 	flag.StringVar(&c.Hostname, "hostname", "shuttle", "The hostname field for the syslog header.")
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
-	flag.StringVar(&c.Socket, "socket", "", "Location of UNIX domain socket.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
 	flag.IntVar(&c.WorkerCount, "workers", 1, "Number of concurrent outlet workers (and HTTP connections)")
 	flag.IntVar(&c.Wait, "wait", 500, "Number of ms to flush messages to logplex")
@@ -75,17 +74,6 @@ func (c *ShuttleConfig) OutletURL() string {
 		oUrl.User = url.UserPassword("token", c.Appname)
 	}
 	return oUrl.String()
-}
-
-func (c *ShuttleConfig) UseStdin() bool {
-	return !c.UseSocket()
-}
-
-func (c *ShuttleConfig) UseSocket() bool {
-	if len(c.Socket) > 0 {
-		return true
-	}
-	return false
 }
 
 func (c *ShuttleConfig) WaitDuration() time.Duration {
