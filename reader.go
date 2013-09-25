@@ -41,15 +41,20 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 			return err
 		}
 
-		sline := fmt.Sprintf(syslogLineLayout,
-			rdr.Config.Prival,
-			rdr.Config.Version,
-			time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00"),
-			rdr.Config.Hostname,
-			rdr.Config.Appname,
-			rdr.Config.Procid,
-			rdr.Config.Msgid,
-			line)
+		var sline string
+		if rdr.Config.SkipHeaders {
+			sline = line
+		} else {
+			sline = fmt.Sprintf(syslogLineLayout,
+				rdr.Config.Prival,
+				rdr.Config.Version,
+				time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00"),
+				rdr.Config.Hostname,
+				rdr.Config.Appname,
+				rdr.Config.Procid,
+				rdr.Config.Msgid,
+				line)
+		}
 
 		// If we have an unbuffered chanel, we don't want to drop lines.
 		// In this case we will apply back-pressure to callers of read.
