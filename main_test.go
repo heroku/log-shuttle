@@ -26,6 +26,10 @@ func NewTestInput() *testInput {
 	return &testInput{bytes.NewBufferString("Hello World\nTest Line 2\n")}
 }
 
+func NewTestInputWithHeaders() *testInput {
+	return &testInput{bytes.NewBufferString("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] message 2\n")}
+}
+
 func (i *testInput) Close() error {
 	return nil
 }
@@ -84,6 +88,36 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 
+}
+
+func TestSkipHeaders(t *testing.T) {
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	conf := new(ShuttleConfig)
+	conf.LogsURL = ts.URL
+	conf.BatchSize = 2
+	conf.SkipHeaders = true
+
+	reader := NewReader(conf)
+	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight, &reader.Drops)
+
+	go outlet.Transfer()
+	go outlet.Outlet()
+
+	reader.Read(NewTestInputWithHeaders())
+	reader.InFlight.Wait()
+
+	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
+	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
+
+	if !pat1.Match(th.Actual) {
+		t.Fatalf("actual=%s\n", string(th.Actual))
+	}
+	if !pat2.Match(th.Actual) {
+		t.Fatalf("actual=%s\n", string(th.Actual))
+	}
 }
 
 func TestDrops(t *testing.T) {
