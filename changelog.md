@@ -1,4 +1,8 @@
-### 0.2.1 2013-090-24 Edward Muller <edward@heroku.com>
+### 0.2.2 2013-09-24 Dan Peterson (dan@heroku.com)
+
+* Restore skip-headers
+
+### 0.2.1 2013-09-24 Edward Muller <edward@heroku.com>
 
 * Blocking until the queues are drained or the deliveries error.
 * Logshuttle-Drop header, which includes the drops since last post.
