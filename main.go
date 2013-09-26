@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 )
 
 const (
@@ -13,32 +12,29 @@ const (
 )
 
 func main() {
-	conf := new(ShuttleConfig)
-	conf.ParseFlags()
+	var config ShuttleConfig
+	config.ParseFlags()
 
-	if conf.PrintVersion {
+	if config.PrintVersion {
 		fmt.Println(VERSION)
 		os.Exit(0)
 	}
 
-	inFlight := new(sync.WaitGroup)
-	drops := new(Counter)
-	frontBuff := make(chan string, conf.FrontBuff)
+	reader := NewReader(config)
+	batcher := NewBatcher(config, reader.Outbox)
+	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox)
 
-	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
-	reader := NewReader(conf, inFlight, drops, frontBuff)
-
-	go outlet.Transfer()
+	go batcher.Batch()
 	go outlet.Outlet()
 
-	if conf.UseStdin() {
+	if config.UseStdin() {
 		reader.Read(os.Stdin)
-		inFlight.Wait()
+		reader.InFlight.Wait()
 		os.Exit(0)
 	}
 
-	if conf.UseSocket() {
-		l, err := net.Listen("unix", conf.Socket)
+	if config.UseSocket() {
+		l, err := net.Listen("unix", config.Socket)
 		if err != nil {
 			log.Fatal(err)
 		}

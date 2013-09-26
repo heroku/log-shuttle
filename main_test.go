@@ -6,17 +6,18 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"sync"
 	"testing"
 )
 
 var (
-	conf *ShuttleConfig
+	config ShuttleConfig
 )
 
 func init() {
-	conf = new(ShuttleConfig)
-	conf.ParseFlags()
+	config.ParseFlags() //Load defaults. Why is there no seperate function for this?
+	// Some test defaults
+	config.BatchSize = 2
+	config.FrontBuff = 2
 }
 
 type testInput struct {
@@ -49,27 +50,27 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.Headers = r.Header
 }
 
+func MakeBasicBits(config ShuttleConfig) (*Reader, *Batcher, *HttpOutlet) {
+	reader := NewReader(config)
+	batcher := NewBatcher(config, reader.Outbox)
+	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox)
+	return reader, batcher, outlet
+}
+
 func TestIntegration(t *testing.T) {
 	th := new(testHelper)
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
-	conf.BatchSize = 2
-	conf.FrontBuff = 2
-	conf.LogsURL = ts.URL
+	config.LogsURL = ts.URL
 
-	inFlight := new(sync.WaitGroup)
-	drops := new(Counter)
-	frontBuff := make(chan string, conf.FrontBuff)
+	reader, batcher, outlet := MakeBasicBits(config)
 
-	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
-	reader := NewReader(conf, inFlight, drops, frontBuff)
-
-	go outlet.Transfer()
+	go batcher.Batch()
 	go outlet.Outlet()
 
 	reader.Read(NewTestInput())
-	inFlight.Wait()
+	reader.InFlight.Wait()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
@@ -101,24 +102,19 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
-	conf := new(ShuttleConfig)
-	conf.LogsURL = ts.URL
-	conf.FrontBuff = 2
-	conf.BatchSize = 2
-	conf.SkipHeaders = true
+	config.LogsURL = ts.URL
+	config.SkipHeaders = true
 
-	inFlight := new(sync.WaitGroup)
-	drops := new(Counter)
-	frontBuff := make(chan string, conf.FrontBuff)
+	reader, batcher, outlet := MakeBasicBits(config)
 
-	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
-	reader := NewReader(conf, inFlight, drops, frontBuff)
-
-	go outlet.Transfer()
+	go batcher.Batch()
 	go outlet.Outlet()
 
+	reader.Read(NewTestInput())
+	reader.InFlight.Wait()
+
 	reader.Read(NewTestInputWithHeaders())
-	inFlight.Wait()
+	reader.InFlight.Wait()
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
 	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
@@ -136,24 +132,17 @@ func TestDrops(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
-	conf.BatchSize = 2
-	conf.FrontBuff = 2
-	conf.LogsURL = ts.URL
+	config.LogsURL = ts.URL
 
-	inFlight := new(sync.WaitGroup)
-	drops := new(Counter)
-	frontBuff := make(chan string, conf.FrontBuff)
+	reader, batcher, outlet := MakeBasicBits(config)
 
-	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
-	reader := NewReader(conf, inFlight, drops, frontBuff)
-
-	go outlet.Transfer()
+	go batcher.Batch()
 	go outlet.Outlet()
 
 	reader.Drops.Increment()
 	reader.Drops.Increment()
 	reader.Read(NewTestInput())
-	inFlight.Wait()
+	reader.InFlight.Wait()
 
 	dropHeader, ok := th.Headers["Logshuttle-Drops"]
 	if !ok {

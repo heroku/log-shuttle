@@ -11,20 +11,20 @@ import (
 var syslogLineLayout = "<%s>%s %s %s %s %s %s %s"
 
 type Reader struct {
-	Outbox   chan<- string
-	Config   *ShuttleConfig
-	inFlight *sync.WaitGroup
+	Outbox   chan string
+	InFlight *sync.WaitGroup
 	Drops    *Counter
 	Reads    *Counter
+	config   ShuttleConfig
 }
 
-func NewReader(cfg *ShuttleConfig, inFlight *sync.WaitGroup, drops *Counter, outbox chan<- string) *Reader {
+func NewReader(config ShuttleConfig) *Reader {
 	r := new(Reader)
-	r.Config = cfg
-	r.inFlight = inFlight
-	r.Drops = drops
-	r.Outbox = outbox
+	r.Outbox = make(chan string, config.FrontBuff)
+	r.InFlight = new(sync.WaitGroup)
+	r.Drops = new(Counter)
 	r.Reads = new(Counter)
+	r.config = config
 	return r
 }
 
@@ -43,12 +43,12 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 		// In this case we will apply back-pressure to callers of read.
 		if unbuffered {
 			rdr.Outbox <- rdr.FormatLine(line)
-			rdr.inFlight.Add(1)
+			rdr.InFlight.Add(1)
 			rdr.Reads.Increment()
 		} else {
 			select {
 			case rdr.Outbox <- rdr.FormatLine(line):
-				rdr.inFlight.Add(1)
+				rdr.InFlight.Add(1)
 				rdr.Reads.Increment()
 
 			// Drop lines if the channel is currently full
@@ -61,18 +61,18 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 }
 
 func (rdr *Reader) FormatLine(line string) string {
-	if rdr.Config.SkipHeaders {
+	if rdr.config.SkipHeaders {
 		return line
 	} else {
 		return fmt.Sprintf(
 			syslogLineLayout,
-			rdr.Config.Prival,
-			rdr.Config.Version,
+			rdr.config.Prival,
+			rdr.config.Version,
 			time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00"),
-			rdr.Config.Hostname,
-			rdr.Config.Appname,
-			rdr.Config.Procid,
-			rdr.Config.Msgid,
+			rdr.config.Hostname,
+			rdr.config.Appname,
+			rdr.config.Procid,
+			rdr.config.Msgid,
 			line)
 	}
 }

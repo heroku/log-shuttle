@@ -8,61 +8,34 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"time"
 )
 
 type HttpOutlet struct {
-	Inbox    <-chan string
-	Outbox   chan []string
-	Config   *ShuttleConfig
+	inbox    <-chan []string
 	inFlight *sync.WaitGroup
 	client   *http.Client
 	drops    *Counter
+	config   ShuttleConfig
 }
 
-func NewOutlet(conf *ShuttleConfig, inflight *sync.WaitGroup, drops *Counter, inbox <-chan string) *HttpOutlet {
+func NewOutlet(config ShuttleConfig, inflight *sync.WaitGroup, drops *Counter, inbox <-chan []string) *HttpOutlet {
 	h := new(HttpOutlet)
-	h.Config = conf
+	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify}}
+	h.client = &http.Client{Transport: httpTransport}
 	h.inFlight = inflight
 	h.drops = drops
-	h.Inbox = inbox
-	h.Outbox = make(chan []string, h.Config.BatchSize)
-	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: conf.SkipVerify}}
-	h.client = &http.Client{Transport: httpTransport}
+	h.inbox = inbox
+	h.config = config
 	return h
 }
 
-// Transfer facilitates the handoff between stdin/sockets & logplex http
-// requests. If there is high volume traffic on the lines channel, we
-// create batches based on the batchSize flag. For low volume traffic,
-// we create batches based on a time interval.
-func (h *HttpOutlet) Transfer() error {
-	ticker := time.Tick(h.Config.WaitDuration())
-	batch := make([]string, 0, h.Config.BatchSize)
-	for {
-		select {
-		case <-ticker:
-			if len(batch) > 0 {
-				h.Outbox <- batch
-				batch = make([]string, 0, h.Config.BatchSize)
-			}
-		case l := <-h.Inbox:
-			batch = append(batch, l)
-			if len(batch) == cap(batch) {
-				h.Outbox <- batch
-				batch = make([]string, 0, h.Config.BatchSize)
-			}
-		}
-	}
-}
-
-// Outlet takes batches of log lines and submits them to logplex via HTTP.
-// Additionaly it can wrap each log line with a syslog header.
+// Outlet received batches of log lines from inbox and submits them to logplex
+// via HTTP.
 func (h *HttpOutlet) Outlet() {
-	//Use only 1 buffer and reset it when we are done.
-	//This is to make fewer memory allocations.
+	// Use only 1 buffer and reset it when we are done.  This is to make fewer
+	// memory allocations.
 	var b bytes.Buffer
-	for logs := range h.Outbox {
+	for logs := range h.inbox {
 		if err := h.post(&b, logs); err != nil {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
 		}
@@ -78,7 +51,7 @@ func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 		fmt.Fprintf(b, "%d %s", len(line), line)
 	}
 
-	req, err := http.NewRequest("POST", h.Config.OutletURL(), b)
+	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
 	}
@@ -90,9 +63,11 @@ func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 	if err != nil {
 		return err
 	}
-	if h.Config.Verbose {
+
+	if h.config.Verbose {
 		fmt.Printf("at=post status=%d\n", resp.StatusCode)
 	}
+
 	resp.Body.Close()
 	return nil
 }
