@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 )
 
 const (
@@ -20,8 +21,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight, &reader.Drops)
+	inFlight := new(sync.WaitGroup)
+	drops := new(Counter)
+	frontBuff := make(chan string, conf.FrontBuff)
+
+	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
+	reader := NewReader(conf, inFlight, drops, frontBuff)
 
 	go outlet.Transfer()
 	go outlet.Outlet()

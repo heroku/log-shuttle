@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sync"
 	"testing"
 )
 
@@ -56,8 +57,12 @@ func TestIntegration(t *testing.T) {
 	conf.BatchSize = 2
 	conf.LogsURL = ts.URL
 
-	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight, &reader.Drops)
+	inFlight := new(sync.WaitGroup)
+	drops := new(Counter)
+	frontBuff := make(chan string, conf.FrontBuff)
+
+	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
+	reader := NewReader(conf, inFlight, drops, frontBuff)
 
 	go outlet.Transfer()
 	go outlet.Outlet()
@@ -75,13 +80,13 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
 
-	drops, ok := th.Headers["Logshuttle-Drops"]
+	dropHeader, ok := th.Headers["Logshuttle-Drops"]
 	if !ok {
 		t.Fatalf("Header Logshuttle-Drops not found in response")
 	}
 
-	if drops[0] != "0" {
-		t.Fatalf("Logshuttle-Drops=%s\n", drops[0])
+	if dropHeader[0] != "0" {
+		t.Fatalf("Logshuttle-Drops=%s\n", dropHeader[0])
 	}
 
 	if afterDrops := reader.Drops.ReadAndReset(); afterDrops != 0 {
@@ -100,8 +105,12 @@ func TestSkipHeaders(t *testing.T) {
 	conf.BatchSize = 2
 	conf.SkipHeaders = true
 
-	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight, &reader.Drops)
+	inFlight := new(sync.WaitGroup)
+	drops := new(Counter)
+	frontBuff := make(chan string, conf.FrontBuff)
+
+	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
+	reader := NewReader(conf, inFlight, drops, frontBuff)
 
 	go outlet.Transfer()
 	go outlet.Outlet()
@@ -128,8 +137,12 @@ func TestDrops(t *testing.T) {
 	conf.BatchSize = 2
 	conf.LogsURL = ts.URL
 
-	reader := NewReader(conf)
-	outlet := NewOutlet(conf, reader.Outbox, reader.InFlight, &reader.Drops)
+	inFlight := new(sync.WaitGroup)
+	drops := new(Counter)
+	frontBuff := make(chan string, conf.FrontBuff)
+
+	outlet := NewOutlet(conf, inFlight, drops, frontBuff)
+	reader := NewReader(conf, inFlight, drops, frontBuff)
 
 	go outlet.Transfer()
 	go outlet.Outlet()
@@ -139,13 +152,13 @@ func TestDrops(t *testing.T) {
 	reader.Read(NewTestInput())
 	reader.InFlight.Wait()
 
-	drops, ok := th.Headers["Logshuttle-Drops"]
+	dropHeader, ok := th.Headers["Logshuttle-Drops"]
 	if !ok {
 		t.Fatalf("Header Logshuttle-Drops not found in response")
 	}
 
-	if drops[0] != "2" {
-		t.Fatalf("LogShuttle-Drops=%s\n", drops[0])
+	if dropHeader[0] != "2" {
+		t.Fatalf("LogShuttle-Drops=%s\n", dropHeader[0])
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper

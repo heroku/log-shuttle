@@ -11,29 +11,27 @@ import (
 var syslogLineLayout = "<%s>%s %s %s %s %s %s %s"
 
 type Reader struct {
-	Input    io.ReadCloser
-	Outbox   chan string
+	Outbox   chan<- string
 	Config   *ShuttleConfig
 	InFlight *sync.WaitGroup
-	Drops    Counter
-	Reads    Counter
+	Drops    *Counter
+	Reads    *Counter
 }
 
-func NewReader(cfg *ShuttleConfig) *Reader {
+func NewReader(cfg *ShuttleConfig, inFlight *sync.WaitGroup, drops *Counter, outbox chan<- string) *Reader {
 	r := new(Reader)
 	r.Config = cfg
-	r.Outbox = make(chan string, r.Config.FrontBuff)
-	r.InFlight = new(sync.WaitGroup)
+	r.InFlight = inFlight
+	r.Drops = drops
+	r.Outbox = outbox
+	r.Reads = new(Counter)
 	return r
 }
 
 func (rdr *Reader) Read(input io.ReadCloser) error {
-	// This is here so as long as this function is running anything
-	// Wait() on InFlight will actually block
-	rdr.InFlight.Add(1)
-	defer rdr.InFlight.Done()
-
+	var sline string
 	rdrIo := bufio.NewReader(input)
+
 	for {
 		line, err := rdrIo.ReadString('\n')
 		if err != nil {
@@ -41,7 +39,6 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 			return err
 		}
 
-		var sline string
 		if rdr.Config.SkipHeaders {
 			sline = line
 		} else {

@@ -12,20 +12,20 @@ import (
 )
 
 type HttpOutlet struct {
-	Inbox       chan string
-	Outbox      chan []string
-	InFlight    *sync.WaitGroup
-	Config      *ShuttleConfig
-	client      *http.Client
-	dropCounter *Counter
+	Inbox    <-chan string
+	Outbox   chan []string
+	InFlight *sync.WaitGroup
+	Config   *ShuttleConfig
+	client   *http.Client
+	drops    *Counter
 }
 
-func NewOutlet(conf *ShuttleConfig, inbox chan string, inflight *sync.WaitGroup, dropCounter *Counter) *HttpOutlet {
+func NewOutlet(conf *ShuttleConfig, inflight *sync.WaitGroup, drops *Counter, inbox <-chan string) *HttpOutlet {
 	h := new(HttpOutlet)
 	h.Config = conf
-	h.Inbox = inbox
 	h.InFlight = inflight
-	h.dropCounter = dropCounter
+	h.drops = drops
+	h.Inbox = inbox
 	h.Outbox = make(chan []string, h.Config.BatchSize)
 	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: conf.SkipVerify}}
 	h.client = &http.Client{Transport: httpTransport}
@@ -71,7 +71,7 @@ func (h *HttpOutlet) Outlet() {
 }
 
 func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
-	//Track the number of http requests we have in flight.
+	//Decrement the number of log line we post (or fail to post)
 	defer h.InFlight.Add(-len(logs))
 
 	for _, line := range logs {
@@ -85,7 +85,7 @@ func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(len(logs)))
-	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(h.dropCounter.ReadAndReset())))
+	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(h.drops.ReadAndReset())))
 	resp, err := h.client.Do(req)
 	if err != nil {
 		return err
