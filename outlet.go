@@ -14,8 +14,8 @@ import (
 type HttpOutlet struct {
 	Inbox    <-chan string
 	Outbox   chan []string
-	InFlight *sync.WaitGroup
 	Config   *ShuttleConfig
+	inFlight *sync.WaitGroup
 	client   *http.Client
 	drops    *Counter
 }
@@ -23,7 +23,7 @@ type HttpOutlet struct {
 func NewOutlet(conf *ShuttleConfig, inflight *sync.WaitGroup, drops *Counter, inbox <-chan string) *HttpOutlet {
 	h := new(HttpOutlet)
 	h.Config = conf
-	h.InFlight = inflight
+	h.inFlight = inflight
 	h.drops = drops
 	h.Inbox = inbox
 	h.Outbox = make(chan []string, h.Config.BatchSize)
@@ -72,7 +72,7 @@ func (h *HttpOutlet) Outlet() {
 
 func (h *HttpOutlet) post(b *bytes.Buffer, logs []string) error {
 	//Decrement the number of log line we post (or fail to post)
-	defer h.InFlight.Add(-len(logs))
+	defer h.inFlight.Add(-len(logs))
 
 	for _, line := range logs {
 		fmt.Fprintf(b, "%d %s", len(line), line)

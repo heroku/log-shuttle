@@ -68,7 +68,7 @@ func TestIntegration(t *testing.T) {
 	go outlet.Outlet()
 
 	reader.Read(NewTestInput())
-	reader.InFlight.Wait()
+	inFlight.Wait()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
@@ -150,7 +150,7 @@ func TestDrops(t *testing.T) {
 	reader.Drops.Increment()
 	reader.Drops.Increment()
 	reader.Read(NewTestInput())
-	reader.InFlight.Wait()
+	inFlight.Wait()
 
 	dropHeader, ok := th.Headers["Logshuttle-Drops"]
 	if !ok {

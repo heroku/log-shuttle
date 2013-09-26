@@ -33,7 +33,7 @@ func main() {
 
 	if conf.UseStdin() {
 		reader.Read(os.Stdin)
-		reader.InFlight.Wait()
+		inFlight.Wait()
 		os.Exit(0)
 	}
 
