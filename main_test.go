@@ -55,6 +55,7 @@ func TestIntegration(t *testing.T) {
 	defer ts.Close()
 
 	conf.BatchSize = 2
+	conf.FrontBuff = 2
 	conf.LogsURL = ts.URL
 
 	inFlight := new(sync.WaitGroup)
@@ -95,13 +96,14 @@ func TestIntegration(t *testing.T) {
 
 }
 
-func TestSkipHeaders(t *testing.T) {
+func TestSkipHeadersIntegration(t *testing.T) {
 	th := new(testHelper)
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
 	conf := new(ShuttleConfig)
 	conf.LogsURL = ts.URL
+	conf.FrontBuff = 2
 	conf.BatchSize = 2
 	conf.SkipHeaders = true
 
@@ -116,7 +118,7 @@ func TestSkipHeaders(t *testing.T) {
 	go outlet.Outlet()
 
 	reader.Read(NewTestInputWithHeaders())
-	reader.InFlight.Wait()
+	inFlight.Wait()
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
 	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
@@ -135,6 +137,7 @@ func TestDrops(t *testing.T) {
 	defer ts.Close()
 
 	conf.BatchSize = 2
+	conf.FrontBuff = 2
 	conf.LogsURL = ts.URL
 
 	inFlight := new(sync.WaitGroup)
