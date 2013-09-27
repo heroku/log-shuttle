@@ -7,11 +7,11 @@ import (
 type Batcher struct {
 	Batches chan *Batch
 	Outbox  chan *Batch
-	inbox   <-chan string
+	inbox   <-chan *string
 	config  ShuttleConfig
 }
 
-func NewBatcher(config ShuttleConfig, inbox <-chan string) *Batcher {
+func NewBatcher(config ShuttleConfig, inbox <-chan *string) *Batcher {
 	batcher := new(Batcher)
 	batcher.Batches = make(chan *Batch, config.Batches)
 	batcher.Outbox = make(chan *Batch, config.Batches)
@@ -43,7 +43,7 @@ func (batcher *Batcher) Batch() error {
 	ticker := time.Tick(batcher.config.WaitDuration())
 
 	for {
-		// Get an emptu batch
+		// Get an empty batch
 		batch := batcher.GetEmptyBatch()
 
 	NEWBATCH:

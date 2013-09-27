@@ -17,8 +17,8 @@ func (b *Batch) LineCount() int {
 }
 
 // Write a line to the batch, increment it's line counter
-func (b *Batch) Write(line string) {
-	fmt.Fprintf(&b.buffer, "%d %s", len(line), line)
+func (b *Batch) Write(line *string) {
+	fmt.Fprintf(&b.buffer, "%d %s", len(*line), *line)
 	b.lineCount++
 }
 
