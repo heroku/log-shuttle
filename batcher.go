@@ -35,36 +35,35 @@ func (batcher *Batcher) GetEmptyBatch() (batch *Batch) {
 	return batch
 }
 
-// Batch coalesces individual log lines into batches.
-// If there is high volume traffic on the inbox channel, we send batches based
-// on BatchSize. For low volume traffic, we create batches based on a time
-// interval.
+// Loops forever getting an empty batch and filling it.
 func (batcher *Batcher) Batch() error {
 	ticker := time.Tick(batcher.config.WaitDuration())
 
 	for {
 		// Get an empty batch
 		batch := batcher.GetEmptyBatch()
+		batcher.fillBatch(ticker, batch)
+	}
+}
 
-	NEWBATCH:
+// fillBatch coalesces individual log lines into batches. Delivery of the
+// batch happens on ticker timeout or when the batch is full.
+func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) {
+	// Fill the batch with log lines
+	for {
+		select {
+		case <-ticker:
+			if batch.LineCount() > 0 {
+				batcher.Outbox <- batch
+				return
+			}
 
-		// Fill the batch with log lines
-		for {
-			select {
-			case <-ticker:
-				if batch.LineCount() > 0 {
-					batcher.Outbox <- batch
-					break NEWBATCH
-				}
-
-			case line := <-batcher.inbox:
-				batch.Write(line)
-				if batch.LineCount() == batcher.config.BatchSize {
-					batcher.Outbox <- batch
-					break NEWBATCH
-				}
+		case line := <-batcher.inbox:
+			batch.Write(line)
+			if batch.LineCount() == batcher.config.BatchSize {
+				batcher.Outbox <- batch
+				return
 			}
 		}
 	}
-
 }
