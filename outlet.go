@@ -33,24 +33,25 @@ func NewOutlet(config ShuttleConfig, inflight *sync.WaitGroup, drops *Counter, i
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
 func (h *HttpOutlet) Outlet() {
 	for {
-
 		// grab a batch to work
 		batch := <-h.inbox
 
 		// deliver the batch async
-		go func(batch *Batch) {
-			if err := h.post(batch); err != nil {
-				fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
-			}
+		go h.deliverBatch(batch)
+	}
+}
 
-			// return the batch to the pool
-			select {
-			case h.batchReturn <- batch:
-				// passed back, nothing else to do
-			default:
-				// channel is full, drop this batch on the floor
-			}
-		}(batch)
+func (h *HttpOutlet) deliverBatch(batch *Batch) {
+	if err := h.post(batch); err != nil {
+		fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
+	}
+
+	// return the batch to the pool
+	select {
+	case h.batchReturn <- batch:
+		// passed back, nothing else to do
+	default:
+		// channel is full, drop this batch on the floor
 	}
 }
 
