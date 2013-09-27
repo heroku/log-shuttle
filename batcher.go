@@ -13,8 +13,8 @@ type Batcher struct {
 
 func NewBatcher(config ShuttleConfig, inbox <-chan string) *Batcher {
 	batcher := new(Batcher)
-	batcher.Batches = make(chan *Batch, config.WorkerCount)
-	batcher.Outbox = make(chan *Batch, config.WorkerCount*2)
+	batcher.Batches = make(chan *Batch, config.Batches)
+	batcher.Outbox = make(chan *Batch, config.Batches)
 	batcher.inbox = inbox
 	batcher.config = config
 	return batcher
