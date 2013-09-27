@@ -22,7 +22,7 @@ func main() {
 
 	reader := NewReader(config)
 	batcher := NewBatcher(config, reader.Outbox)
-	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox)
+	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox, batcher.Batches)
 
 	go batcher.Batch()
 	go outlet.Outlet()
