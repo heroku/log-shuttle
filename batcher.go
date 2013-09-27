@@ -5,43 +5,66 @@ import (
 )
 
 type Batcher struct {
-	Outbox chan []string
-	inbox  <-chan string
-	config ShuttleConfig
+	Batches chan *Batch
+	Outbox  chan *Batch
+	inbox   <-chan string
+	config  ShuttleConfig
 }
 
 func NewBatcher(config ShuttleConfig, inbox <-chan string) *Batcher {
-	b := new(Batcher)
-	b.Outbox = make(chan []string, config.BatchSize)
-	b.inbox = inbox
-	b.config = config
-	return b
+	batcher := new(Batcher)
+	batcher.Batches = make(chan *Batch, config.WorkerCount)
+	batcher.Outbox = make(chan *Batch, config.WorkerCount*2)
+	batcher.inbox = inbox
+	batcher.config = config
+	return batcher
 }
 
-func (b *Batcher) NewBuffer() []string {
-	return make([]string, 0, b.config.BatchSize)
+// Do what you can to return an empty batch
+// Try pulling one from Batches
+// If not, make one
+func (batcher *Batcher) GetEmptyBatch() (batch *Batch) {
+	select {
+	case batch = <-batcher.Batches:
+		// Got one; Reset it
+		batch.Reset()
+	default:
+		batch = new(Batch)
+	}
+
+	return batch
 }
 
 // Batch coalesces individual log lines into batches.
-// If there is high volume traffic on the inbox channel, we create batches
-// based on the batchSize flag. For low volume traffic, we create batches based
-// on a time interval.
-func (b *Batcher) Batch() error {
-	ticker := time.Tick(b.config.WaitDuration())
-	batch := b.NewBuffer()
+// If there is high volume traffic on the inbox channel, we send batches based
+// on BatchSize. For low volume traffic, we create batches based on a time
+// interval.
+func (batcher *Batcher) Batch() error {
+	ticker := time.Tick(batcher.config.WaitDuration())
+
 	for {
-		select {
-		case <-ticker:
-			if len(batch) > 0 {
-				b.Outbox <- batch
-				batch = b.NewBuffer()
-			}
-		case l := <-b.inbox:
-			batch = append(batch, l)
-			if len(batch) == cap(batch) {
-				b.Outbox <- batch
-				batch = b.NewBuffer()
+		// Get an emptu batch
+		batch := batcher.GetEmptyBatch()
+
+	NEWBATCH:
+
+		// Fill the batch with log lines
+		for {
+			select {
+			case <-ticker:
+				if batch.LineCount() > 0 {
+					batcher.Outbox <- batch
+					break NEWBATCH
+				}
+
+			case line := <-batcher.inbox:
+				batch.Write(line)
+				if batch.LineCount() == batcher.config.BatchSize {
+					batcher.Outbox <- batch
+					break NEWBATCH
+				}
 			}
 		}
 	}
+
 }

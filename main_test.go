@@ -53,7 +53,7 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func MakeBasicBits(config ShuttleConfig) (*Reader, *Batcher, *HttpOutlet) {
 	reader := NewReader(config)
 	batcher := NewBatcher(config, reader.Outbox)
-	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox)
+	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox, batcher.Batches)
 	return reader, batcher, outlet
 }
 
@@ -109,9 +109,6 @@ func TestSkipHeadersIntegration(t *testing.T) {
 
 	go batcher.Batch()
 	go outlet.Outlet()
-
-	reader.Read(NewTestInput())
-	reader.InFlight.Wait()
 
 	reader.Read(NewTestInputWithHeaders())
 	reader.InFlight.Wait()
