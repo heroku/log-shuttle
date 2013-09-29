@@ -13,6 +13,7 @@ var LogplexUrl = os.Getenv("LOGPLEX_URL")
 type ShuttleConfig struct {
 	FrontBuff    int
 	BatchSize    int
+	MaxRequests  int
 	Wait         int
 	Batches      int
 	Socket       string
@@ -46,6 +47,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.Batches, "batches", 5, "Number of pending batches to buffer.")
 	flag.IntVar(&c.Wait, "wait", 250, "Number of ms to flush messages to logplex")
 	flag.IntVar(&c.BatchSize, "batch-size", 500, "Number of messages to pack into a logplex http request.")
+	flag.IntVar(&c.MaxRequests, "max-requests", 4, "Max number of inflight requests to logplex at any moment")
 	flag.IntVar(&c.FrontBuff, "front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
 	flag.Parse()
 }

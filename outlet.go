@@ -10,19 +10,21 @@ import (
 )
 
 type HttpOutlet struct {
-	inbox       <-chan *Batch
-	batchReturn chan<- *Batch
-	inFlight    *sync.WaitGroup
-	client      *http.Client
-	drops       *Counter
-	config      ShuttleConfig
+	inbox            <-chan *Batch
+	batchReturn      chan<- *Batch
+	linesInFlight    *sync.WaitGroup
+	requestsInFlight chan int
+	client           *http.Client
+	drops            *Counter
+	config           ShuttleConfig
 }
 
 func NewOutlet(config ShuttleConfig, inflight *sync.WaitGroup, drops *Counter, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
 	h := new(HttpOutlet)
 	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify}}
 	h.client = &http.Client{Transport: httpTransport}
-	h.inFlight = inflight
+	h.linesInFlight = inflight
+	h.requestsInFlight = make(chan int, config.MaxRequests)
 	h.drops = drops
 	h.inbox = inbox
 	h.batchReturn = batchReturn
@@ -35,6 +37,9 @@ func (h *HttpOutlet) Outlet() {
 	for {
 		// grab a batch to work
 		batch := <-h.inbox
+
+		// block if the channel is full to limit the number of concurrent requests
+		h.requestsInFlight <- 1
 
 		// deliver the batch async
 		go h.deliverBatch(batch)
@@ -56,7 +61,9 @@ func (h *HttpOutlet) deliverBatch(batch *Batch) {
 }
 
 func (h *HttpOutlet) post(b *Batch) error {
-	defer h.inFlight.Add(-b.LineCount())
+	// pull a request marker off the channel to free up space
+	defer func() { <-h.requestsInFlight }()
+	defer h.linesInFlight.Add(-b.LineCount())
 
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
