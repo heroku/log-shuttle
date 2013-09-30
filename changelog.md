@@ -1,3 +1,14 @@
+### 0.3.1 2013-09-30 Edward Muller (edward@heroku.com)
+
+* max requests = 5: Limits in flight requests
+
+### 0.3.0 2013-09-27 Edward Muller (edward@heroku.com)
+
+* use a capped leaky bucket to hold the buffers
+* handle deliveries in an async manner
+* increate batch size to something sane
+* reduce timeout
+
 ### 0.2.2 2013-09-24 Dan Peterson (dan@heroku.com)
 
 * Restore skip-headers
