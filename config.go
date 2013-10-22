@@ -14,6 +14,8 @@ type ShuttleConfig struct {
 	FrontBuff    int
 	BatchSize    int
 	MaxRequests  int
+	NumBatchers  int
+	NumOutlets   int
 	Wait         int
 	Batches      int
 	Socket       string
@@ -44,6 +46,8 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
 	flag.StringVar(&c.Socket, "socket", "", "Location of UNIX domain socket.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
+	flag.IntVar(&c.NumBatchers, "num-batchers", 1, "The number of batchers to run.")
+	flag.IntVar(&c.NumOutlets, "num-outlets", 1, "The number of outlets to run.")
 	flag.IntVar(&c.Batches, "batches", 5, "Number of pending batches to buffer.")
 	flag.IntVar(&c.Wait, "wait", 250, "Number of ms to flush messages to logplex")
 	flag.IntVar(&c.BatchSize, "batch-size", 500, "Number of messages to pack into a logplex http request.")

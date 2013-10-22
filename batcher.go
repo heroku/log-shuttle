@@ -5,34 +5,14 @@ import (
 )
 
 type Batcher struct {
-	Batches chan *Batch
-	Outbox  chan *Batch
-	inbox   <-chan *string
-	config  ShuttleConfig
+	inLogs     <-chan *LogLine // Where I get the log lines to batch from
+	inBatches  <-chan *Batch   // Where I get empty batches from
+	outBatches chan<- *Batch   // Where I send completed batches to
+	config     ShuttleConfig
 }
 
-func NewBatcher(config ShuttleConfig, inbox <-chan *string) *Batcher {
-	batcher := new(Batcher)
-	batcher.Batches = make(chan *Batch, config.Batches*2)
-	batcher.Outbox = make(chan *Batch, config.Batches)
-	batcher.inbox = inbox
-	batcher.config = config
-	return batcher
-}
-
-// Do what you can to return an empty batch
-// Try pulling one from Batches
-// If not, make one
-func (batcher *Batcher) GetEmptyBatch() (batch *Batch) {
-	select {
-	case batch = <-batcher.Batches:
-		// Got one; Reset it
-		batch.Reset()
-	default:
-		batch = new(Batch)
-	}
-
-	return batch
+func NewBatcher(config ShuttleConfig, inLogs <-chan *LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *Batcher {
+	return &Batcher{inLogs: inLogs, inBatches: inBatches, outBatches: outBatches, config: config}
 }
 
 // Loops forever getting an empty batch and filling it.
@@ -40,8 +20,7 @@ func (batcher *Batcher) Batch() error {
 	ticker := time.Tick(batcher.config.WaitDuration())
 
 	for {
-		// Get an empty batch
-		batch := batcher.GetEmptyBatch()
+		batch := <-batcher.inBatches
 		batcher.fillBatch(ticker, batch)
 	}
 }
@@ -54,14 +33,14 @@ func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) {
 		select {
 		case <-ticker:
 			if batch.LineCount() > 0 {
-				batcher.Outbox <- batch
+				batcher.outBatches <- batch
 				return
 			}
 
-		case line := <-batcher.inbox:
+		case line := <-batcher.inLogs:
 			batch.Write(line)
 			if batch.LineCount() == batcher.config.BatchSize {
-				batcher.Outbox <- batch
+				batcher.outBatches <- batch
 				return
 			}
 		}

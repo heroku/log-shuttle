@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"sync/atomic"
 )
 
@@ -21,6 +22,12 @@ func (c *Counter) ReadAndReset() uint64 {
 	}
 }
 
-func (c *Counter) Increment() uint64 {
-	return atomic.AddUint64(&c.value, 1)
+func (c *Counter) Add(u uint64) uint64 {
+	return atomic.AddUint64(&c.value, u)
+}
+
+type Stats struct {
+	Reads    Counter
+	Drops    Counter
+	InFlight *sync.WaitGroup
 }

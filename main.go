@@ -20,16 +20,24 @@ func main() {
 		os.Exit(0)
 	}
 
-	reader := NewReader(config)
-	batcher := NewBatcher(config, reader.Outbox)
-	outlet := NewOutlet(config, reader.InFlight, reader.Drops, batcher.Outbox, batcher.Batches)
+	deliverables := make(chan *Batch)
+	programStats := &Stats{}
 
-	go batcher.Batch()
-	go outlet.Outlet()
+	getBatches, returnBatches := NewBatchManager(config)
+
+	reader := NewReader(config, programStats)
+
+	for nb := 0; nb < config.NumBatchers; nb++ {
+		go NewBatcher(config, reader.Outbox, getBatches, deliverables).Batch()
+	}
+
+	for no := 0; no < config.NumOutlets; no++ {
+		go NewOutlet(config, programStats, deliverables, returnBatches).Outlet()
+	}
 
 	if config.UseStdin() {
 		reader.Read(os.Stdin)
-		reader.InFlight.Wait()
+		programStats.InFlight.Wait()
 		os.Exit(0)
 	}
 
