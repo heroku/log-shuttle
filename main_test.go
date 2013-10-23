@@ -43,10 +43,11 @@ type testHelper struct {
 
 func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
-	ts.Actual, err = ioutil.ReadAll(r.Body)
+	d, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}
+	ts.Actual = append(ts.Actual, d...)
 	ts.Headers = r.Header
 }
 
