@@ -24,7 +24,7 @@ $ go test
 
 ### Submitting Code
 
-Before starting to work an a feature, drop a line to the [mailing list](https://groups.google.com/d/forum/log-shuttle) to get feedback and pro-tips.
+Before starting to work on a feature, drop a line to the [mailing list](https://groups.google.com/d/forum/log-shuttle) to get feedback and pro-tips.
 
 * Keep changes in a feature branch
 * Submit PR
