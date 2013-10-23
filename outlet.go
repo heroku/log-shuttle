@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 type HttpOutlet struct {
@@ -18,7 +20,13 @@ type HttpOutlet struct {
 
 func NewOutlet(config ShuttleConfig, stats *Stats, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
 	h := new(HttpOutlet)
-	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify}}
+	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
+		Dial: func(network, address string) (net.Conn, error) {
+			return net.DialTimeout(network, address, time.Duration(2*time.Second))
+		},
+	}
+
+	httpTransport.ResponseHeaderTimeout = config.ResponseTimeout
 	h.client = &http.Client{Transport: httpTransport}
 	h.stats = stats
 	h.inbox = inbox
