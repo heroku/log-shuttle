@@ -16,7 +16,7 @@ func BatchManager(getBatches, returnBatches chan *Batch, config *ShuttleConfig) 
 
 	for {
 		if q.Len() == 0 {
-			q.PushFront(&queued{when: time.Now(), batch: NewBatch(config)})
+			q.PushFront(queued{when: time.Now(), batch: NewBatch(config)})
 		}
 
 		e := q.Front()
@@ -28,7 +28,7 @@ func BatchManager(getBatches, returnBatches chan *Batch, config *ShuttleConfig) 
 			q.PushFront(queued{when: time.Now(), batch: batch})
 
 		case getBatches <- e.Value.(queued).batch:
-			//I've sent the current batch out, remove it
+			//I've sent the current batch out, remove it from the queue
 			q.Remove(e)
 
 		case <-ticker:
