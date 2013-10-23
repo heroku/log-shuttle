@@ -29,5 +29,5 @@ func (c *Counter) Add(u uint64) uint64 {
 type Stats struct {
 	Reads    Counter
 	Drops    Counter
-	InFlight *sync.WaitGroup
+	InFlight sync.WaitGroup
 }
