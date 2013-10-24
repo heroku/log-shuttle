@@ -7,7 +7,7 @@ import (
 )
 
 type LogLine struct {
-	line string
+	line []byte
 	when time.Time
 }
 
@@ -30,7 +30,7 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 	unbuffered := cap(rdr.Outbox) == 0
 
 	for {
-		line, err := rdrIo.ReadString('\n')
+		line, err := rdrIo.ReadBytes('\n')
 		if err != nil {
 			input.Close()
 			return err
