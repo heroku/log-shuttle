@@ -8,17 +8,13 @@ import (
 // A buffer suitable for posting with a http client
 // keeps track of line's Write()n to the buffer
 type Batch struct {
-	lineCount int
+	LineCount int
 	config    *ShuttleConfig
 	bytes.Buffer
 }
 
 func NewBatch(config *ShuttleConfig) (batch *Batch) {
 	return &Batch{config: config}
-}
-
-func (b *Batch) LineCount() int {
-	return b.lineCount
 }
 
 // Write a line to the batch, increment it's line counter
@@ -35,12 +31,12 @@ func (b *Batch) Write(logLine *LogLine) {
 	}
 
 	fmt.Fprintf(&b.Buffer, "%d %s%s", len(logLine.line)+len(syslogPrefix), syslogPrefix, logLine.line)
-	b.lineCount++
+	b.LineCount++
 }
 
 // Zero the line count and reset the internal buffer
 func (b *Batch) Reset() {
-	b.lineCount = 0
+	b.LineCount = 0
 	b.Buffer.Reset()
 }
 

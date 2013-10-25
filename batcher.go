@@ -32,14 +32,14 @@ func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) {
 	for {
 		select {
 		case <-ticker:
-			if batch.LineCount() > 0 {
+			if batch.LineCount > 0 {
 				batcher.outBatches <- batch
 				return
 			}
 
 		case line := <-batcher.inLogs:
 			batch.Write(line)
-			if batch.LineCount() == batcher.config.BatchSize {
+			if batch.LineCount == batcher.config.BatchSize {
 				batcher.outBatches <- batch
 				return
 			}

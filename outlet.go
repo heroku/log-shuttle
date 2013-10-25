@@ -49,7 +49,7 @@ func (h *HttpOutlet) Outlet() {
 }
 
 func (h *HttpOutlet) post(b *Batch) error {
-	defer h.stats.InFlight.Add(-b.LineCount())
+	defer h.stats.InFlight.Add(-b.LineCount)
 
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
@@ -59,7 +59,7 @@ func (h *HttpOutlet) post(b *Batch) error {
 	req.ContentLength = int64(b.Len())
 
 	req.Header.Add("Content-Type", "application/logplex-1")
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.LineCount()))
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.LineCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(h.stats.Drops.ReadAndReset())))
 	resp, err := h.client.Do(req)
 	if err != nil {
