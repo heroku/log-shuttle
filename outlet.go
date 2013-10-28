@@ -37,8 +37,7 @@ func NewOutlet(config ShuttleConfig, stats *Stats, inbox <-chan *Batch, batchRet
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
 func (h *HttpOutlet) Outlet() {
-	for {
-		batch := <-h.inbox
+	for batch := range h.inbox {
 
 		if err := h.post(batch); err != nil {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
