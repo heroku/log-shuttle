@@ -16,12 +16,12 @@ func NewBatcher(config ShuttleConfig, inLogs <-chan *LogLine, inBatches <-chan *
 }
 
 // Loops forever getting an empty batch and filling it.
-func (batcher *Batcher) Batch() error {
+func (batcher *Batcher) Batch() {
 	ticker := time.Tick(batcher.config.WaitDuration())
 
-	for {
-		batch := <-batcher.inBatches
+	for batch := range batcher.inBatches {
 		batcher.fillBatch(ticker, batch)
+		batcher.outBatches <- batch
 	}
 }
 
@@ -33,14 +33,12 @@ func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) {
 		select {
 		case <-ticker:
 			if batch.LineCount > 0 {
-				batcher.outBatches <- batch
 				return
 			}
 
 		case line := <-batcher.inLogs:
 			batch.Write(line)
 			if batch.LineCount == batcher.config.BatchSize {
-				batcher.outBatches <- batch
 				return
 			}
 		}
