@@ -27,17 +27,16 @@ func main() {
 
 	reader := NewReader(config, programStats)
 
-	for nb := 0; nb < config.NumBatchers; nb++ {
-		go NewBatcher(config, reader.Outbox, getBatches, deliverables).Batch()
-	}
+	batchWaiter := StartBatchers(config.NumBatchers, config, reader.Outbox, getBatches, deliverables)
 
-	for no := 0; no < config.NumOutlets; no++ {
-		go NewOutlet(config, programStats, deliverables, returnBatches).Outlet()
-	}
+	outletWaiter := StartOutlets(config.NumOutlets, config, programStats, deliverables, returnBatches)
 
 	if config.UseStdin() {
 		reader.Read(os.Stdin)
-		programStats.InFlight.Wait()
+		close(reader.Outbox)
+		batchWaiter.Wait()
+		close(deliverables)
+		outletWaiter.Wait()
 		os.Exit(0)
 	}
 

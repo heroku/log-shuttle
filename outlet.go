@@ -7,8 +7,24 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
+
+func StartOutlets(count int, config ShuttleConfig, stats *Stats, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
+	outletWaiter := new(sync.WaitGroup)
+
+	for ; count > 0; count-- {
+		outletWaiter.Add(1)
+		go func() {
+			defer outletWaiter.Done()
+			outlet := NewOutlet(config, stats, inbox, batchReturn)
+			outlet.Outlet()
+		}()
+	}
+
+	return outletWaiter
+}
 
 type HttpOutlet struct {
 	inbox       <-chan *Batch
@@ -48,8 +64,6 @@ func (h *HttpOutlet) Outlet() {
 }
 
 func (h *HttpOutlet) post(b *Batch) error {
-	defer h.stats.InFlight.Add(-b.LineCount)
-
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err

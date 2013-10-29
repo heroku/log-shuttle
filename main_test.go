@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sync"
 	"testing"
 )
 
@@ -51,14 +52,14 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.Headers = r.Header
 }
 
-func MakeBasicBits(config ShuttleConfig) (*Reader, *Batcher, *HttpOutlet, *Stats) {
+func MakeBasicBits(config ShuttleConfig) (*Reader, chan *Batch, *Stats, *sync.WaitGroup, *sync.WaitGroup) {
 	deliverables := make(chan *Batch)
 	programStats := &Stats{}
 	getBatches, returnBatches := NewBatchManager(config)
 	reader := NewReader(config, programStats)
-	batcher := NewBatcher(config, reader.Outbox, getBatches, deliverables)
-	outlet := NewOutlet(config, programStats, deliverables, returnBatches)
-	return reader, batcher, outlet, programStats
+	bWaiter := StartBatchers(config.NumBatchers, config, reader.Outbox, getBatches, deliverables)
+	oWaiter := StartOutlets(config.NumOutlets, config, programStats, deliverables, returnBatches)
+	return reader, deliverables, programStats, bWaiter, oWaiter
 }
 
 func TestIntegration(t *testing.T) {
@@ -68,13 +69,13 @@ func TestIntegration(t *testing.T) {
 
 	config.LogsURL = ts.URL
 
-	reader, batcher, outlet, programStats := MakeBasicBits(config)
-
-	go batcher.Batch()
-	go outlet.Outlet()
+	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInput())
-	programStats.InFlight.Wait()
+	close(reader.Outbox)
+	bWaiter.Wait()
+	close(deliverables)
+	oWaiter.Wait()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
@@ -109,13 +110,13 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
 
-	reader, batcher, outlet, programStats := MakeBasicBits(config)
-
-	go batcher.Batch()
-	go outlet.Outlet()
+	reader, deliverables, _, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInputWithHeaders())
-	programStats.InFlight.Wait()
+	close(reader.Outbox)
+	bWaiter.Wait()
+	close(deliverables)
+	oWaiter.Wait()
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
 	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
@@ -135,15 +136,15 @@ func TestDrops(t *testing.T) {
 
 	config.LogsURL = ts.URL
 
-	reader, batcher, outlet, programStats := MakeBasicBits(config)
-
-	go batcher.Batch()
-	go outlet.Outlet()
+	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	programStats.Drops.Add(1)
 	programStats.Drops.Add(1)
 	reader.Read(NewTestInput())
-	programStats.InFlight.Wait()
+	close(reader.Outbox)
+	bWaiter.Wait()
+	close(deliverables)
+	oWaiter.Wait()
 
 	dropHeader, ok := th.Headers["Logshuttle-Drops"]
 	if !ok {

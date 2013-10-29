@@ -42,12 +42,10 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 		// In this case we will apply back-pressure to callers of read.
 		if unbuffered {
 			rdr.Outbox <- logLine
-			rdr.stats.InFlight.Add(1)
 			rdr.stats.Reads.Add(1)
 		} else {
 			select {
 			case rdr.Outbox <- logLine:
-				rdr.stats.InFlight.Add(1)
 				rdr.stats.Reads.Add(1)
 
 			// Drop lines if the channel is currently full
