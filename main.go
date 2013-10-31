@@ -5,11 +5,19 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 )
 
 const (
 	VERSION = "0.3.1"
 )
+
+func Shutdown(dLogLines chan *LogLine, dBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
+	close(dLogLines) // Close the log line channel, all of the batchers will stop once they are done
+	bWaiter.Wait()   // Wait for them to be done
+	close(dBatches)  // Close the batch channel, all of the outlet will stop once they are done
+	oWaiter.Wait()   // Wait for them to be done
+}
 
 func main() {
 	var config ShuttleConfig
@@ -20,23 +28,20 @@ func main() {
 		os.Exit(0)
 	}
 
-	deliverables := make(chan *Batch)
-	programStats := &Stats{}
+	deliverables := make(chan *Batch, config.NumOutlets*config.NumBatchers)
+	programStats := &ProgramStats{}
 
 	getBatches, returnBatches := NewBatchManager(config)
 
-	reader := NewReader(config, programStats)
+	reader := NewReader(config.FrontBuff)
 
-	batchWaiter := StartBatchers(config.NumBatchers, config, reader.Outbox, getBatches, deliverables)
-
-	outletWaiter := StartOutlets(config.NumOutlets, config, programStats, deliverables, returnBatches)
+	// Start outlets, then batches, then readers (reverse of Shutdown)
+	outletWaiter := StartOutlets(config, programStats, deliverables, returnBatches)
+	batchWaiter := StartBatchers(config, programStats, reader.Outbox, getBatches, deliverables)
 
 	if config.UseStdin() {
-		reader.Read(os.Stdin)
-		close(reader.Outbox)
-		batchWaiter.Wait()
-		close(deliverables)
-		outletWaiter.Wait()
+		reader.Read(os.Stdin, programStats)
+		Shutdown(reader.Outbox, deliverables, batchWaiter, outletWaiter)
 		os.Exit(0)
 	}
 
@@ -53,7 +58,7 @@ func main() {
 				continue
 			}
 
-			go reader.Read(conn)
+			go reader.Read(conn, programStats)
 		}
 	}
 

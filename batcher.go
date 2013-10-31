@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-func StartBatchers(count int, config ShuttleConfig, inLogs <-chan *LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *sync.WaitGroup {
+func StartBatchers(config ShuttleConfig, stats *ProgramStats, inLogs <-chan *LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *sync.WaitGroup {
 	batchWaiter := new(sync.WaitGroup)
-	for ; count > 0; count-- {
+	for i := 0; i < config.NumBatchers; i++ {
 		batchWaiter.Add(1)
 		go func() {
 			defer batchWaiter.Done()
 			batcher := NewBatcher(config, inLogs, inBatches, outBatches)
-			batcher.Batch()
+			batcher.Batch(stats)
 		}()
 	}
 
@@ -30,14 +30,22 @@ func NewBatcher(config ShuttleConfig, inLogs <-chan *LogLine, inBatches <-chan *
 	return &Batcher{inLogs: inLogs, inBatches: inBatches, outBatches: outBatches, config: config}
 }
 
-// Loops forever getting an empty batch and filling it.
-func (batcher *Batcher) Batch() {
+// Loops getting an empty batch and filling it.
+func (batcher *Batcher) Batch(stats *ProgramStats) {
 	ticker := time.Tick(batcher.config.WaitDuration())
 
 	for batch := range batcher.inBatches {
 		closeDown := batcher.fillBatch(ticker, batch)
 		if batch.LineCount > 0 {
-			batcher.outBatches <- batch
+			select {
+			case batcher.outBatches <- batch:
+			// submitted into the delivery channel,
+			// nothing to do here.
+			default:
+				//Unable to deliver into the delivery channel,
+				//increment
+				stats.Drops.Add(uint64(batch.LineCount))
+			}
 		}
 		if closeDown {
 			break

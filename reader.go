@@ -13,24 +13,20 @@ type LogLine struct {
 
 type Reader struct {
 	Outbox chan *LogLine
-	stats  *Stats
-	config ShuttleConfig
 }
 
-func NewReader(config ShuttleConfig, stats *Stats) *Reader {
+func NewReader(frontBuff int) *Reader {
 	r := new(Reader)
-	r.Outbox = make(chan *LogLine, config.FrontBuff)
-	r.stats = stats
-	r.config = config
+	r.Outbox = make(chan *LogLine, frontBuff)
 	return r
 }
 
-func (rdr *Reader) Read(input io.ReadCloser) error {
+func (rdr *Reader) Read(input io.ReadCloser, stats *ProgramStats) error {
 	rdrIo := bufio.NewReader(input)
-	unbuffered := cap(rdr.Outbox) == 0
 
 	for {
 		line, err := rdrIo.ReadBytes('\n')
+
 		if err != nil {
 			input.Close()
 			return err
@@ -38,21 +34,8 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 
 		logLine := &LogLine{line, time.Now().UTC()}
 
-		// If we have an unbuffered chanel, we don't want to drop lines.
-		// In this case we will apply back-pressure to callers of read.
-		if unbuffered {
-			rdr.Outbox <- logLine
-			rdr.stats.Reads.Add(1)
-		} else {
-			select {
-			case rdr.Outbox <- logLine:
-				rdr.stats.Reads.Add(1)
-
-			// Drop lines if the channel is currently full
-			default:
-				rdr.stats.Drops.Add(1)
-			}
-		}
+		rdr.Outbox <- logLine
+		stats.Reads.Add(1)
 	}
 	return nil
 }

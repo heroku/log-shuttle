@@ -8,18 +8,17 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"time"
 )
 
-func StartOutlets(count int, config ShuttleConfig, stats *Stats, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, stats *ProgramStats, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
-	for ; count > 0; count-- {
+	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewOutlet(config, stats, inbox, batchReturn)
-			outlet.Outlet()
+			outlet := NewOutlet(config, inbox, batchReturn)
+			outlet.Outlet(stats)
 		}()
 	}
 
@@ -29,22 +28,20 @@ func StartOutlets(count int, config ShuttleConfig, stats *Stats, inbox <-chan *B
 type HttpOutlet struct {
 	inbox       <-chan *Batch
 	batchReturn chan<- *Batch
-	stats       *Stats
 	client      *http.Client
 	config      ShuttleConfig
 }
 
-func NewOutlet(config ShuttleConfig, stats *Stats, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
+func NewOutlet(config ShuttleConfig, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
 	h := new(HttpOutlet)
 	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 		Dial: func(network, address string) (net.Conn, error) {
-			return net.DialTimeout(network, address, time.Duration(2*time.Second))
+			return net.DialTimeout(network, address, config.Timeout)
 		},
 	}
 
-	httpTransport.ResponseHeaderTimeout = config.ResponseTimeout
+	httpTransport.ResponseHeaderTimeout = config.Timeout
 	h.client = &http.Client{Transport: httpTransport}
-	h.stats = stats
 	h.inbox = inbox
 	h.batchReturn = batchReturn
 	h.config = config
@@ -52,10 +49,10 @@ func NewOutlet(config ShuttleConfig, stats *Stats, inbox <-chan *Batch, batchRet
 }
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
-func (h *HttpOutlet) Outlet() {
+func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 	for batch := range h.inbox {
 
-		if err := h.post(batch); err != nil {
+		if err := h.post(batch, stats); err != nil {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
 		}
 
@@ -63,17 +60,21 @@ func (h *HttpOutlet) Outlet() {
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch) error {
+func (h *HttpOutlet) post(b *Batch, stats *ProgramStats) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
 	}
 
-	req.ContentLength = int64(b.Len())
+	drops := int(stats.Drops.ReadAndReset())
+	if drops > 0 {
+		b.WriteDrops(drops)
+	}
 
+	req.ContentLength = int64(b.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.LineCount))
-	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(h.stats.Drops.ReadAndReset())))
+	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	resp, err := h.client.Do(req)
 	if err != nil {
 		return err

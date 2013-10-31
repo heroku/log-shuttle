@@ -17,12 +17,24 @@ var (
 func init() {
 	config.ParseFlags() //Load defaults. Why is there no seperate function for this?
 	// Some test defaults
-	config.BatchSize = 2
-	config.FrontBuff = 2
 }
 
 type testInput struct {
 	*bytes.Buffer
+}
+
+func NewLongerTestInput() *testInput {
+	return &testInput{bytes.NewBufferString(`Lebowski ipsum what in God's holy name are you blathering about?
+Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.
+They're nihilists.
+Pellentesque ac lectus quis elit blandit fringilla a ut turpis praesent.
+Mein nommen iss Karl.
+Is hard to verk in zese clozes.
+Felis ligula, malesuada suscipit malesuada non, ultrices non.
+Shomer shabbos.
+Urna sed orci ipsum, placerat id condimentum rutrum, rhoncus.
+Yeah man, it really tied the room together.
+Ac lorem aliquam placerat.`)}
 }
 
 func NewTestInput() *testInput {
@@ -35,6 +47,15 @@ func NewTestInputWithHeaders() *testInput {
 
 func (i *testInput) Close() error {
 	return nil
+}
+
+type noopTestHelper struct{}
+
+func (th *noopTestHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type testHelper struct {
@@ -52,13 +73,13 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.Headers = r.Header
 }
 
-func MakeBasicBits(config ShuttleConfig) (*Reader, chan *Batch, *Stats, *sync.WaitGroup, *sync.WaitGroup) {
-	deliverables := make(chan *Batch)
-	programStats := &Stats{}
+func MakeBasicBits(config ShuttleConfig) (*Reader, chan *Batch, *ProgramStats, *sync.WaitGroup, *sync.WaitGroup) {
+	deliverables := make(chan *Batch, config.NumOutlets*config.NumBatchers)
+	programStats := &ProgramStats{}
 	getBatches, returnBatches := NewBatchManager(config)
-	reader := NewReader(config, programStats)
-	bWaiter := StartBatchers(config.NumBatchers, config, reader.Outbox, getBatches, deliverables)
-	oWaiter := StartOutlets(config.NumOutlets, config, programStats, deliverables, returnBatches)
+	reader := NewReader(config.FrontBuff)
+	oWaiter := StartOutlets(config, programStats, deliverables, returnBatches)
+	bWaiter := StartBatchers(config, programStats, reader.Outbox, getBatches, deliverables)
 	return reader, deliverables, programStats, bWaiter, oWaiter
 }
 
@@ -71,11 +92,8 @@ func TestIntegration(t *testing.T) {
 
 	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
 
-	reader.Read(NewTestInput())
-	close(reader.Outbox)
-	bWaiter.Wait()
-	close(deliverables)
-	oWaiter.Wait()
+	reader.Read(NewTestInput(), programStats)
+	Shutdown(reader.Outbox, deliverables, bWaiter, oWaiter)
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
@@ -110,13 +128,10 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
 
-	reader, deliverables, _, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
 
-	reader.Read(NewTestInputWithHeaders())
-	close(reader.Outbox)
-	bWaiter.Wait()
-	close(deliverables)
-	oWaiter.Wait()
+	reader.Read(NewTestInputWithHeaders(), programStats)
+	Shutdown(reader.Outbox, deliverables, bWaiter, oWaiter)
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
 	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
@@ -135,16 +150,19 @@ func TestDrops(t *testing.T) {
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
+	config.SkipHeaders = false
 
 	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	programStats.Drops.Add(1)
 	programStats.Drops.Add(1)
-	reader.Read(NewTestInput())
-	close(reader.Outbox)
-	bWaiter.Wait()
-	close(deliverables)
-	oWaiter.Wait()
+	reader.Read(NewTestInput(), programStats)
+	Shutdown(reader.Outbox, deliverables, bWaiter, oWaiter)
+
+	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+`)
+	if !pat1.Match(th.Actual) {
+		t.Fatalf("actual=%s\n", string(th.Actual))
+	}
 
 	dropHeader, ok := th.Headers["Logshuttle-Drops"]
 	if !ok {
@@ -159,4 +177,25 @@ func TestDrops(t *testing.T) {
 	if afterDrops := programStats.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
+}
+
+func BenchmarkPipeline(b *testing.B) {
+	th := new(noopTestHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.LogsURL = ts.URL
+	config.SkipHeaders = false
+
+	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		ti := NewLongerTestInput()
+		b.SetBytes(int64(ti.Len()))
+		b.StartTimer()
+		reader.Read(ti, programStats)
+	}
+	Shutdown(reader.Outbox, deliverables, bWaiter, oWaiter)
 }

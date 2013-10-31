@@ -11,26 +11,26 @@ import (
 var LogplexUrl = os.Getenv("LOGPLEX_URL")
 
 type ShuttleConfig struct {
-	FrontBuff       int
-	BatchSize       int
-	MaxRequests     int
-	NumBatchers     int
-	NumOutlets      int
-	Wait            int
-	Batches         int
-	Socket          string
-	LogsURL         string
-	Prival          string
-	Version         string
-	Procid          string
-	Hostname        string
-	Appname         string
-	Msgid           string
-	SkipHeaders     bool
-	SkipVerify      bool
-	PrintVersion    bool
-	Verbose         bool
-	ResponseTimeout time.Duration
+	FrontBuff    int
+	BatchSize    int
+	MaxRequests  int
+	NumBatchers  int
+	NumOutlets   int
+	Wait         int
+	Batches      int
+	Socket       string
+	LogsURL      string
+	Prival       string
+	Version      string
+	Procid       string
+	Hostname     string
+	Appname      string
+	Msgid        string
+	SkipHeaders  bool
+	SkipVerify   bool
+	PrintVersion bool
+	Verbose      bool
+	Timeout      time.Duration
 }
 
 func (c *ShuttleConfig) ParseFlags() {
@@ -51,10 +51,10 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.NumOutlets, "num-outlets", 4, "The number of outlets to run.")
 	flag.IntVar(&c.Batches, "batches", 5, "Number of pending batches to buffer.")
 	flag.IntVar(&c.Wait, "wait", 250, "Number of ms to flush messages to logplex")
-	flag.IntVar(&c.BatchSize, "batch-size", 500, "Number of messages to pack into a logplex http request.")
+	flag.IntVar(&c.BatchSize, "batch-size", 750, "Number of messages to pack into a logplex http request.")
 	flag.IntVar(&c.MaxRequests, "max-requests", 5, "Max number of inflight requests to logplex at any moment")
-	flag.IntVar(&c.FrontBuff, "front-buff", 0, "Number of messages to buffer in log-shuttle's input chanel.")
-	flag.DurationVar(&c.ResponseTimeout, "response-timeout", time.Duration(3*time.Second), "Duration to wait for a response from Logplex.")
+	flag.IntVar(&c.FrontBuff, "front-buff", 5000, "Number of messages to buffer in log-shuttle's input chanel.")
+	flag.DurationVar(&c.Timeout, "timeout", time.Duration(2*time.Second), "Duration to wait for a response from Logplex.")
 	flag.Parse()
 }
 
