@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	VERSION = "0.3.1"
+	VERSION = "0.3.2"
 )
 
 func Shutdown(dLogLines chan *LogLine, dBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
