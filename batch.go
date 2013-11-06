@@ -1,5 +1,7 @@
 package main
 
+//TODO: refactor syslogPrefix bits
+
 import (
 	"bytes"
 	"fmt"
@@ -7,7 +9,7 @@ import (
 )
 
 const (
-	SYSLOG_TIME_LENGTH = 15
+	SYSLOG_TIME_LENGTH = 15 // locally this is always 15 AFAICT, but may not be if we decide to take input from elsewhere
 )
 
 var (
@@ -17,8 +19,8 @@ var (
 // A buffer suitable for posting with a http client
 // keeps track of line's Write()n to the buffer
 type Batch struct {
-	LineCount int
-	config    *ShuttleConfig
+	MsgCount int
+	config   *ShuttleConfig
 	bytes.Buffer
 }
 
@@ -27,6 +29,7 @@ func NewBatch(config *ShuttleConfig) (batch *Batch) {
 }
 
 func (b *Batch) WriteDrops(drops int) {
+	//TODO: use writeMsg
 	now := time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00")
 	line := fmt.Sprintf("<172>%s %s heroku %s log-shuttle %s Error L12: %d messages dropped since %s.",
 		b.config.Version,
@@ -37,17 +40,19 @@ func (b *Batch) WriteDrops(drops int) {
 		now,
 	)
 	fmt.Fprintf(&b.Buffer, "%d %s", len(line), line)
-	b.LineCount++
+	b.MsgCount++
 }
 
-func (b *Batch) writeLine(prefix *string, msg []byte) {
+// Write a message into the buffer, incrementing MsgCount
+func (b *Batch) writeMsg(prefix *string, msg []byte) {
 	fmt.Fprintf(&b.Buffer, "%d %s%s", len(*prefix)+len(msg), *prefix, msg)
+	b.MsgCount++
 }
 
-// Write an RFC5424 line to the buffer from the RFC3164 formatted line
+// Write an RFC5424 msg to the buffer from the RFC3164 formatted msg
 //TODO: Punt on time manipulation for now, use received time
 //TODO: Punt on host/tag/pid for now, use value from config
-func (b *Batch) writeRFC3164(logLine *LogLine) {
+func (b *Batch) writeRFC3164Msg(logLine *LogLine) {
 	var msg []byte
 
 	// Figure out the prival
@@ -70,14 +75,14 @@ func (b *Batch) writeRFC3164(logLine *LogLine) {
 		b.config.Procid + " " +
 		b.config.Msgid + " "
 
-	b.writeLine(&syslogPrefix, msg)
+	b.writeMsg(&syslogPrefix, msg)
 }
 
 // Write a line to the batch, increment it's line counter
 func (b *Batch) Write(logLine *LogLine) {
 
 	if logLine.unixgram {
-		b.writeRFC3164(logLine)
+		b.writeRFC3164Msg(logLine)
 	} else {
 		var syslogPrefix string
 
@@ -90,15 +95,13 @@ func (b *Batch) Write(logLine *LogLine) {
 				b.config.Msgid + " "
 		}
 
-		b.writeLine(&syslogPrefix, logLine.line)
+		b.writeMsg(&syslogPrefix, logLine.line)
 	}
-
-	b.LineCount++
 }
 
 // Zero the line count and reset the internal buffer
 func (b *Batch) Reset() {
-	b.LineCount = 0
+	b.MsgCount = 0
 	b.Buffer.Reset()
 }
 

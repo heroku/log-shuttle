@@ -73,7 +73,7 @@ func (h *HttpOutlet) post(b *Batch, stats *ProgramStats) error {
 
 	req.ContentLength = int64(b.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.LineCount))
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	resp, err := h.client.Do(req)
 	if err != nil {

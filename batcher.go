@@ -36,7 +36,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 
 	for batch := range batcher.inBatches {
 		closeDown := batcher.fillBatch(ticker, batch)
-		if batch.LineCount > 0 {
+		if batch.MsgCount > 0 {
 			select {
 			case batcher.outBatches <- batch:
 			// submitted into the delivery channel,
@@ -44,7 +44,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 			default:
 				//Unable to deliver into the delivery channel,
 				//increment
-				stats.Drops.Add(uint64(batch.LineCount))
+				stats.Drops.Add(uint64(batch.MsgCount))
 			}
 		}
 		if closeDown {
@@ -62,7 +62,7 @@ func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) (closed
 	for open := true; open; {
 		select {
 		case <-ticker:
-			if batch.LineCount > 0 { // Stay here, unless we have some lines
+			if batch.MsgCount > 0 { // Stay here, unless we have some lines
 				return !open
 			}
 
@@ -71,7 +71,7 @@ func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) (closed
 				return true
 			}
 			batch.Write(line)
-			if batch.LineCount == batcher.config.BatchSize {
+			if batch.MsgCount == batcher.config.BatchSize {
 				return
 			}
 		}
