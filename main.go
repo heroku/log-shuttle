@@ -9,7 +9,9 @@ import (
 )
 
 const (
-	VERSION = "0.3.2"
+	VERSION      = "0.3.2"
+	SOCKET_TYPE  = "unixgram"
+	SOCKET_PERMS = 0666
 )
 
 func Shutdown(dLogLines chan *LogLine, dBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
@@ -17,6 +19,11 @@ func Shutdown(dLogLines chan *LogLine, dBatches chan *Batch, bWaiter *sync.WaitG
 	bWaiter.Wait()   // Wait for them to be done
 	close(dBatches)  // Close the batch channel, all of the outlet will stop once they are done
 	oWaiter.Wait()   // Wait for them to be done
+}
+
+func Exists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
 }
 
 func main() {
@@ -46,20 +53,31 @@ func main() {
 	}
 
 	if config.UseSocket() {
-		l, err := net.Listen("unix", config.Socket)
+		ua, err := net.ResolveUnixAddr(SOCKET_TYPE, config.Socket)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Resolving Unix Address: ", err)
 		}
 
-		for {
-			conn, err := l.Accept()
+		if Exists(config.Socket) {
+			err := os.Remove(config.Socket)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "accept-err=%s\n", err)
-				continue
+				log.Fatal("Removing old socket: ", err)
 			}
-
-			go reader.Read(conn, programStats)
 		}
-	}
 
+		l, err := net.ListenUnixgram(SOCKET_TYPE, ua)
+		if err != nil {
+			log.Fatal("Listening on Socket: ", err)
+		}
+
+		//Change permissions so anyone can write to it
+		err = os.Chmod(config.Socket, SOCKET_PERMS)
+		if err != nil {
+			log.Fatal("Chmoding Socket: ", err)
+		}
+
+		reader.ReadUnixgram(l, programStats)
+		Shutdown(reader.Outbox, deliverables, batchWaiter, outletWaiter)
+		os.Exit(0)
+	}
 }
