@@ -28,6 +28,9 @@ func Exists(path string) bool {
 
 func main() {
 	var config ShuttleConfig
+	var stdinWaiter *sync.WaitGroup
+	var unixgramCloseChannel chan bool
+
 	config.ParseFlags()
 
 	if config.PrintVersion {
@@ -46,10 +49,17 @@ func main() {
 	outletWaiter := StartOutlets(config, programStats, deliverables, returnBatches)
 	batchWaiter := StartBatchers(config, programStats, reader.Outbox, getBatches, deliverables)
 
+	if !config.UseStdin() || !config.UseSocket() {
+		log.Fatalln("No stdin detected or socket used.")
+	}
+
 	if config.UseStdin() {
-		reader.Read(os.Stdin, programStats)
-		Shutdown(reader.Outbox, deliverables, batchWaiter, outletWaiter)
-		os.Exit(0)
+		stdinWaiter = new(sync.WaitGroup)
+		stdinWaiter.Add(1)
+		go func() {
+			reader.Read(os.Stdin, programStats)
+			stdinWaiter.Done()
+		}()
 	}
 
 	if config.UseSocket() {
@@ -76,8 +86,24 @@ func main() {
 			log.Fatal("Chmoding Socket: ", err)
 		}
 
-		reader.ReadUnixgram(l, programStats)
-		Shutdown(reader.Outbox, deliverables, batchWaiter, outletWaiter)
-		os.Exit(0)
+		unixgramCloseChannel = make(chan bool)
+		go func() {
+			reader.ReadUnixgram(l, programStats, unixgramCloseChannel)
+		}()
 	}
+
+	// We need to wait on stdin, so do so
+	if stdinWaiter != nil {
+		stdinWaiter.Wait()
+	}
+
+	// Assume if we got to here that we are exiting, so tell the socket
+	// reader that it needs to close down.
+	// We do this so it doesn't try to write to a closed channel
+	if unixgramCloseChannel != nil {
+		unixgramCloseChannel <- true
+	}
+
+	// Shutdown everything else.
+	Shutdown(reader.Outbox, deliverables, batchWaiter, outletWaiter)
 }

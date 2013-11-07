@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/pebbe/util"
 	"log"
 	"net/url"
 	"os"
@@ -84,7 +85,7 @@ func (c *ShuttleConfig) OutletURL() string {
 }
 
 func (c *ShuttleConfig) UseStdin() bool {
-	return !c.UseSocket()
+	return !util.IsTerminal(os.Stdin)
 }
 
 func (c *ShuttleConfig) UseSocket() bool {

@@ -27,23 +27,34 @@ func NewReader(frontBuff int) *Reader {
 	return r
 }
 
-func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats) error {
+func (rdr *Reader) readFromUnixgram(input *net.UnixConn, out chan<- *LogLine) {
 	msg := make([]byte, UNIXGRAM_BUFFER_SIZE)
 	for {
 		numRead, err := input.Read(msg)
-		if err != nil {
+		if err != nil { // TODO: Do this better of just log.Fatal
 			input.Close()
-			return err
+			return
 		}
 
 		//make a new []byte of the right length and copy our read message into it
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
-		//Send out a logline with the right details in it
-		logLine := &LogLine{thisMsg, time.Now(), true}
-		rdr.Outbox <- logLine
-		stats.Reads.Add(1)
+		out <- &LogLine{thisMsg, time.Now(), true}
+	}
+}
+
+func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeChan <-chan bool) {
+	in := make(chan *LogLine)
+	go rdr.readFromUnixgram(input, in)
+	for {
+		select {
+		case msg := <-in:
+			rdr.Outbox <- msg
+			stats.Reads.Add(1)
+		case <-closeChan:
+			return
+		}
 	}
 }
 
