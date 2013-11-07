@@ -28,8 +28,10 @@ func Exists(path string) bool {
 
 func main() {
 	var config ShuttleConfig
-	var stdinWaiter *sync.WaitGroup
 	var unixgramCloseChannel chan bool
+
+	stdinWaiter := new(sync.WaitGroup)
+	socketWaiter := new(sync.WaitGroup)
 
 	config.ParseFlags()
 
@@ -49,12 +51,11 @@ func main() {
 	outletWaiter := StartOutlets(config, programStats, deliverables, returnBatches)
 	batchWaiter := StartBatchers(config, programStats, reader.Outbox, getBatches, deliverables)
 
-	if !config.UseStdin() || !config.UseSocket() {
+	if !config.UseStdin() && !config.UseSocket() {
 		log.Fatalln("No stdin detected or socket used.")
 	}
 
 	if config.UseStdin() {
-		stdinWaiter = new(sync.WaitGroup)
 		stdinWaiter.Add(1)
 		go func() {
 			reader.Read(os.Stdin, programStats)
@@ -87,21 +88,23 @@ func main() {
 		}
 
 		unixgramCloseChannel = make(chan bool)
+		socketWaiter.Add(1)
 		go func() {
 			reader.ReadUnixgram(l, programStats, unixgramCloseChannel)
+			socketWaiter.Done()
 		}()
 	}
 
-	// We need to wait on stdin, so do so
-	if stdinWaiter != nil {
+	if config.UseStdin() {
 		stdinWaiter.Wait()
+		if config.UseSocket() {
+			unixgramCloseChannel <- true
+		}
 	}
 
-	// Assume if we got to here that we are exiting, so tell the socket
-	// reader that it needs to close down.
-	// We do this so it doesn't try to write to a closed channel
-	if unixgramCloseChannel != nil {
-		unixgramCloseChannel <- true
+	//TODO: Signal handler to gracefully shutdown the socket listener on SIGTERM
+	if config.UseSocket() {
+		socketWaiter.Wait()
 	}
 
 	// Shutdown everything else.
