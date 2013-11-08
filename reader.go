@@ -27,12 +27,27 @@ func NewReader(frontBuff int) *Reader {
 	return r
 }
 
-func (rdr *Reader) readFromUnixgram(input *net.UnixConn, out chan<- *LogLine) {
+func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeChan <-chan bool) error {
 	msg := make([]byte, UNIXGRAM_BUFFER_SIZE)
 	for {
+
+		// Stop reading if we get a message
+		select {
+		case <-closeChan:
+			input.Close()
+			return nil
+		default:
+		}
+
+		input.SetReadDeadline(time.Now().Add(time.Second * 5))
 		numRead, err := input.Read(msg)
 		if err != nil { // TODO: Do this better or just log.Fatal
-			return
+			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+				continue
+			} else {
+				input.Close()
+				return err
+			}
 		}
 
 		//make a new []byte of the right length and copy our read message into it
@@ -40,22 +55,8 @@ func (rdr *Reader) readFromUnixgram(input *net.UnixConn, out chan<- *LogLine) {
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
-		out <- &LogLine{thisMsg, time.Now(), true}
-	}
-}
-
-func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeChan <-chan bool) {
-	in := make(chan *LogLine)
-	go rdr.readFromUnixgram(input, in)
-	for {
-		select {
-		case msg := <-in:
-			rdr.Outbox <- msg
-			stats.Reads.Add(1)
-		case <-closeChan: // stop reading
-			input.Close()
-			return
-		}
+		rdr.Outbox <- &LogLine{thisMsg, time.Now(), true}
+		stats.Reads.Add(1)
 	}
 }
 
