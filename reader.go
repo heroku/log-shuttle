@@ -9,6 +9,7 @@ import (
 
 const (
 	UNIXGRAM_BUFFER_SIZE = 10000 //Make this a little smaller than logplex's max (10240), so we have room for headers
+	READ_DEADLINE        = 2
 )
 
 type LogLine struct {
@@ -39,7 +40,7 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 		default:
 		}
 
-		input.SetReadDeadline(time.Now().Add(time.Second * 5))
+		input.SetReadDeadline(time.Now().Add(time.Second * READ_DEADLINE))
 		numRead, err := input.Read(msg)
 		if err != nil { // TODO: Do this better or just log.Fatal
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
