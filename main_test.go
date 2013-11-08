@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"sync"
 	"testing"
 )
 
@@ -71,16 +70,6 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ts.Actual = append(ts.Actual, d...)
 	ts.Headers = r.Header
-}
-
-func MakeBasicBits(config ShuttleConfig) (*Reader, chan *Batch, *ProgramStats, *sync.WaitGroup, *sync.WaitGroup) {
-	deliverables := make(chan *Batch, config.NumOutlets*config.NumBatchers)
-	programStats := &ProgramStats{}
-	getBatches, returnBatches := NewBatchManager(config)
-	reader := NewReader(config.FrontBuff)
-	oWaiter := StartOutlets(config, programStats, deliverables, returnBatches)
-	bWaiter := StartBatchers(config, programStats, reader.Outbox, getBatches, deliverables)
-	return reader, deliverables, programStats, bWaiter, oWaiter
 }
 
 func TestIntegration(t *testing.T) {
