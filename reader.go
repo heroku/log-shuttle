@@ -42,8 +42,9 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 
 		input.SetReadDeadline(time.Now().Add(time.Second * READ_DEADLINE))
 		numRead, err := input.Read(msg)
-		if err != nil { // TODO: Do this better or just log.Fatal
+		if err != nil {
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
+				// We have a timeout error, so just loop
 				continue
 			} else {
 				input.Close()
