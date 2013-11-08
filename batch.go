@@ -81,7 +81,7 @@ func (b *Batch) writeRFC3164Msg(logLine *LogLine) {
 // Write a line to the batch, increment it's line counter
 func (b *Batch) Write(logLine *LogLine) {
 
-	if logLine.unixgram {
+	if logLine.rfc3164 {
 		b.writeRFC3164Msg(logLine)
 	} else {
 		var syslogPrefix string

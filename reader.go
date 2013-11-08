@@ -12,9 +12,9 @@ const (
 )
 
 type LogLine struct {
-	line     []byte
-	when     time.Time
-	unixgram bool
+	line    []byte
+	when    time.Time
+	rfc3164 bool
 }
 
 type Reader struct {
