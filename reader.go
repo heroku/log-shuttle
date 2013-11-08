@@ -31,12 +31,12 @@ func (rdr *Reader) readFromUnixgram(input *net.UnixConn, out chan<- *LogLine) {
 	msg := make([]byte, UNIXGRAM_BUFFER_SIZE)
 	for {
 		numRead, err := input.Read(msg)
-		if err != nil { // TODO: Do this better of just log.Fatal
-			input.Close()
+		if err != nil { // TODO: Do this better or just log.Fatal
 			return
 		}
 
 		//make a new []byte of the right length and copy our read message into it
+		//TODO this is ugly, is there a better way?
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
@@ -52,7 +52,8 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 		case msg := <-in:
 			rdr.Outbox <- msg
 			stats.Reads.Add(1)
-		case <-closeChan:
+		case <-closeChan: // stop reading
+			input.Close()
 			return
 		}
 	}
