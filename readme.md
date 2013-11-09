@@ -1,16 +1,34 @@
 # Log Shuttle
 
-See the project's [website](http://log-shuttle.io) for synopsis, setup, and usage instructions.
+Log-shuttle is an open source UNIX program that delivers messages from
+applications and daemons to log routers and processors via HTTPs.
+
+One of the motivations behind log-shuttle is to provide a simpler form of
+encrypted & authenticated log delivery. Using HTTPs & Basic Authentication is
+simpler than the techniques described in RFC5425. TLS transport mapping for
+Syslog requires that you maintain both client & server certificates for
+authentication. In multi-tenant environments, the maintenance of certificate
+management can be quite burdensome.
+
+When using log-shuttle with logplex it is recomended that you spawn 1
+log-shuttle per logplex token. This will isolate data between customers and
+ensure a good QoS. Log-shuttle accepts input from stdin in a newline (\n)
+delimited format. Log-shuttle can also be configured to accept
+syslog(3)/vsyslog(3) input via a socket. Run log-shuttle's help command for
+more options.
+
+To block as little as possible, log-shuttle will drop outstanding batches if
+there are too many that haven't been delivered.
 
 ## Hacking on log-shuttle
 
-[![Build Status](https://drone.io/github.com/heroku/log-shuttle/status.png)](https://drone.io/github.com/heroku/log-shuttle/latest)
+Fork the repo, hack, submit PRs.
 
 ### Local Setup
 
 ```bash
 $ go version
-go version go1.1 darwin/amd64
+go version go1.1.2 darwin/amd64
 $ git clone https://github.com/heroku/log-shuttle.git
 $ cd log-shuttle
 $ go build
@@ -28,10 +46,6 @@ Before starting to work on a feature, drop a line to the [mailing list](https://
 
 * Keep changes in a feature branch
 * Submit PR
-* Update `logShuttleVersion` in main.go
-* Update `VERSION` in Makefile
-* Add entry in CHANGELOG
-* git tag -a vX.Y -m 'vX.Y had this change' HEAD
 
 ### Building on Heroku
 
@@ -45,9 +59,22 @@ Download deb
 ## License
 
 Copyright (c) 2012 Ryan R. Smith
+Copyright (c) 2013 Heroku Inc.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
