@@ -32,19 +32,21 @@ func NewBatcher(config ShuttleConfig, inLogs <-chan *LogLine, inBatches <-chan *
 
 // Loops getting an empty batch and filling it.
 func (batcher *Batcher) Batch(stats *ProgramStats) {
-	ticker := time.Tick(batcher.config.WaitDuration())
+
+	timeout := time.NewTimer(batcher.config.WaitDuration)
+	timeout.Stop() // don't timeout until we have a log line
 
 	for batch := range batcher.inBatches {
-		closeDown := batcher.fillBatch(ticker, batch)
-		if batch.MsgCount > 0 {
+		count, closeDown := batcher.fillBatch(timeout, batch)
+		if count > 0 {
 			select {
 			case batcher.outBatches <- batch:
 			// submitted into the delivery channel,
 			// nothing to do here.
 			default:
 				//Unable to deliver into the delivery channel,
-				//increment
-				stats.Drops.Add(uint64(batch.MsgCount))
+				//increment drops
+				stats.Drops.Add(uint64(count))
 			}
 		}
 		if closeDown {
@@ -54,29 +56,28 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 }
 
 // fillBatch coalesces individual log lines into batches. Delivery of the
-// batch happens on ticker timeout or when the batch is full.
-func (batcher *Batcher) fillBatch(ticker <-chan time.Time, batch *Batch) (closed bool) {
+// batch happens on timeout after at least one message is received
+// or when the batch is full.
+func (batcher *Batcher) fillBatch(timeout *time.Timer, batch *Batch) (int, bool) {
 	// Fill the batch with log lines
 	var line *LogLine
+	var open bool
 
-	for open := true; open; {
+	for {
 		select {
-		case <-ticker:
-			if batch.MsgCount > 0 { // Stay here, unless we have some lines
-				return !open
-			}
+		case <-timeout.C:
+			return batch.MsgCount, !open
 
 		case line, open = <-batcher.inLogs:
+			timeout.Stop()
 			if !open {
-				return true
+				return batch.MsgCount, !open
 			}
 			batch.Write(line)
 			if batch.MsgCount == batcher.config.BatchSize {
-				return
+				return batch.MsgCount, !open
 			}
+			timeout.Reset(batcher.config.WaitDuration)
 		}
 	}
-
-	return true
-
 }
