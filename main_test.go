@@ -159,7 +159,7 @@ func TestDrops(t *testing.T) {
 	}
 
 	if dropHeader[0] != "2" {
-		t.Fatalf("LogShuttle-Drops=%s\n", dropHeader[0])
+		t.Fatalf("Logshuttle-Drops=%s\n", dropHeader[0])
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
