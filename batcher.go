@@ -66,7 +66,7 @@ func (batcher *Batcher) fillBatch(timeout *time.Timer, batch *Batch) (int, bool)
 	for {
 		select {
 		case <-timeout.C:
-			return batch.MsgCount, !open
+			return batch.MsgCount, false
 
 		case line, open = <-batcher.inLogs:
 			timeout.Stop()
