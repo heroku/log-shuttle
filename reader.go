@@ -57,7 +57,7 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
-		rdr.Outbox <- &LogLine{thisMsg, time.Now(), true}
+		rdr.Outbox <- &LogLine{thisMsg, time.Now(), thisMsg[0] == '<'}
 		stats.Reads.Add(1)
 	}
 }

@@ -13,9 +13,9 @@ management can be quite burdensome.
 When using log-shuttle with logplex it is recomended that you spawn 1
 log-shuttle per logplex token. This will isolate data between customers and
 ensure a good QoS. Log-shuttle accepts input from stdin in a newline (\n)
-delimited format. Log-shuttle can also be configured to accept
-syslog(3)/vsyslog(3) input via a socket. Run log-shuttle's help command for
-more options.
+delimited format. Log-shuttle can also be configured to accept packets via a
+`SOCK_DGRAM AF_UNIX` socket (up to 10kb). This can be used with syslog(3)
+calls.  Run log-shuttle's help command for more options.
 
 To block as little as possible, log-shuttle will drop outstanding batches if
 there are too many that haven't been delivered.
