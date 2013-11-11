@@ -1,5 +1,0 @@
-{
-	"ImportPath": "github.com/heroku/log-shuttle",
-	"GoVersion": "go1.1.2",
-	"Deps": []
-}

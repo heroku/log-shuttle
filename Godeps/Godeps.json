@@ -1,0 +1,10 @@
+{
+	"ImportPath": "github.com/heroku/log-shuttle",
+	"GoVersion": "go1.2rc3",
+	"Deps": [
+		{
+			"ImportPath": "github.com/pebbe/util",
+			"Rev": "55c63b3b022c13ed2081abd3277e425ac731ba68"
+		}
+	]
+}
