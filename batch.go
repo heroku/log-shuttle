@@ -29,18 +29,18 @@ func NewBatch(config *ShuttleConfig) (batch *Batch) {
 }
 
 func (b *Batch) WriteDrops(drops int) {
-	//TODO: use writeMsg
 	now := time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00")
-	line := fmt.Sprintf("<172>%s %s heroku %s log-shuttle %s Error L12: %d messages dropped since %s.",
+	prefix := fmt.Sprintf("<172>%s %s heroku %s log-shuttle %s ",
 		b.config.Version,
 		now,
 		b.config.Appname,
 		b.config.Msgid,
+	)
+	msg := fmt.Sprintf("Error L12: %d messages dropped since %s.",
 		drops,
 		now,
 	)
-	fmt.Fprintf(&b.Buffer, "%d %s", len(line), line)
-	b.MsgCount++
+	b.writeMsg(&prefix, []byte(msg))
 }
 
 // Write a message into the buffer, incrementing MsgCount
