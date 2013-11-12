@@ -107,6 +107,10 @@ func main() {
 	//TODO: Signal handler to gracefully shutdown the socket listener on SIGTERM
 	if config.UseSocket() {
 		socketWaiter.Wait()
+		err := os.Remove(config.Socket)
+		if err != nil {
+			log.Println("Error removing socket: ", err)
+		}
 	}
 
 	// Shutdown everything else.
