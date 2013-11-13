@@ -52,21 +52,24 @@ func NewOutlet(config ShuttleConfig, inbox <-chan *Batch, batchReturn chan<- *Ba
 func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 	for batch := range h.inbox {
 
-		if err := h.post(batch, stats); err != nil {
+		err := h.post(batch, int(stats.Drops.ReadAndReset()))
+		if err == nil {
+			stats.OutletPostSuccess.Add(1)
+		} else {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
+			stats.OutletPostError.Add(1)
 		}
 
 		h.batchReturn <- batch
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch, stats *ProgramStats) error {
+func (h *HttpOutlet) post(b *Batch, drops int) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
 	}
 
-	drops := int(stats.Drops.ReadAndReset())
 	if drops > 0 {
 		b.WriteDrops(drops)
 	}

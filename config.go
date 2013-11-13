@@ -18,7 +18,6 @@ const (
 type ShuttleConfig struct {
 	FrontBuff    int
 	BatchSize    int
-	MaxRequests  int
 	NumBatchers  int
 	NumOutlets   int
 	Socket       string
@@ -35,6 +34,7 @@ type ShuttleConfig struct {
 	Verbose      bool
 	WaitDuration time.Duration
 	Timeout      time.Duration
+	ReportEvery  time.Duration
 }
 
 func (c *ShuttleConfig) ParseFlags() {
@@ -58,6 +58,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.MaxRequests, "max-requests", 5, "Max number of inflight requests to logplex at any moment")
 	flag.IntVar(&c.FrontBuff, "front-buff", DEFAULT_FRONT_BUFF, "Number of messages to buffer in log-shuttle's input chanel.")
 	flag.DurationVar(&c.Timeout, "timeout", time.Duration(2*time.Second), "Duration to wait for a response from Logplex.")
+	flag.DurationVar(&c.ReportEvery, "report-every", time.Duration(5*time.Second), "How often to report stat info.")
 	flag.Parse()
 }
 
