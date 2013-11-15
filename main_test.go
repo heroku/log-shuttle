@@ -15,6 +15,7 @@ var (
 
 func init() {
 	config.ParseFlags() //Load defaults. Why is there no seperate function for this?
+	config.Appname = "token"
 	// Some test defaults
 }
 
