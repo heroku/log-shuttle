@@ -103,7 +103,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("Logshuttle-Drops=%s\n", dropHeader[0])
 	}
 
-	if afterDrops := programStats.Drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops := programStats.CurrentDrops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 
@@ -143,8 +143,8 @@ func TestDrops(t *testing.T) {
 
 	reader, deliverables, programStats, bWaiter, oWaiter := MakeBasicBits(config)
 
-	programStats.Drops.Add(1)
-	programStats.Drops.Add(1)
+	programStats.CurrentDrops.Add(1)
+	programStats.CurrentDrops.Add(1)
 	reader.Read(NewTestInput(), programStats)
 	Shutdown(reader.Outbox, deliverables, bWaiter, oWaiter)
 
@@ -163,7 +163,7 @@ func TestDrops(t *testing.T) {
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
-	if afterDrops := programStats.Drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops := programStats.CurrentDrops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 }

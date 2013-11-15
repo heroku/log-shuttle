@@ -50,34 +50,37 @@ func NewOutlet(config ShuttleConfig, inbox <-chan *Batch, batchReturn chan<- *Ba
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
 func (h *HttpOutlet) Outlet(stats *ProgramStats) {
+
 	for batch := range h.inbox {
 
-		err := h.post(batch, int(stats.Drops.ReadAndReset()))
+		err := h.post(batch, int(stats.ReadAndResetDrops()), int(stats.ReadAndResetLost()))
 		if err == nil {
 			stats.OutletPostSuccess.Add(1)
 		} else {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
 			stats.OutletPostError.Add(1)
+			stats.IncrementLost(uint64(batch.MsgCount))
 		}
 
 		h.batchReturn <- batch
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch, drops int) error {
+func (h *HttpOutlet) post(b *Batch, drops, lost int) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
 	}
 
-	if drops > 0 {
-		b.WriteDrops(drops)
+	if lostAndDropped := lost + drops; lostAndDropped > 0 {
+		b.WriteDrops(lostAndDropped)
 	}
 
 	req.ContentLength = int64(b.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
+	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
 	resp, err := h.client.Do(req)
 	if err != nil {
 		return err

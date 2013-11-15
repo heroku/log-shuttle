@@ -43,7 +43,8 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 			default:
 				//Unable to deliver into the delivery channel,
 				//increment drops
-				stats.Drops.Add(uint64(count))
+				stats.CurrentDrops.Add(uint64(count))
+				stats.AllTimeDrops.Add(uint64(count))
 			}
 		}
 		if closeDown {
