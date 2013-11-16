@@ -3,6 +3,10 @@
 	"GoVersion": "go1.2",
 	"Deps": [
 		{
+			"ImportPath": "github.com/bmizerany/perks/quantile",
+			"Rev": "da72989a59aaaecda7110926d3a6198ee4421c1f"
+		},
+		{
 			"ImportPath": "github.com/pebbe/util",
 			"Rev": "55c63b3b022c13ed2081abd3277e425ac731ba68"
 		}

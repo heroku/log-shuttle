@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 )
 
 func StartOutlets(config ShuttleConfig, stats *ProgramStats, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
@@ -53,7 +54,7 @@ func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 
 	for batch := range h.inbox {
 
-		err := h.post(batch, int(stats.ReadAndResetDrops()), int(stats.ReadAndResetLost()))
+		err := h.prepAndPost(batch, stats.outletTimings, int(stats.ReadAndResetDrops()), int(stats.ReadAndResetLost()))
 		if err == nil {
 			stats.OutletPostSuccess.Add(1)
 		} else {
@@ -66,7 +67,7 @@ func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch, drops, lost int) error {
+func (h *HttpOutlet) prepAndPost(b *Batch, timingData chan<- float64, drops, lost int) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
@@ -81,7 +82,7 @@ func (h *HttpOutlet) post(b *Batch, drops, lost int) error {
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
-	resp, err := h.client.Do(req)
+	resp, err := post(h.client, req, timingData)
 	if err != nil {
 		return err
 	}
@@ -92,4 +93,9 @@ func (h *HttpOutlet) post(b *Batch, drops, lost int) error {
 
 	resp.Body.Close()
 	return nil
+}
+
+func post(client *http.Client, req *http.Request, timingData chan<- float64) (*http.Response, error) {
+	defer func(t time.Time) { timingData <- (time.Since(t).Seconds() * 1000) }(time.Now())
+	return client.Do(req)
 }
