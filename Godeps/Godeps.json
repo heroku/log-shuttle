@@ -1,7 +1,15 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
-	"GoVersion": "go1.2rc3",
+	"GoVersion": "go1.2rc5",
 	"Deps": [
+		{
+			"ImportPath": "github.com/kr/logfmt",
+			"Rev": "6df6d8c89fdf56b969d91e58f86e3ee494fcdeb7"
+		},
+		{
+			"ImportPath": "github.com/ooyala/go-dogstatsd",
+			"Rev": "ae42e01aa07a47d2f934d9f0c6eb1fcac7356144"
+		},
 		{
 			"ImportPath": "github.com/pebbe/util",
 			"Rev": "55c63b3b022c13ed2081abd3277e425ac731ba68"

@@ -19,12 +19,14 @@ type LogLine struct {
 }
 
 type Reader struct {
-	Outbox chan *LogLine
+	Outbox       chan *LogLine
+	MetricOutbox chan *LogLine
 }
 
 func NewReader(frontBuff int) *Reader {
 	r := new(Reader)
 	r.Outbox = make(chan *LogLine, frontBuff)
+	r.MetricOutbox = make(chan *LogLine, frontBuff)
 	return r
 }
 
@@ -76,6 +78,8 @@ func (rdr *Reader) Read(input io.ReadCloser, stats *ProgramStats) error {
 		logLine := &LogLine{line, time.Now(), false}
 
 		rdr.Outbox <- logLine
+		rdr.MetricOutbox <- logLine
+
 		stats.Reads.Add(1)
 	}
 	return nil
