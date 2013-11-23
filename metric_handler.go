@@ -27,7 +27,7 @@ func (mo *MetricOutputter) Start() {
 	}
 	ddClient.Namespace = "reservoir."
 	for line := range mo.inbox {
-		mh := new(MetricHandler)
+		mh := &MetricHandler{data: make(map[string]string)}
 		err := logfmt.Unmarshal(line.line, mh)
 		if err != nil {
 			log.Println("Error unmarhsaling log line for metrics: ", err)
