@@ -34,7 +34,7 @@ func NewBatcher(config ShuttleConfig, inLogs <-chan LogLine, inBatches <-chan *B
 func (batcher *Batcher) Batch(stats *ProgramStats) {
 
 	for batch := range batcher.inBatches {
-		count, closeDown := batcher.fillBatch(batch, stats.BatchFillTimingChan)
+		count, closeDown := batcher.fillBatch(batch, stats.StatsChannel)
 		if count > 0 {
 			select {
 			case batcher.outBatches <- batch:
@@ -56,7 +56,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 // fillBatch coalesces individual log lines into batches. Delivery of the
 // batch happens on timeout after at least one message is received
 // or when the batch is full.
-func (batcher *Batcher) fillBatch(batch *Batch, timingData chan<- float64) (int, bool) {
+func (batcher *Batcher) fillBatch(batch *Batch, stats chan<- *NamedValue) (int, bool) {
 	// Fill the batch with log lines
 	var line LogLine
 	open := true
@@ -64,7 +64,7 @@ func (batcher *Batcher) fillBatch(batch *Batch, timingData chan<- float64) (int,
 	timeout := time.NewTimer(batcher.config.WaitDuration)
 	timeout.Stop()       // don't timeout until we actually have a log line
 	defer timeout.Stop() // ensure timer is stopped when done
-	defer func(t time.Time) { timingData <- time.Since(t).Seconds() }(time.Now())
+	defer func(t time.Time) { stats <- &NamedValue{value: time.Since(t).Seconds(), name: "batch.fill"} }(time.Now())
 
 	for {
 		select {

@@ -9,7 +9,14 @@ import (
 )
 
 func NewProgramStats(bi chan *LogLine, oi chan *Batch) *ProgramStats {
-	return &ProgramStats{dropsMutex: new(sync.Mutex), lostMutex: new(sync.Mutex), batchInput: bi, outletInput: oi, OutletPostTimingChan: make(chan float64), BatchFillTimingChan: make(chan float64)}
+	return &ProgramStats{
+		dropsMutex:   new(sync.Mutex),
+		lostMutex:    new(sync.Mutex),
+		batchInput:   bi,
+		outletInput:  oi,
+		StatsChannel: make(chan *NamedValue),
+		stats:        make(map[string]*quantile.Stream),
+	}
 }
 
 func (stats *ProgramStats) StartPeriodicReporter(config ShuttleConfig) {
@@ -21,16 +28,17 @@ func (stats *ProgramStats) StartPeriodicReporter(config ShuttleConfig) {
 	go func() {
 		ticker := time.Tick(config.ReportEvery)
 		var lastReads, lastLost, lastDrops, lastSuccess, lastError uint64
-		outletPostTimings := quantile.NewTargeted(0.50, 0.95, 0.99)
-		batchFillTimings := quantile.NewTargeted(0.50, 0.95, 0.99)
+		var sample *quantile.Stream
+		var ok bool
 
 		for {
 			select {
-			case value := <-stats.BatchFillTimingChan:
-				batchFillTimings.Insert(value)
-
-			case value := <-stats.OutletPostTimingChan:
-				outletPostTimings.Insert(value)
+			case namedValue := <-stats.StatsChannel:
+				if sample, ok = stats.stats[namedValue.name]; ok != true {
+					sample = quantile.NewTargeted(0.50, 0.95, 0.99)
+				}
+				sample.Insert(namedValue.value)
+				stats.stats[namedValue.name] = sample
 
 			case <-ticker:
 				logger.Printf("source=%s count#log-shuttle.reads=%d count#log-shuttle.lost=%d count#log-shuttle.drops=%d count#log-shuttle.outlet.post.success=%d count#log-shuttle.outlet.post.error=%d sample#log-shuttle.batch.input.length=%d sample#log-shuttle.outlet.input.length=%d\n",
@@ -44,8 +52,9 @@ func (stats *ProgramStats) StartPeriodicReporter(config ShuttleConfig) {
 					len(stats.outletInput),
 				)
 
-				logStats(config.Appname, "outlet.post", logger, outletPostTimings)
-				logStats(config.Appname, "batch.fill", logger, batchFillTimings)
+				for name, sample := range stats.stats {
+					logStats(config.Appname, name, logger, sample)
+				}
 			}
 		}
 	}()
@@ -71,20 +80,25 @@ func diffUp(cv uint64, lv *uint64) uint64 {
 	return cv - *lv
 }
 
+type NamedValue struct {
+	value float64
+	name  string
+}
+
 type ProgramStats struct {
-	Reads                Counter
-	CurrentLost          Counter
-	AllTimeLost          Counter
-	CurrentDrops         Counter
-	AllTimeDrops         Counter
-	OutletPostSuccess    Counter
-	OutletPostError      Counter
-	batchInput           chan *LogLine
-	outletInput          chan *Batch
-	OutletPostTimingChan chan float64
-	BatchFillTimingChan  chan float64
-	dropsMutex           *sync.Mutex
-	lostMutex            *sync.Mutex
+	Reads             Counter
+	CurrentLost       Counter
+	AllTimeLost       Counter
+	CurrentDrops      Counter
+	AllTimeDrops      Counter
+	OutletPostSuccess Counter
+	OutletPostError   Counter
+	batchInput        chan *LogLine
+	outletInput       chan *Batch
+	stats             map[string]*quantile.Stream
+	StatsChannel      chan *NamedValue
+	dropsMutex        *sync.Mutex
+	lostMutex         *sync.Mutex
 }
 
 func (ps *ProgramStats) IncrementDrops(i uint64) uint64 {

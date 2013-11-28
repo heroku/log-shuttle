@@ -54,7 +54,7 @@ func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 
 	for batch := range h.inbox {
 
-		err := h.post(batch, stats.OutletPostTimingChan, int(stats.ReadAndResetDrops()), int(stats.ReadAndResetLost()))
+		err := h.post(batch, stats.StatsChannel, int(stats.ReadAndResetDrops()), int(stats.ReadAndResetLost()))
 		if err == nil {
 			stats.OutletPostSuccess.Add(1)
 		} else {
@@ -67,7 +67,7 @@ func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch, timingData chan<- float64, drops, lost int) error {
+func (h *HttpOutlet) post(b *Batch, stats chan<- *NamedValue, drops, lost int) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
@@ -82,7 +82,7 @@ func (h *HttpOutlet) post(b *Batch, timingData chan<- float64, drops, lost int) 
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
-	resp, err := timePost(h.client, req, timingData)
+	resp, err := timePost(h.client, req, stats)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (h *HttpOutlet) post(b *Batch, timingData chan<- float64, drops, lost int) 
 	return nil
 }
 
-func timePost(client *http.Client, req *http.Request, timingData chan<- float64) (*http.Response, error) {
-	defer func(t time.Time) { timingData <- time.Since(t).Seconds() }(time.Now())
+func timePost(client *http.Client, req *http.Request, stats chan<- *NamedValue) (*http.Response, error) {
+	defer func(t time.Time) { stats <- &NamedValue{value: time.Since(t).Seconds(), name: "outlet.post"} }(time.Now())
 	return client.Do(req)
 }
