@@ -36,6 +36,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 	for batch := range batcher.inBatches {
 		count, closeDown := batcher.fillBatch(batch, stats.StatsChannel)
 		if count > 0 {
+			stats.StatsChannel <- NamedValue{value: float64(batch.MsgCount), name: "batch.msg.count"}
 			select {
 			case batcher.outBatches <- batch:
 			// submitted into the delivery channel,
@@ -43,8 +44,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 			default:
 				//Unable to deliver into the delivery channel,
 				//increment drops
-				stats.CurrentDrops.Add(uint64(count))
-				stats.AllTimeDrops.Add(uint64(count))
+				stats.IncrementDrops(uint64(count))
 			}
 		}
 		if closeDown {
@@ -56,7 +56,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 // fillBatch coalesces individual log lines into batches. Delivery of the
 // batch happens on timeout after at least one message is received
 // or when the batch is full.
-func (batcher *Batcher) fillBatch(batch *Batch, stats chan<- *NamedValue) (int, bool) {
+func (batcher *Batcher) fillBatch(batch *Batch, stats chan<- NamedValue) (int, bool) {
 	// Fill the batch with log lines
 	var line LogLine
 	open := true
@@ -64,7 +64,7 @@ func (batcher *Batcher) fillBatch(batch *Batch, stats chan<- *NamedValue) (int, 
 	timeout := time.NewTimer(batcher.config.WaitDuration)
 	timeout.Stop()       // don't timeout until we actually have a log line
 	defer timeout.Stop() // ensure timer is stopped when done
-	defer func(t time.Time) { stats <- &NamedValue{value: time.Since(t).Seconds(), name: "batch.fill"} }(time.Now())
+	defer func(t time.Time) { stats <- NamedValue{value: time.Since(t).Seconds(), name: "batch.fill"} }(time.Now())
 
 	for {
 		select {

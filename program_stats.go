@@ -14,7 +14,7 @@ func NewProgramStats(bi chan *LogLine, oi chan *Batch) *ProgramStats {
 		lostMutex:    new(sync.Mutex),
 		batchInput:   bi,
 		outletInput:  oi,
-		StatsChannel: make(chan *NamedValue),
+		StatsChannel: make(chan NamedValue),
 		stats:        make(map[string]*quantile.Stream),
 	}
 }
@@ -60,15 +60,13 @@ func (stats *ProgramStats) StartPeriodicReporter(config ShuttleConfig) {
 	}()
 }
 
-func logStats(appName string, thing string, logger *log.Logger, stats *quantile.Stream) {
+func logStats(source string, thing string, logger *log.Logger, stats *quantile.Stream) {
 	if stats.Count() > 0 {
-		logger.Printf("source=%s sample#log-shuttle.%s.time.p50=%fs sample#log-shuttle.%s.time.p95=%fs sample#log-shuttle.%s.time.p99=%fs\n",
-			appName,
+		logger.Printf("source=%s sample#log-shuttle.%s.time.p50=%fs sample#log-shuttle.%[2]s.time.p95=%[4]fs sample#log-shuttle.%[2]s.time.p99=%[5]fs\n",
+			source,
 			thing,
 			stats.Query(0.50),
-			thing,
 			stats.Query(0.95),
-			thing,
 			stats.Query(0.99),
 		)
 		stats.Reset()
@@ -96,7 +94,7 @@ type ProgramStats struct {
 	batchInput        chan *LogLine
 	outletInput       chan *Batch
 	stats             map[string]*quantile.Stream
-	StatsChannel      chan *NamedValue
+	StatsChannel      chan NamedValue
 	dropsMutex        *sync.Mutex
 	lostMutex         *sync.Mutex
 }

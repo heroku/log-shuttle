@@ -67,7 +67,7 @@ func (h *HttpOutlet) Outlet(stats *ProgramStats) {
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch, stats chan<- *NamedValue, drops, lost int) error {
+func (h *HttpOutlet) post(b *Batch, stats chan<- NamedValue, drops, lost int) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (h *HttpOutlet) post(b *Batch, stats chan<- *NamedValue, drops, lost int) e
 	return nil
 }
 
-func timePost(client *http.Client, req *http.Request, stats chan<- *NamedValue) (*http.Response, error) {
-	defer func(t time.Time) { stats <- &NamedValue{value: time.Since(t).Seconds(), name: "outlet.post"} }(time.Now())
+func timePost(client *http.Client, req *http.Request, stats chan<- NamedValue) (*http.Response, error) {
+	defer func(t time.Time) { stats <- NamedValue{value: time.Since(t).Seconds(), name: "outlet.post"} }(time.Now())
 	return client.Do(req)
 }

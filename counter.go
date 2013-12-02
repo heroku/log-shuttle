@@ -2,12 +2,10 @@ package main
 
 import (
 	"sync/atomic"
-	"time"
 )
 
 type Counter struct {
-	value         uint64
-	LastIncrement time.Time
+	value uint64
 }
 
 func (c *Counter) Read() uint64 {
@@ -24,6 +22,5 @@ func (c *Counter) ReadAndReset() uint64 {
 }
 
 func (c *Counter) Add(u uint64) uint64 {
-	c.LastIncrement = time.Now()
 	return atomic.AddUint64(&c.value, u)
 }
