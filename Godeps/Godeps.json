@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
-	"GoVersion": "go1.2rc3",
+	"GoVersion": "go1.2",
 	"Deps": [
 		{
 			"ImportPath": "github.com/pebbe/util",
