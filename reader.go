@@ -28,6 +28,10 @@ func NewReader(frontBuff int) *Reader {
 	return r
 }
 
+//TODO: Refactor to use net.Conn interface for testing and simplicity reasons
+// See reader_test.go for comments about not being able to consume fast enough
+// Switching to net.Conn should also help with the test, because we can implement the interface
+// instead of actually stressing a socket
 func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeChan <-chan bool) error {
 	msg := make([]byte, UNIXGRAM_BUFFER_SIZE)
 	for {

@@ -37,6 +37,40 @@ func Exists(path string) bool {
 	return !os.IsNotExist(err)
 }
 
+func SetupSocket(path string) *net.UnixConn {
+	ua, err := net.ResolveUnixAddr(SOCKET_TYPE, path)
+	if err != nil {
+		log.Fatal("Resolving Unix Address: ", err)
+	}
+
+	if Exists(path) {
+		err := os.Remove(path)
+		if err != nil {
+			log.Fatal("Removing old socket: ", err)
+		}
+	}
+
+	l, err := net.ListenUnixgram(SOCKET_TYPE, ua)
+	if err != nil {
+		log.Fatal("Listening on Socket: ", err)
+	}
+
+	//Change permissions so anyone can write to it
+	err = os.Chmod(path, SOCKET_PERMS)
+	if err != nil {
+		log.Fatal("Chmoding Socket: ", err)
+	}
+
+	return l
+}
+
+func CleanupSocket(path string) {
+	err := os.Remove(path)
+	if err != nil {
+		log.Println("Error removing socket: ", err)
+	}
+}
+
 func main() {
 	var config ShuttleConfig
 	var unixgramCloseChannel chan bool
@@ -66,33 +100,13 @@ func main() {
 	}
 
 	if config.UseSocket() {
-		ua, err := net.ResolveUnixAddr(SOCKET_TYPE, config.Socket)
-		if err != nil {
-			log.Fatal("Resolving Unix Address: ", err)
-		}
 
-		if Exists(config.Socket) {
-			err := os.Remove(config.Socket)
-			if err != nil {
-				log.Fatal("Removing old socket: ", err)
-			}
-		}
-
-		l, err := net.ListenUnixgram(SOCKET_TYPE, ua)
-		if err != nil {
-			log.Fatal("Listening on Socket: ", err)
-		}
-
-		//Change permissions so anyone can write to it
-		err = os.Chmod(config.Socket, SOCKET_PERMS)
-		if err != nil {
-			log.Fatal("Chmoding Socket: ", err)
-		}
+		socket := SetupSocket(config.Socket)
 
 		unixgramCloseChannel = make(chan bool)
 		socketWaiter.Add(1)
 		go func() {
-			reader.ReadUnixgram(l, programStats, unixgramCloseChannel)
+			reader.ReadUnixgram(socket, programStats, unixgramCloseChannel)
 			socketWaiter.Done()
 		}()
 	}
@@ -107,10 +121,7 @@ func main() {
 	//TODO: Signal handler to gracefully shutdown the socket listener on SIGTERM
 	if config.UseSocket() {
 		socketWaiter.Wait()
-		err := os.Remove(config.Socket)
-		if err != nil {
-			log.Println("Error removing socket: ", err)
-		}
+		CleanupSocket(config.Socket)
 	}
 
 	// Shutdown everything else.
