@@ -25,7 +25,7 @@ func MakeBasicBits(config ShuttleConfig) (*Reader, chan *Batch, *ProgramStats, *
 	return reader, deliverables, programStats, bWaiter, oWaiter
 }
 
-func Shutdown(dLogLines chan *LogLine, dBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
+func Shutdown(dLogLines chan LogLine, dBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
 	close(dLogLines) // Close the log line channel, all of the batchers will stop once they are done
 	bWaiter.Wait()   // Wait for them to be done
 	close(dBatches)  // Close the batch channel, all of the outlet will stop once they are done

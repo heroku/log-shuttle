@@ -40,19 +40,19 @@ func (b *Batch) WriteDrops(drops int) {
 		drops,
 		now,
 	)
-	b.writeMsg(&prefix, []byte(msg))
+	b.writeMsg(prefix, []byte(msg))
 }
 
 // Write a message into the buffer, incrementing MsgCount
-func (b *Batch) writeMsg(prefix *string, msg []byte) {
-	fmt.Fprintf(&b.Buffer, "%d %s%s", len(*prefix)+len(msg), *prefix, msg)
+func (b *Batch) writeMsg(prefix string, msg []byte) {
+	fmt.Fprintf(&b.Buffer, "%d %s%s", len(prefix)+len(msg), prefix, msg)
 	b.MsgCount++
 }
 
 // Write an RFC5424 msg to the buffer from the RFC3164 formatted msg
 //TODO: Punt on time manipulation for now, use received time
 //TODO: Punt on host/tag/pid for now, use value from config
-func (b *Batch) writeRFC3164Msg(logLine *LogLine) {
+func (b *Batch) writeRFC3164Msg(logLine LogLine) {
 	var msg []byte
 
 	// Figure out the prival
@@ -75,11 +75,11 @@ func (b *Batch) writeRFC3164Msg(logLine *LogLine) {
 		b.config.Procid + " " +
 		b.config.Msgid + " "
 
-	b.writeMsg(&syslogPrefix, msg)
+	b.writeMsg(syslogPrefix, msg)
 }
 
 // Write a line to the batch, increment it's line counter
-func (b *Batch) Write(logLine *LogLine) {
+func (b *Batch) Write(logLine LogLine) {
 
 	if logLine.rfc3164 {
 		b.writeRFC3164Msg(logLine)
@@ -95,7 +95,7 @@ func (b *Batch) Write(logLine *LogLine) {
 				b.config.Msgid + " "
 		}
 
-		b.writeMsg(&syslogPrefix, logLine.line)
+		b.writeMsg(syslogPrefix, logLine.line)
 	}
 }
 

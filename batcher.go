@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func StartBatchers(config ShuttleConfig, stats *ProgramStats, inLogs <-chan *LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *sync.WaitGroup {
+func StartBatchers(config ShuttleConfig, stats *ProgramStats, inLogs <-chan LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *sync.WaitGroup {
 	batchWaiter := new(sync.WaitGroup)
 	for i := 0; i < config.NumBatchers; i++ {
 		batchWaiter.Add(1)
@@ -20,13 +20,13 @@ func StartBatchers(config ShuttleConfig, stats *ProgramStats, inLogs <-chan *Log
 }
 
 type Batcher struct {
-	inLogs     <-chan *LogLine // Where I get the log lines to batch from
-	inBatches  <-chan *Batch   // Where I get empty batches from
-	outBatches chan<- *Batch   // Where I send completed batches to
+	inLogs     <-chan LogLine // Where I get the log lines to batch from
+	inBatches  <-chan *Batch  // Where I get empty batches from
+	outBatches chan<- *Batch  // Where I send completed batches to
 	config     ShuttleConfig
 }
 
-func NewBatcher(config ShuttleConfig, inLogs <-chan *LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *Batcher {
+func NewBatcher(config ShuttleConfig, inLogs <-chan LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *Batcher {
 	return &Batcher{inLogs: inLogs, inBatches: inBatches, outBatches: outBatches, config: config}
 }
 
@@ -57,7 +57,7 @@ func (batcher *Batcher) Batch(stats *ProgramStats) {
 // or when the batch is full.
 func (batcher *Batcher) fillBatch(batch *Batch) (int, bool) {
 	// Fill the batch with log lines
-	var line *LogLine
+	var line LogLine
 	open := true
 
 	timeout := time.NewTimer(batcher.config.WaitDuration)

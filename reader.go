@@ -19,12 +19,12 @@ type LogLine struct {
 }
 
 type Reader struct {
-	Outbox chan *LogLine
+	Outbox chan LogLine
 }
 
 func NewReader(frontBuff int) *Reader {
 	r := new(Reader)
-	r.Outbox = make(chan *LogLine, frontBuff)
+	r.Outbox = make(chan LogLine, frontBuff)
 	return r
 }
 
@@ -57,7 +57,7 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
-		rdr.Outbox <- &LogLine{thisMsg, time.Now(), thisMsg[0] == '<'}
+		rdr.Outbox <- LogLine{thisMsg, time.Now(), thisMsg[0] == '<'}
 		stats.Reads.Add(1)
 	}
 }
@@ -73,7 +73,7 @@ func (rdr *Reader) Read(input io.ReadCloser, stats *ProgramStats) error {
 			return err
 		}
 
-		logLine := &LogLine{line, time.Now(), false}
+		logLine := LogLine{line, time.Now(), false}
 
 		rdr.Outbox <- logLine
 		stats.Reads.Add(1)

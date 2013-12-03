@@ -37,15 +37,15 @@ type TestConsumer struct {
 	*sync.WaitGroup
 }
 
-func (tc TestConsumer) Consume(in <-chan *LogLine) {
-	tc.WaitGroup.Add(1)
-	defer tc.WaitGroup.Done()
+func (tc TestConsumer) Consume(in <-chan LogLine) {
+	defer tc.Done()
 	for _ = range in {
 	}
 }
 
 func doBasicReaderBenchmark(b *testing.B, rdr *Reader) {
 	testConsumer := TestConsumer{new(sync.WaitGroup)}
+	testConsumer.Add(1)
 	go testConsumer.Consume(rdr.Outbox)
 	programStats := &ProgramStats{}
 	b.ResetTimer()
