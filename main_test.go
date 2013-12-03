@@ -19,11 +19,11 @@ func init() {
 }
 
 type testInput struct {
-	*bytes.Buffer
+	*bytes.Reader
 }
 
 func NewLongerTestInput() *testInput {
-	return &testInput{bytes.NewBufferString(`Lebowski ipsum what in God's holy name are you blathering about?
+	return &testInput{bytes.NewReader([]byte(`Lebowski ipsum what in God's holy name are you blathering about?
 Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.
 They're nihilists.
 Pellentesque ac lectus quis elit blandit fringilla a ut turpis praesent.
@@ -33,15 +33,15 @@ Felis ligula, malesuada suscipit malesuada non, ultrices non.
 Shomer shabbos.
 Urna sed orci ipsum, placerat id condimentum rutrum, rhoncus.
 Yeah man, it really tied the room together.
-Ac lorem aliquam placerat.`)}
+Ac lorem aliquam placerat.`))}
 }
 
 func NewTestInput() *testInput {
-	return &testInput{bytes.NewBufferString("Hello World\nTest Line 2\n")}
+	return &testInput{bytes.NewReader([]byte("Hello World\nTest Line 2\n"))}
 }
 
 func NewTestInputWithHeaders() *testInput {
-	return &testInput{bytes.NewBufferString("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] message 2\n")}
+	return &testInput{bytes.NewReader([]byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] message 2\n"))}
 }
 
 func (i *testInput) Close() error {
