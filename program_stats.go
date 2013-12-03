@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func NewProgramStats(bi chan *LogLine, oi chan *Batch) *ProgramStats {
+func NewProgramStats(bi chan LogLine, oi chan *Batch) *ProgramStats {
 	return &ProgramStats{
 		dropsMutex:   new(sync.Mutex),
 		lostMutex:    new(sync.Mutex),
@@ -91,7 +91,7 @@ type ProgramStats struct {
 	AllTimeDrops      Counter
 	OutletPostSuccess Counter
 	OutletPostError   Counter
-	batchInput        chan *LogLine
+	batchInput        chan LogLine
 	outletInput       chan *Batch
 	stats             map[string]*quantile.Stream
 	StatsChannel      chan NamedValue

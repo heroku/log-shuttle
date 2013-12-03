@@ -55,7 +55,6 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.NumOutlets, "num-outlets", 4, "The number of outlets to run.")
 	flag.DurationVar(&c.WaitDuration, "wait", time.Duration(250*time.Millisecond), "Duration to wait to flush messages to logplex")
 	flag.IntVar(&c.BatchSize, "batch-size", 500, "Number of messages to pack into a logplex http request.")
-	flag.IntVar(&c.MaxRequests, "max-requests", 5, "Max number of inflight requests to logplex at any moment")
 	flag.IntVar(&c.FrontBuff, "front-buff", DEFAULT_FRONT_BUFF, "Number of messages to buffer in log-shuttle's input chanel.")
 	flag.DurationVar(&c.Timeout, "timeout", time.Duration(2*time.Second), "Duration to wait for a response from Logplex.")
 	flag.DurationVar(&c.ReportEvery, "report-every", time.Duration(5*time.Second), "How often to report stat info.")
