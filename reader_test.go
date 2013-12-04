@@ -57,19 +57,19 @@ func (ldp *LogDgramProducer) Run(fileName string) {
 	}
 }
 
-type LogLineProducer struct {
+type InputProducer struct {
 	Total, Curr *int
 	TotalBytes  *int
 	Data        []byte
 }
 
-func NewLogLineProducer(c int) LogLineProducer {
+func NewInputProducer(c int) InputProducer {
 	curr := 0
 	tb := 0
-	return LogLineProducer{Total: &c, Curr: &curr, TotalBytes: &tb, Data: []byte("Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.\n")}
+	return InputProducer{Total: &c, Curr: &curr, TotalBytes: &tb, Data: []byte("Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.\n")}
 }
 
-func (llp LogLineProducer) Read(p []byte) (n int, err error) {
+func (llp InputProducer) Read(p []byte) (n int, err error) {
 	if *llp.Curr > *llp.Total {
 		return 0, io.EOF
 	} else {
@@ -79,7 +79,7 @@ func (llp LogLineProducer) Read(p []byte) (n int, err error) {
 	}
 }
 
-func (llp LogLineProducer) Close() error {
+func (llp InputProducer) Close() error {
 	return nil
 }
 
@@ -87,9 +87,22 @@ type TestConsumer struct {
 	*sync.WaitGroup
 }
 
-func (tc TestConsumer) Consume(in <-chan LogLine) {
-	defer tc.Done()
-	for _ = range in {
+func (tc TestConsumer) Consume(in <-chan LogLine, stats <-chan NamedValue) {
+	tc.Add(1)
+	go func() {
+		defer tc.Done()
+		for _ = range in {
+		}
+	}()
+	tc.Add(1)
+	go func() {
+		defer tc.Done()
+		ConsumeNamedValues(stats)
+	}()
+}
+
+func ConsumeNamedValues(c <-chan NamedValue) {
+	for _ = range c {
 	}
 }
 
@@ -97,16 +110,16 @@ func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		programStats := &ProgramStats{}
 		rdr := NewReader(frontBuffSize)
+		programStats := NewProgramStats(rdr.Outbox, make(chan *Batch))
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Add(1)
-		go testConsumer.Consume(rdr.Outbox)
-		llp := NewLogLineProducer(TEST_PRODUCER_LINES)
+		testConsumer.Consume(rdr.Outbox, programStats.StatsChannel)
+		llp := NewInputProducer(TEST_PRODUCER_LINES)
 		b.StartTimer()
 		rdr.Read(llp, programStats)
 		b.SetBytes(int64(*llp.TotalBytes))
 		close(rdr.Outbox)
+		close(programStats.StatsChannel)
 		testConsumer.Wait()
 	}
 }
@@ -149,12 +162,11 @@ func doDgramReaderBenchmark(b *testing.B, frontBuffSize int) {
 	for i := 0; i < b.N; i++ {
 		tmpSocket := fmt.Sprintf("%s/%d", tmpDir, i)
 		b.StopTimer()
-		programStats := &ProgramStats{}
 		rdr := NewReader(frontBuffSize)
+		programStats := NewProgramStats(rdr.Outbox, make(chan *Batch))
 		cc := make(chan bool)
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Add(1)
-		go testConsumer.Consume(rdr.Outbox)
+		testConsumer.Consume(rdr.Outbox, programStats.StatsChannel)
 
 		socket := SetupSocket(tmpSocket)
 
@@ -169,6 +181,7 @@ func doDgramReaderBenchmark(b *testing.B, frontBuffSize int) {
 
 		b.SetBytes(int64(ldp.TotalBytes))
 		close(rdr.Outbox)
+		close(programStats.StatsChannel)
 		testConsumer.Wait()
 		CleanupSocket(tmpSocket)
 	}

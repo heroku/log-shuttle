@@ -8,13 +8,17 @@ import (
 	"time"
 )
 
+const (
+	STATS_CHANNEL_BUFFER_SIZE = 1000
+)
+
 func NewProgramStats(bi chan LogLine, oi chan *Batch) *ProgramStats {
 	return &ProgramStats{
 		dropsMutex:   new(sync.Mutex),
 		lostMutex:    new(sync.Mutex),
 		batchInput:   bi,
 		outletInput:  oi,
-		StatsChannel: make(chan NamedValue),
+		StatsChannel: make(chan NamedValue, STATS_CHANNEL_BUFFER_SIZE),
 		stats:        make(map[string]*quantile.Stream),
 	}
 }
@@ -27,7 +31,7 @@ func (stats *ProgramStats) StartPeriodicReporter(config ShuttleConfig) {
 
 	go func() {
 		ticker := time.Tick(config.ReportEvery)
-		var lastReads, lastLost, lastDrops, lastSuccess, lastError uint64
+		var lastLost, lastDrops, lastSuccess, lastError uint64
 		var sample *quantile.Stream
 		var ok bool
 
@@ -41,9 +45,8 @@ func (stats *ProgramStats) StartPeriodicReporter(config ShuttleConfig) {
 				stats.stats[namedValue.name] = sample
 
 			case <-ticker:
-				logger.Printf("source=%s count#log-shuttle.reads=%d count#log-shuttle.lost=%d count#log-shuttle.drops=%d count#log-shuttle.outlet.post.success=%d count#log-shuttle.outlet.post.error=%d sample#log-shuttle.batch.input.length=%d sample#log-shuttle.outlet.input.length=%d\n",
+				logger.Printf("source=%s count#log-shuttle.lost=%d count#log-shuttle.drops=%d count#log-shuttle.outlet.post.success=%d count#log-shuttle.outlet.post.error=%d sample#log-shuttle.batch.input.length=%d sample#log-shuttle.outlet.input.length=%d\n",
 					config.Appname,
-					diffUp(stats.Reads.Read(), &lastReads),
 					diffUp(stats.AllTimeLost.Read(), &lastLost),
 					diffUp(stats.AllTimeDrops.Read(), &lastDrops),
 					diffUp(stats.OutletPostSuccess.Read(), &lastSuccess),
@@ -84,7 +87,6 @@ type NamedValue struct {
 }
 
 type ProgramStats struct {
-	Reads             Counter
 	CurrentLost       Counter
 	AllTimeLost       Counter
 	CurrentDrops      Counter

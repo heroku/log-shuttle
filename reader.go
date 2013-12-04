@@ -34,6 +34,9 @@ func NewReader(frontBuff int) *Reader {
 // instead of actually stressing a socket
 func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeChan <-chan bool) error {
 	msg := make([]byte, UNIXGRAM_BUFFER_SIZE)
+
+	lastLogTime := time.Now()
+
 	for {
 
 		// Stop reading if we get a message
@@ -46,6 +49,7 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 
 		input.SetReadDeadline(time.Now().Add(time.Second * READ_DEADLINE))
 		numRead, err := input.Read(msg)
+		currentLogTime := time.Now()
 		if err != nil {
 			if opErr, ok := err.(*net.OpError); ok && opErr.Timeout() {
 				// We have a timeout error, so just loop
@@ -61,26 +65,31 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
-		rdr.Outbox <- LogLine{thisMsg, time.Now(), thisMsg[0] == '<'}
-		stats.Reads.Add(1)
+		rdr.Outbox <- LogLine{thisMsg, currentLogTime, thisMsg[0] == '<'}
+		stats.StatsChannel <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "unixgramreader.msg.delay"}
+		lastLogTime = currentLogTime
 	}
 }
 
 func (rdr *Reader) Read(input io.ReadCloser, stats *ProgramStats) error {
 	rdrIo := bufio.NewReader(input)
 
+	lastLogTime := time.Now()
+
 	for {
 		line, err := rdrIo.ReadBytes('\n')
+		currentLogTime := time.Now()
 
 		if err != nil {
 			input.Close()
 			return err
 		}
 
-		logLine := LogLine{line, time.Now(), false}
+		logLine := LogLine{line, currentLogTime, false}
 
 		rdr.Outbox <- logLine
-		stats.Reads.Add(1)
+		stats.StatsChannel <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "reader.line.delay"}
+		lastLogTime = currentLogTime
 	}
 	return nil
 }
