@@ -13,10 +13,12 @@ var LogplexUrl = os.Getenv("LOGPLEX_URL")
 
 const (
 	DEFAULT_FRONT_BUFF = 5000
+	DEFAULT_STATS_BUFF = 1000
 )
 
 type ShuttleConfig struct {
 	FrontBuff    int
+	StatsBuff    int
 	BatchSize    int
 	NumBatchers  int
 	NumOutlets   int
@@ -56,6 +58,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.DurationVar(&c.WaitDuration, "wait", time.Duration(250*time.Millisecond), "Duration to wait to flush messages to logplex")
 	flag.IntVar(&c.BatchSize, "batch-size", 500, "Number of messages to pack into a logplex http request.")
 	flag.IntVar(&c.FrontBuff, "front-buff", DEFAULT_FRONT_BUFF, "Number of messages to buffer in log-shuttle's input chanel.")
+	flag.IntVar(&c.StatsBuff, "stats-buff", DEFAULT_STATS_BUFF, "Number of stats to buffer.")
 	flag.DurationVar(&c.Timeout, "timeout", time.Duration(2*time.Second), "Duration to wait for a response from Logplex.")
 	flag.DurationVar(&c.ReportEvery, "report-every", time.Duration(5*time.Second), "How often to report stat info.")
 	flag.Parse()

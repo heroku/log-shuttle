@@ -11,15 +11,15 @@ import (
 	"time"
 )
 
-func StartOutlets(config ShuttleConfig, stats *ProgramStats, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewOutlet(config, inbox, batchReturn)
-			outlet.Outlet(stats)
+			outlet := NewOutlet(config, drops, lost, stats, inbox, batchReturn)
+			outlet.Outlet()
 		}()
 	}
 
@@ -29,60 +29,65 @@ func StartOutlets(config ShuttleConfig, stats *ProgramStats, inbox <-chan *Batch
 type HttpOutlet struct {
 	inbox       <-chan *Batch
 	batchReturn chan<- *Batch
+	stats       chan<- NamedValue
+	drops       *Counter
+	lost        *Counter
 	client      *http.Client
 	config      ShuttleConfig
 }
 
-func NewOutlet(config ShuttleConfig, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
-	h := new(HttpOutlet)
-	httpTransport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
-		Dial: func(network, address string) (net.Conn, error) {
-			return net.DialTimeout(network, address, config.Timeout)
+func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
+	return &HttpOutlet{
+		drops:       drops,
+		lost:        lost,
+		stats:       stats,
+		inbox:       inbox,
+		batchReturn: batchReturn,
+		config:      config,
+		client: &http.Client{
+			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
+				ResponseHeaderTimeout: config.Timeout,
+				Dial: func(network, address string) (net.Conn, error) {
+					return net.DialTimeout(network, address, config.Timeout)
+				},
+			},
 		},
 	}
-
-	httpTransport.ResponseHeaderTimeout = config.Timeout
-	h.client = &http.Client{Transport: httpTransport}
-	h.inbox = inbox
-	h.batchReturn = batchReturn
-	h.config = config
-	return h
 }
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
-func (h *HttpOutlet) Outlet(stats *ProgramStats) {
+func (h *HttpOutlet) Outlet() {
 
 	for batch := range h.inbox {
 
-		err := h.post(batch, stats.StatsChannel, int(stats.ReadAndResetDrops()), int(stats.ReadAndResetLost()))
-		if err == nil {
-			stats.OutletPostSuccess.Add(1)
-		} else {
+		err := h.post(batch)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
-			stats.OutletPostError.Add(1)
-			stats.IncrementLost(uint64(batch.MsgCount))
+			h.lost.Add(uint64(batch.MsgCount))
 		}
 
 		h.batchReturn <- batch
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch, stats chan<- NamedValue, drops, lost int) error {
+func (h *HttpOutlet) post(b *Batch) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
 	}
 
-	if lostAndDropped := lost + drops; lostAndDropped > 0 {
-		b.WriteDrops(lostAndDropped)
+	drops := h.drops.ReadAndReset()
+	lost := h.lost.ReadAndReset()
+	if lostAndDropped := drops + lost; lostAndDropped > 0 {
+		b.WriteDrops(int(lostAndDropped))
 	}
 
 	req.ContentLength = int64(b.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
-	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
-	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
-	resp, err := timePost(h.client, req, stats)
+	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(drops)))
+	req.Header.Add("Logshuttle-Lost", strconv.Itoa(int(lost)))
+	resp, err := h.timePost(req)
 	if err != nil {
 		return err
 	}
@@ -95,7 +100,15 @@ func (h *HttpOutlet) post(b *Batch, stats chan<- NamedValue, drops, lost int) er
 	return nil
 }
 
-func timePost(client *http.Client, req *http.Request, stats chan<- NamedValue) (*http.Response, error) {
-	defer func(t time.Time) { stats <- NamedValue{value: time.Since(t).Seconds(), name: "outlet.post"} }(time.Now())
-	return client.Do(req)
+func (h *HttpOutlet) timePost(req *http.Request) (resp *http.Response, err error) {
+	defer func(t time.Time) {
+		name := "outlet.post"
+		if err != nil {
+			name += ".failure"
+		} else {
+			name += ".success"
+		}
+		h.stats <- NamedValue{value: time.Since(t).Seconds(), name: name}
+	}(time.Now())
+	return h.client.Do(req)
 }

@@ -19,20 +19,19 @@ type LogLine struct {
 }
 
 type Reader struct {
-	Outbox chan LogLine
+	outbox chan<- LogLine
+	stats  chan<- NamedValue
 }
 
-func NewReader(frontBuff int) *Reader {
-	r := new(Reader)
-	r.Outbox = make(chan LogLine, frontBuff)
-	return r
+func NewReader(out chan<- LogLine, stats chan<- NamedValue) *Reader {
+	return &Reader{outbox: out, stats: stats}
 }
 
 //TODO: Refactor to use net.Conn interface for testing and simplicity reasons
 // See reader_test.go for comments about not being able to consume fast enough
 // Switching to net.Conn should also help with the test, because we can implement the interface
 // instead of actually stressing a socket
-func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeChan <-chan bool) error {
+func (rdr *Reader) ReadUnixgram(input *net.UnixConn, closeChan <-chan bool) error {
 	msg := make([]byte, UNIXGRAM_BUFFER_SIZE)
 
 	lastLogTime := time.Now()
@@ -65,13 +64,13 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, stats *ProgramStats, closeC
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 
-		rdr.Outbox <- LogLine{thisMsg, currentLogTime, thisMsg[0] == '<'}
-		stats.StatsChannel <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "unixgramreader.msg.delay"}
+		rdr.outbox <- LogLine{thisMsg, currentLogTime, thisMsg[0] == '<'}
+		rdr.stats <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "unixgramreader.msg.delay"}
 		lastLogTime = currentLogTime
 	}
 }
 
-func (rdr *Reader) Read(input io.ReadCloser, stats *ProgramStats) error {
+func (rdr *Reader) Read(input io.ReadCloser) error {
 	rdrIo := bufio.NewReader(input)
 
 	lastLogTime := time.Now()
@@ -87,8 +86,8 @@ func (rdr *Reader) Read(input io.ReadCloser, stats *ProgramStats) error {
 
 		logLine := LogLine{line, currentLogTime, false}
 
-		rdr.Outbox <- logLine
-		stats.StatsChannel <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "reader.line.delay"}
+		rdr.outbox <- logLine
+		rdr.stats <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "reader.line.delay"}
 		lastLogTime = currentLogTime
 	}
 	return nil

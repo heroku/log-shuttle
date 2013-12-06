@@ -110,16 +110,17 @@ func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		rdr := NewReader(frontBuffSize)
-		programStats := NewProgramStats(rdr.Outbox, make(chan *Batch))
+		logs := make(chan LogLine, frontBuffSize)
+		stats := make(chan NamedValue, config.StatsBuff)
+		rdr := NewReader(logs, stats)
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Consume(rdr.Outbox, programStats.StatsChannel)
+		testConsumer.Consume(logs, stats)
 		llp := NewInputProducer(TEST_PRODUCER_LINES)
 		b.StartTimer()
-		rdr.Read(llp, programStats)
+		rdr.Read(llp)
 		b.SetBytes(int64(*llp.TotalBytes))
-		close(rdr.Outbox)
-		close(programStats.StatsChannel)
+		close(logs)
+		close(stats)
 		testConsumer.Wait()
 	}
 }
@@ -162,17 +163,18 @@ func doDgramReaderBenchmark(b *testing.B, frontBuffSize int) {
 	for i := 0; i < b.N; i++ {
 		tmpSocket := fmt.Sprintf("%s/%d", tmpDir, i)
 		b.StopTimer()
-		rdr := NewReader(frontBuffSize)
-		programStats := NewProgramStats(rdr.Outbox, make(chan *Batch))
+		logs := make(chan LogLine, frontBuffSize)
+		stats := make(chan NamedValue, config.StatsBuff)
+		rdr := NewReader(logs, stats)
 		cc := make(chan bool)
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Consume(rdr.Outbox, programStats.StatsChannel)
+		testConsumer.Consume(logs, stats)
 
 		socket := SetupSocket(tmpSocket)
 
 		b.StartTimer()
 		go func() {
-			rdr.ReadUnixgram(socket, programStats, cc)
+			rdr.ReadUnixgram(socket, cc)
 		}()
 
 		ldp := NewLogDgramProducer(TEST_PRODUCER_LINES)
@@ -180,8 +182,8 @@ func doDgramReaderBenchmark(b *testing.B, frontBuffSize int) {
 		cc <- true
 
 		b.SetBytes(int64(ldp.TotalBytes))
-		close(rdr.Outbox)
-		close(programStats.StatsChannel)
+		close(logs)
+		close(stats)
 		testConsumer.Wait()
 		CleanupSocket(tmpSocket)
 	}

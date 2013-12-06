@@ -14,23 +14,28 @@ const (
 	SOCKET_PERMS = 0666
 )
 
-func MakeBasicBits(config ShuttleConfig) (*Reader, chan *Batch, *ProgramStats, *sync.WaitGroup, *sync.WaitGroup) {
-	deliverables := make(chan *Batch, config.NumOutlets*config.NumBatchers)
-	reader := NewReader(config.FrontBuff)
-	programStats := NewProgramStats(reader.Outbox, deliverables)
+func MakeBasicBits(config ShuttleConfig) (reader *Reader, stats chan NamedValue, drops, lost *Counter, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
+	deliverableBatches = make(chan *Batch, config.NumOutlets*config.NumBatchers)
+	logs = make(chan LogLine, config.FrontBuff)
+	stats = make(chan NamedValue, config.StatsBuff)
+	drops = NewCounter(0)
+	lost = NewCounter(0)
+	reader = NewReader(logs, stats)
+	programStats = NewProgramStats(stats)
 	programStats.StartPeriodicReporter(config)
 	getBatches, returnBatches := NewBatchManager(config)
 	// Start outlets, then batches, then readers (reverse of Shutdown)
-	oWaiter := StartOutlets(config, programStats, deliverables, returnBatches)
-	bWaiter := StartBatchers(config, programStats, reader.Outbox, getBatches, deliverables)
-	return reader, deliverables, programStats, bWaiter, oWaiter
+	oWaiter = StartOutlets(config, drops, lost, stats, deliverableBatches, returnBatches)
+	bWaiter = StartBatchers(config, drops, stats, logs, getBatches, deliverableBatches)
+	return
 }
 
-func Shutdown(dLogLines chan LogLine, dBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
-	close(dLogLines) // Close the log line channel, all of the batchers will stop once they are done
-	bWaiter.Wait()   // Wait for them to be done
-	close(dBatches)  // Close the batch channel, all of the outlet will stop once they are done
-	oWaiter.Wait()   // Wait for them to be done
+func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
+	close(deliverableLogs)    // Close the log line channel, all of the batchers will stop once they are done
+	bWaiter.Wait()            // Wait for them to be done
+	close(deliverableBatches) // Close the batch channel, all of the outlet will stop once they are done
+	oWaiter.Wait()            // Wait for them to be done
+	close(stats)              // Close the stats channel to shut down any goroutines using it
 }
 
 func Exists(path string) bool {
@@ -90,12 +95,12 @@ func main() {
 		log.Fatalln("No stdin detected or socket used.")
 	}
 
-	reader, deliverables, programStats, batchWaiter, outletWaiter := MakeBasicBits(config)
+	reader, stats, _, _, logs, deliverableBatches, _, batchWaiter, outletWaiter := MakeBasicBits(config)
 
 	if config.UseStdin() {
 		stdinWaiter.Add(1)
 		go func() {
-			reader.Read(os.Stdin, programStats)
+			reader.Read(os.Stdin)
 			stdinWaiter.Done()
 		}()
 	}
@@ -107,7 +112,7 @@ func main() {
 		unixgramCloseChannel = make(chan bool)
 		socketWaiter.Add(1)
 		go func() {
-			reader.ReadUnixgram(socket, programStats, unixgramCloseChannel)
+			reader.ReadUnixgram(socket, unixgramCloseChannel)
 			socketWaiter.Done()
 		}()
 	}
@@ -126,5 +131,5 @@ func main() {
 	}
 
 	// Shutdown everything else.
-	Shutdown(reader.Outbox, deliverables, batchWaiter, outletWaiter)
+	Shutdown(logs, stats, deliverableBatches, batchWaiter, outletWaiter)
 }
