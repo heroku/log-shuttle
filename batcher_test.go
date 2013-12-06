@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -39,6 +38,5 @@ func BenchmarkBatcher(b *testing.B) {
 		close(logs)
 		wg.Wait()
 		close(stats)
-		fmt.Println(drops.Read())
 	}
 }
