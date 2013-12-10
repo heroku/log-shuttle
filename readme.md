@@ -10,7 +10,7 @@ Syslog requires that you maintain both client & server certificates for
 authentication. In multi-tenant environments, the maintenance of certificate
 management can be quite burdensome.
 
-When using log-shuttle with logplex it is recomended that you spawn 1
+When using log-shuttle with logplex it is recommended that you spawn 1
 log-shuttle per logplex token. This will isolate data between customers and
 ensure a good QoS. Log-shuttle accepts input from stdin in a newline (\n)
 delimited format. Log-shuttle can also be configured to accept packets via a
