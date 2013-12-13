@@ -129,7 +129,7 @@ func main() {
 		}
 	}
 
-	//TODO: Signal handler to gracefully shutdown the socket listener on SIGTERM
+	// TODO(edwardam): Signal handler to gracefully shutdown the socket listener on SIGTERM
 	if config.UseSocket() {
 		socketWaiter.Wait()
 		CleanupSocket(config.Socket)

@@ -107,7 +107,7 @@ func (stats *ProgramStats) handleValues(exposeStats bool, listener net.Listener)
 }
 
 // Cleanup after ourselves
-// FIXME: Chances are that we won't get here because we'll exit before this
+// TODO(edwardam): Chances are that we won't get here because we'll exit before this
 func (stats *ProgramStats) cleanup(listener net.Listener) {
 	if listener != nil {
 		listener.Close()

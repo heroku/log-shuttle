@@ -27,7 +27,7 @@ func NewReader(out chan<- LogLine, stats chan<- NamedValue) *Reader {
 	return &Reader{outbox: out, stats: stats}
 }
 
-//TODO: Refactor to use net.Conn interface for testing and simplicity reasons
+// TODO(edwardam): Refactor to use net.Conn interface for testing and simplicity reasons
 // See reader_test.go for comments about not being able to consume fast enough
 // Switching to net.Conn should also help with the test, because we can implement the interface
 // instead of actually stressing a socket
@@ -59,8 +59,8 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, closeChan <-chan bool) erro
 			}
 		}
 
-		//make a new []byte of the right length and copy our read message into it
-		//TODO this is ugly, is there a better way?
+		// make a new []byte of the right length and copy our read message into it
+		// TODO(edwardam): this is ugly, is there a better way?
 		thisMsg := make([]byte, numRead)
 		copy(thisMsg, msg)
 

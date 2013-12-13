@@ -43,7 +43,7 @@ func (ldp *LogDgramProducer) Run(fileName string) {
 			_, err := writeDgram(conn, ldp.Data)
 			if err != nil {
 				// We seem to send faster than the other goroutine can consume
-				// TODO: figure out a better way to catch this error
+				// TODO(edwardam): figure out a better way to catch this error
 				if opErr, ok := err.(*net.OpError); ok && opErr.Error() == "write unixgram "+fileName+": no buffer space available" {
 					time.Sleep(1 * time.Microsecond)
 				} else {

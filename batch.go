@@ -1,6 +1,6 @@
 package main
 
-//TODO: refactor syslogPrefix bits
+//TODO(edwardam): refactor syslogPrefix bits
 
 import (
 	"bytes"
@@ -50,8 +50,8 @@ func (b *Batch) writeMsg(prefix string, msg []byte) {
 }
 
 // Write an RFC5424 msg to the buffer from the RFC3164 formatted msg
-//TODO: Punt on time manipulation for now, use received time
-//TODO: Punt on host/tag/pid for now, use value from config
+// TODO(edwardam): Punt on time manipulation for now, use received time
+// TODO(edwardam): Punt on host/tag/pid for now, use value from config
 func (b *Batch) writeRFC3164Msg(logLine LogLine) {
 	var msg []byte
 
