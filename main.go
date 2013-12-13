@@ -43,17 +43,22 @@ func Exists(path string) bool {
 	return !os.IsNotExist(err)
 }
 
+func cleanUpSocket(path string) error {
+	if Exists(path) {
+		return os.Remove(path)
+	}
+	return nil
+}
+
 func SetupSocket(path string) *net.UnixConn {
 	ua, err := net.ResolveUnixAddr(SOCKET_TYPE, path)
 	if err != nil {
 		log.Fatal("Resolving Unix Address: ", err)
 	}
 
-	if Exists(path) {
-		err := os.Remove(path)
-		if err != nil {
-			log.Fatal("Removing old socket: ", err)
-		}
+	err = cleanUpSocket(path)
+	if err != nil {
+		log.Fatal("Removing old socket: ", err)
 	}
 
 	l, err := net.ListenUnixgram(SOCKET_TYPE, ua)

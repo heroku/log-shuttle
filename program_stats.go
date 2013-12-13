@@ -72,21 +72,20 @@ func updateSampleInMap(m map[string]*quantile.Stream, name string, value float64
 
 func (stats *ProgramStats) Run() {
 	var listener net.Listener
-	var err error
 
-	if stats.network != "" {
+	exposeStats := stats.network != ""
+
+	if exposeStats {
 		unixSocket := stats.network == "unix"
 
 		if unixSocket {
-			if Exists(stats.address) {
-				err = os.Remove(stats.address)
-				if err != nil {
-					log.Fatalf("Unable to remove %s to setup stats socket: %s\n", stats.address, err)
-				}
+			err := cleanUpSocket(stats.address)
+			if err != nil {
+				log.Fatalf("Unable to remove old stats socket (%s): %s\n", stats.address, err)
 			}
 		}
 
-		listener, err = net.Listen(stats.network, stats.address)
+		listener, err := net.Listen(stats.network, stats.address)
 		if err != nil {
 			log.Fatalf("Unable to listen on %s,%s: %s\n", stats.network, stats.address, err)
 		}
@@ -94,25 +93,43 @@ func (stats *ProgramStats) Run() {
 		go stats.accept(listener)
 	}
 
-	go func() {
-		stats.aggregateValues()
-		if listener != nil {
-			listener.Close()
-		}
-
-		//FIXME: Chances are that we won't get here because we'll exit before this
-		if stats.network == "unix" {
-			if Exists(stats.address) {
-				err := os.Remove(stats.address)
-				if err != nil {
-					log.Printf("Unable to remove socket (%s): %s\n", stats.address, err)
-				}
-			}
-		}
-	}()
-
+	go stats.handleValues(exposeStats, listener)
 }
 
+// Handle incoming values based on wether we are exposing them or not
+func (stats *ProgramStats) handleValues(exposeStats bool, listener net.Listener) {
+	if exposeStats {
+		stats.aggregateValues()
+		stats.cleanup(listener)
+	} else {
+		stats.consumeValues()
+	}
+}
+
+// Cleanup after ourselves
+// FIXME: Chances are that we won't get here because we'll exit before this
+func (stats *ProgramStats) cleanup(listener net.Listener) {
+	if listener != nil {
+		listener.Close()
+	}
+
+	if stats.network == "unix" {
+		if Exists(stats.address) {
+			err := os.Remove(stats.address)
+			if err != nil {
+				log.Printf("Unable to remove socket (%s): %s\n", stats.address, err)
+			}
+		}
+	}
+}
+
+// Basically /dev/null the values
+func (stats *ProgramStats) consumeValues() {
+	for _ = range stats.input {
+	}
+}
+
+// Aggregate the values by name
 func (stats *ProgramStats) aggregateValues() {
 	for namedValue := range stats.input {
 		stats.Mutex.Lock()
@@ -122,6 +139,7 @@ func (stats *ProgramStats) aggregateValues() {
 	}
 }
 
+// Accept connections and handle them
 func (stats *ProgramStats) accept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
@@ -133,6 +151,7 @@ func (stats *ProgramStats) accept(listener net.Listener) {
 	}
 }
 
+// we create a buffer (output) in order to sort the output
 func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
