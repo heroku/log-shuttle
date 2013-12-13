@@ -35,14 +35,18 @@ func BatchManager(getBatches, returnBatches chan *Batch, stats chan<- NamedValue
 			//Periodically go through the queued batches and throw
 			//out ones that have been queued for too long in an effort
 			//to expire old batches that were created because of bursts
+			stats <- NewNamedValue("batch-manager.list.length", float64(q.Len()))
+			removed := 0
 			for e := q.Front(); e != nil; e = e.Next() {
 				age := time.Since(e.Value.(queued).when)
 				if age > time.Minute {
+					removed += 1
 					q.Remove(e)
 					e.Value = nil
 				}
 				stats <- NewNamedValue("batch-manager.batch.queued.age", age.Seconds())
 			}
+			stats <- NewNamedValue("batch-manager.list.removed", float64(removed))
 		}
 	}
 }
