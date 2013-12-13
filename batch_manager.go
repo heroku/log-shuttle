@@ -10,7 +10,7 @@ type queued struct {
 	batch *Batch
 }
 
-func BatchManager(getBatches, returnBatches chan *Batch, config *ShuttleConfig) {
+func BatchManager(getBatches, returnBatches chan *Batch, stats chan<- NamedValue, config *ShuttleConfig) {
 	q := new(list.List)
 	ticker := time.Tick(time.Minute)
 
@@ -36,20 +36,22 @@ func BatchManager(getBatches, returnBatches chan *Batch, config *ShuttleConfig) 
 			//out ones that have been queued for too long in an effort
 			//to expire old batches that were created because of bursts
 			for e := q.Front(); e != nil; e = e.Next() {
-				if time.Since(e.Value.(queued).when) > time.Minute {
+				age := time.Since(e.Value.(queued).when)
+				if age > time.Minute {
 					q.Remove(e)
 					e.Value = nil
 				}
+				stats <- NewNamedValue("batch-manager.batch.queued.age", age.Seconds())
 			}
 		}
 	}
 }
 
-func NewBatchManager(config ShuttleConfig) (getBatches, returnBatches chan *Batch) {
+func NewBatchManager(config ShuttleConfig, stats chan<- NamedValue) (getBatches, returnBatches chan *Batch) {
 	getBatches = make(chan *Batch)
 	returnBatches = make(chan *Batch)
 
-	go BatchManager(getBatches, returnBatches, &config)
+	go BatchManager(getBatches, returnBatches, stats, &config)
 
 	return
 }
