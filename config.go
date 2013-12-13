@@ -12,8 +12,9 @@ import (
 var LogplexUrl = os.Getenv("LOGPLEX_URL")
 
 const (
-	DEFAULT_FRONT_BUFF = 5000
-	DEFAULT_STATS_BUFF = 1000
+	DEFAULT_FRONT_BUFF = 1000
+	DEFAULT_STATS_BUFF = 5000
+	DEFAULT_STATS_ADDR = ""
 )
 
 type ShuttleConfig struct {
@@ -30,6 +31,7 @@ type ShuttleConfig struct {
 	Hostname     string
 	Appname      string
 	Msgid        string
+	StatsAddr    string
 	SkipHeaders  bool
 	SkipVerify   bool
 	PrintVersion bool
@@ -53,6 +55,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
 	flag.StringVar(&c.Socket, "socket", "", "Location of UNIX domain socket.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
+	flag.StringVar(&c.StatsAddr, "stats-addr", DEFAULT_STATS_ADDR, "Where to expose stats.")
 	flag.IntVar(&c.NumBatchers, "num-batchers", 2, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", 4, "The number of outlets to run.")
 	flag.DurationVar(&c.WaitDuration, "wait", time.Duration(250*time.Millisecond), "Duration to wait to flush messages to logplex")

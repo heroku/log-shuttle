@@ -108,7 +108,7 @@ func (h *HttpOutlet) timePost(req *http.Request) (resp *http.Response, err error
 		} else {
 			name += ".success"
 		}
-		h.stats <- NamedValue{value: time.Since(t).Seconds(), name: name}
+		h.stats <- NewNamedValue(name, time.Since(t).Seconds())
 	}(time.Now())
 	return h.client.Do(req)
 }

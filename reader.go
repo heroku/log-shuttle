@@ -65,7 +65,7 @@ func (rdr *Reader) ReadUnixgram(input *net.UnixConn, closeChan <-chan bool) erro
 		copy(thisMsg, msg)
 
 		rdr.outbox <- LogLine{thisMsg, currentLogTime, thisMsg[0] == '<'}
-		rdr.stats <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "unixgramreader.msg.delay"}
+		rdr.stats <- NewNamedValue("unixgramreader.msg.delay", currentLogTime.Sub(lastLogTime).Seconds())
 		lastLogTime = currentLogTime
 	}
 }
@@ -87,7 +87,7 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 		logLine := LogLine{line, currentLogTime, false}
 
 		rdr.outbox <- logLine
-		rdr.stats <- NamedValue{value: currentLogTime.Sub(lastLogTime).Seconds(), name: "reader.line.delay"}
+		rdr.stats <- NewNamedValue("reader.line.delay", currentLogTime.Sub(lastLogTime).Seconds())
 		lastLogTime = currentLogTime
 	}
 	return nil

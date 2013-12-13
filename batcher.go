@@ -45,7 +45,7 @@ func (batcher *Batcher) Batch() {
 	for batch := range batcher.inBatches {
 		closeDown := batcher.fillBatch(batch)
 		if batch.MsgCount > 0 {
-			batcher.stats <- NamedValue{value: float64(batch.MsgCount), name: "batch.msg.count"}
+			batcher.stats <- NewNamedValue("batch.msg.count", float64(batch.MsgCount))
 			select {
 			case batcher.outBatches <- batch:
 			// submitted into the delivery channel,
@@ -53,7 +53,7 @@ func (batcher *Batcher) Batch() {
 			default:
 				//Unable to deliver into the delivery channel,
 				//increment drops
-				batcher.stats <- NamedValue{value: float64(batch.MsgCount), name: "batch.msg.dropped"}
+				batcher.stats <- NewNamedValue("batch.msg.dropped", float64(batch.MsgCount))
 				batcher.drops.Add(uint64(batch.MsgCount))
 			}
 		}
@@ -74,7 +74,7 @@ func (batcher *Batcher) fillBatch(batch *Batch) bool {
 	timeout := time.NewTimer(batcher.config.WaitDuration)
 	timeout.Stop()       // don't timeout until we actually have a log line
 	defer timeout.Stop() // ensure timer is stopped when done
-	defer func(t time.Time) { batcher.stats <- NamedValue{value: time.Since(t).Seconds(), name: "batch.fill"} }(time.Now())
+	defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill", time.Since(t).Seconds()) }(time.Now())
 
 	for {
 		select {
