@@ -87,7 +87,7 @@ func (h *HttpOutlet) post(b *Batch) error {
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(drops)))
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(int(lost)))
-	resp, err := h.timePost(req)
+	resp, err := h.timeRequest(req)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (h *HttpOutlet) post(b *Batch) error {
 	return nil
 }
 
-func (h *HttpOutlet) timePost(req *http.Request) (resp *http.Response, err error) {
+func (h *HttpOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {
 	defer func(t time.Time) {
 		name := "outlet.post"
 		if err != nil {
