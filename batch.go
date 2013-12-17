@@ -34,8 +34,8 @@ func (b *Batch) MsgAgeRange() float64 {
 	if b.oldest == nil || b.newest == nil {
 		return 0.0
 	}
-	oldest := *b.oldest
-	return oldest.Sub(*b.newest).Seconds()
+	newest := *b.newest
+	return newest.Sub(*b.oldest).Seconds()
 }
 
 func (b *Batch) WriteDrops(drops int) {
