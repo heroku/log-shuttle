@@ -19,12 +19,12 @@ func ProduceLogLines(count int, c chan<- LogLine) {
 
 func BenchmarkBatcher(b *testing.B) {
 	b.ResetTimer()
-	inBatches, outBatches := NewBatchManager(config)
+	stats := make(chan NamedValue, config.StatsBuff)
+	go ConsumeNamedValues(stats)
+	inBatches, outBatches := NewBatchManager(config, stats)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		logs := make(chan LogLine, config.FrontBuff)
-		stats := make(chan NamedValue, config.StatsBuff)
-		go ConsumeNamedValues(stats)
 		drops := NewCounter(0)
 		batcher := NewBatcher(config, drops, stats, logs, inBatches, outBatches)
 		wg := new(sync.WaitGroup)
@@ -37,6 +37,5 @@ func BenchmarkBatcher(b *testing.B) {
 		ProduceLogLines(TEST_PRODUCER_LINES, logs)
 		close(logs)
 		wg.Wait()
-		close(stats)
 	}
 }
