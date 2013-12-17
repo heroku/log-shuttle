@@ -21,11 +21,21 @@ var (
 type Batch struct {
 	MsgCount int
 	config   *ShuttleConfig
+	oldest   *time.Time
+	newest   *time.Time
 	bytes.Buffer
 }
 
 func NewBatch(config *ShuttleConfig) (batch *Batch) {
 	return &Batch{config: config}
+}
+
+func (b *Batch) MsgAgeRange() float64 {
+	if b.oldest == nil || b.newest == nil {
+		return 0.0
+	}
+	oldest := *b.oldest
+	return oldest.Sub(*b.newest).Seconds()
 }
 
 func (b *Batch) WriteDrops(drops int) {
@@ -55,6 +65,8 @@ func (b *Batch) writeMsg(prefix string, msg []byte) {
 func (b *Batch) writeRFC3164Msg(logLine LogLine) {
 	var msg []byte
 
+	b.UpdateTimes(logLine.when)
+
 	// Figure out the prival
 	pe := bytes.Index(logLine.line, PRIVAL_END)
 	prival := string(logLine.line[1:pe])
@@ -80,6 +92,7 @@ func (b *Batch) writeRFC3164Msg(logLine LogLine) {
 
 // Write a line to the batch, increment it's line counter
 func (b *Batch) Write(logLine LogLine) {
+	b.UpdateTimes(logLine.when)
 
 	if logLine.rfc3164 {
 		b.writeRFC3164Msg(logLine)
@@ -99,9 +112,21 @@ func (b *Batch) Write(logLine LogLine) {
 	}
 }
 
+func (b *Batch) UpdateTimes(t time.Time) {
+	if b.oldest == nil || t.Before(*b.oldest) {
+		b.oldest = &t
+	}
+	if b.newest == nil || t.After(*b.newest) {
+		b.newest = &t
+	}
+	return
+}
+
 // Zero the line count and reset the internal buffer
 func (b *Batch) Reset() {
 	b.MsgCount = 0
+	b.newest = nil
+	b.oldest = nil
 	b.Buffer.Reset()
 }
 

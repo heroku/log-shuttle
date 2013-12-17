@@ -24,6 +24,7 @@ func BatchManager(getBatches, returnBatches chan *Batch, stats chan<- NamedValue
 		select {
 		case batch := <-returnBatches:
 			//I've been given a batch back, queue it
+			stats <- NewNamedValue("batch.msg.age.range", batch.MsgAgeRange())
 			batch.Reset()
 			q.PushFront(queued{when: time.Now(), batch: batch})
 
