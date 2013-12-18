@@ -59,6 +59,7 @@ func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedVal
 func (h *HttpOutlet) Outlet() {
 
 	for batch := range h.inbox {
+		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
 		err := h.post(batch)
 		if err != nil {

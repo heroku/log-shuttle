@@ -43,6 +43,9 @@ func NewBatcher(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, i
 func (batcher *Batcher) Batch() {
 
 	for batch := range batcher.inBatches {
+		batcher.stats <- NewNamedValue("batcher.inBatches.length", float64(len(batcher.inBatches)))
+		batcher.stats <- NewNamedValue("batcher.inLogs.length", float64(len(batcher.inLogs)))
+
 		closeDown := batcher.fillBatch(batch)
 		if batch.MsgCount > 0 {
 			batcher.stats <- NewNamedValue("batch.msg.count", float64(batch.MsgCount))
