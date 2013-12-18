@@ -160,7 +160,7 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	stats.Mutex.Lock()
 	now := time.Now()
 	output = append(output, fmt.Sprintf("log-shuttle.last.connection: %d\n", stats.lastPoll.Unix()))
-	output = append(output, fmt.Sprintf("log-shuttle.last.connection.since: %d\n", now.Sub(stats.lastPoll).Seconds()))
+	output = append(output, fmt.Sprintf("log-shuttle.last.connection.since: %f\n", now.Sub(stats.lastPoll).Seconds()))
 	stats.lastPoll = now
 
 	for name, stream := range stats.stats {
