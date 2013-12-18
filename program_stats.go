@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type NamedValue struct {
@@ -24,6 +25,7 @@ type ProgramStats struct {
 	lost, drops      *Counter
 	stats            map[string]*quantile.Stream
 	input            <-chan NamedValue
+	lastPoll         time.Time
 	network, address string
 	sync.Mutex
 }
@@ -45,12 +47,13 @@ func NewProgramStats(on string, lost, drops *Counter, input <-chan NamedValue) *
 	}
 
 	return &ProgramStats{
-		input:   input,
-		lost:    lost,
-		drops:   drops,
-		network: network,
-		address: address,
-		stats:   make(map[string]*quantile.Stream),
+		input:    input,
+		lost:     lost,
+		lastPoll: time.Now(),
+		drops:    drops,
+		network:  network,
+		address:  address,
+		stats:    make(map[string]*quantile.Stream),
 	}
 }
 
@@ -155,6 +158,11 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	output = append(output, fmt.Sprintf("log-shuttle.alltime.lost: %d\n", stats.lost.AllTime()))
 
 	stats.Mutex.Lock()
+	now := time.Now()
+	output = append(output, fmt.Sprintf("log-shuttle.last.connection: %d\n", stats.lastPoll.Unix()))
+	output = append(output, fmt.Sprintf("log-shuttle.last.connection.since: %d\n", now.Sub(stats.lastPoll).Seconds()))
+	stats.lastPoll = now
+
 	for name, stream := range stats.stats {
 		output = append(output, fmt.Sprintf("log-shuttle.%s.count: %d\n", name, stream.Count()))
 		output = append(output, fmt.Sprintf("log-shuttle.%s.p50: %f\n", name, stream.Query(0.50)))
