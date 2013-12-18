@@ -1,3 +1,7 @@
+### 0.5.0 2013-12-18 Edward Muller (edward@heroku.com)
+
+* Log shuttle metrics via a socket (optional)
+
 ### 0.3.1 2013-09-30 Edward Muller (edward@heroku.com)
 
 * max requests = 5: Limits in flight requests
