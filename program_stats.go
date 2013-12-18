@@ -11,10 +11,6 @@ import (
 	"sync"
 )
 
-const (
-	ALLTIME_MARKER = "alltime."
-)
-
 type NamedValue struct {
 	value float64
 	name  string
@@ -134,7 +130,6 @@ func (stats *ProgramStats) aggregateValues() {
 	for namedValue := range stats.input {
 		stats.Mutex.Lock()
 		updateSampleInMap(stats.stats, namedValue.name, namedValue.value)
-		updateSampleInMap(stats.stats, ALLTIME_MARKER+namedValue.name, namedValue.value)
 		stats.Mutex.Unlock()
 	}
 }
@@ -165,9 +160,7 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 		output = append(output, fmt.Sprintf("log-shuttle.%s.p50: %f\n", name, stream.Query(0.50)))
 		output = append(output, fmt.Sprintf("log-shuttle.%s.p95: %f\n", name, stream.Query(0.95)))
 		output = append(output, fmt.Sprintf("log-shuttle.%s.p99: %f\n", name, stream.Query(0.99)))
-		if name[0:8] != ALLTIME_MARKER {
-			stream.Reset()
-		}
+		stream.Reset()
 	}
 	stats.Mutex.Unlock()
 
