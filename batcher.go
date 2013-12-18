@@ -77,7 +77,7 @@ func (batcher *Batcher) fillBatch(batch *Batch) bool {
 	timeout := time.NewTimer(batcher.config.WaitDuration)
 	timeout.Stop()       // don't timeout until we actually have a log line
 	defer timeout.Stop() // ensure timer is stopped when done
-	defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill", time.Since(t).Seconds()) }(time.Now())
+	defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill.time", time.Since(t).Seconds()) }(time.Now())
 
 	for {
 		select {
