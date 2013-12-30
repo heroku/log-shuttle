@@ -94,7 +94,7 @@ func (b *Batch) writeRFC3164Msg(logLine LogLine) {
 func (b *Batch) Write(logLine LogLine) {
 	b.UpdateTimes(logLine.when)
 
-	if logLine.rfc3164 {
+	if b.config.InputFormat == INPUT_FORMAT_RFC3164 {
 		b.writeRFC3164Msg(logLine)
 	} else {
 		var syslogPrefix string

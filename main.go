@@ -3,15 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"sync"
 )
 
 const (
-	VERSION      = "0.5.0"
-	SOCKET_TYPE  = "unixgram"
-	SOCKET_PERMS = 0666
+	VERSION = "0.5.0"
 )
 
 func MakeBasicBits(config ShuttleConfig) (reader *Reader, stats chan NamedValue, drops, lost *Counter, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
@@ -38,56 +35,8 @@ func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBa
 	close(stats)              // Close the stats channel to shut down any goroutines using it
 }
 
-func Exists(path string) bool {
-	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
-}
-
-func cleanUpSocket(path string) error {
-	if Exists(path) {
-		return os.Remove(path)
-	}
-	return nil
-}
-
-func SetupSocket(path string) *net.UnixConn {
-	ua, err := net.ResolveUnixAddr(SOCKET_TYPE, path)
-	if err != nil {
-		log.Fatal("Resolving Unix Address: ", err)
-	}
-
-	err = cleanUpSocket(path)
-	if err != nil {
-		log.Fatal("Removing old socket: ", err)
-	}
-
-	l, err := net.ListenUnixgram(SOCKET_TYPE, ua)
-	if err != nil {
-		log.Fatal("Listening on Socket: ", err)
-	}
-
-	//Change permissions so anyone can write to it
-	err = os.Chmod(path, SOCKET_PERMS)
-	if err != nil {
-		log.Fatal("Chmoding Socket: ", err)
-	}
-
-	return l
-}
-
-func CleanupSocket(path string) {
-	err := os.Remove(path)
-	if err != nil {
-		log.Println("Error removing socket: ", err)
-	}
-}
-
 func main() {
 	var config ShuttleConfig
-	var unixgramCloseChannel chan bool
-
-	stdinWaiter := new(sync.WaitGroup)
-	socketWaiter := new(sync.WaitGroup)
 
 	config.ParseFlags()
 
@@ -96,44 +45,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	if !config.UseStdin() && !config.UseSocket() {
-		log.Fatalln("No stdin detected or socket used.")
+	if !config.UseStdin() {
+		log.Fatalln("No stdin detected.")
 	}
 
 	reader, stats, _, _, logs, deliverableBatches, _, batchWaiter, outletWaiter := MakeBasicBits(config)
 
-	if config.UseStdin() {
-		stdinWaiter.Add(1)
-		go func() {
-			reader.Read(os.Stdin)
-			stdinWaiter.Done()
-		}()
-	}
-
-	if config.UseSocket() {
-
-		socket := SetupSocket(config.Socket)
-
-		unixgramCloseChannel = make(chan bool)
-		socketWaiter.Add(1)
-		go func() {
-			reader.ReadUnixgram(socket, unixgramCloseChannel)
-			socketWaiter.Done()
-		}()
-	}
-
-	if config.UseStdin() {
-		stdinWaiter.Wait()
-		if config.UseSocket() {
-			unixgramCloseChannel <- true
-		}
-	}
-
-	// TODO(edwardam): Signal handler to gracefully shutdown the socket listener on SIGTERM
-	if config.UseSocket() {
-		socketWaiter.Wait()
-		CleanupSocket(config.Socket)
-	}
+	reader.Read(os.Stdin)
 
 	// Shutdown everything else.
 	Shutdown(logs, stats, deliverableBatches, batchWaiter, outletWaiter)

@@ -8,9 +8,8 @@ import (
 
 func ProduceLogLines(count int, c chan<- LogLine) {
 	ll := LogLine{
-		line:    TestData,
-		when:    time.Now(),
-		rfc3164: false,
+		line: TestData,
+		when: time.Now(),
 	}
 	for i := 0; i < count; i++ {
 		c <- ll

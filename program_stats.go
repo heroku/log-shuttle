@@ -12,6 +12,18 @@ import (
 	"time"
 )
 
+func Exists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
+}
+
+func cleanUpSocket(path string) error {
+	if Exists(path) {
+		return os.Remove(path)
+	}
+	return nil
+}
+
 type NamedValue struct {
 	value float64
 	name  string
