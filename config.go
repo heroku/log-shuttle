@@ -12,9 +12,15 @@ import (
 var LogplexUrl = os.Getenv("LOGPLEX_URL")
 
 const (
-	DEFAULT_FRONT_BUFF = 1000
-	DEFAULT_STATS_BUFF = 5000
-	DEFAULT_STATS_ADDR = ""
+	INPUT_FORMAT_RAW     = iota
+	INPUT_FORMAT_RFC3164 = iota
+)
+
+const (
+	DEFAULT_INPUT_FORMAT = INPUT_FORMAT_RAW
+	DEFAULT_FRONT_BUFF   = 1000
+	DEFAULT_STATS_BUFF   = 5000
+	DEFAULT_STATS_ADDR   = ""
 )
 
 type ShuttleConfig struct {
@@ -23,7 +29,7 @@ type ShuttleConfig struct {
 	BatchSize    int
 	NumBatchers  int
 	NumOutlets   int
-	Socket       string
+	InputFormat  int
 	LogsURL      string
 	Prival       string
 	Version      string
@@ -53,9 +59,9 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Appname, "logplex-token", "", "Secret logplex token.")
 	flag.StringVar(&c.Hostname, "hostname", "shuttle", "The hostname field for the syslog header.")
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
-	flag.StringVar(&c.Socket, "socket", "", "Location of UNIX domain socket.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
 	flag.StringVar(&c.StatsAddr, "stats-addr", DEFAULT_STATS_ADDR, "Where to expose stats.")
+	flag.IntVar(&c.InputFormat, "input-format", DEFAULT_INPUT_FORMAT, "0=raw (default), 1=rfc3164 (syslog(3))")
 	flag.IntVar(&c.NumBatchers, "num-batchers", 2, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", 4, "The number of outlets to run.")
 	flag.DurationVar(&c.WaitDuration, "wait", time.Duration(250*time.Millisecond), "Duration to wait to flush messages to logplex")
@@ -96,11 +102,4 @@ func (c *ShuttleConfig) OutletURL() string {
 
 func (c *ShuttleConfig) UseStdin() bool {
 	return !util.IsTerminal(os.Stdin)
-}
-
-func (c *ShuttleConfig) UseSocket() bool {
-	if len(c.Socket) > 0 {
-		return true
-	}
-	return false
 }

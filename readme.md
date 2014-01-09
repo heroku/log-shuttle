@@ -56,6 +56,22 @@ Before starting to work on a feature, drop a line to the [mailing list](https://
 ```
 Download deb
 
+### Replacing local syslog
+
+Libc uses a local AF_UNIX SOCK_DGRAM (or SOCK_STREAM) for syslog(3) calls. Most unix utils use the syslog(3) call to log to syslog. You can have log-shuttle transport those messages too with a little help from some other standard unix programs.
+
+1. Stop your local syslog
+2. rm -f /dev/log
+3. us netcat, tr, stdbuf to read connections to /dev/log and convert the \0 terminator to \n
+
+Like so...
+
+```bash
+sudo /etc/init.d/rsyslog stop
+sudo rm -f /dev/log
+(sudo nc -n -k -d -Ul /dev/log & until [ ! -e /dev/log ]; do sleep 0.01; done; sudo chmod a+rw /dev/log) | stdbuf -i0 -o0 tr \\0 \\n | ./log-shuttle -logs-url=... ... -input-format=1
+```
+
 ## License
 
 Copyright (c) 2012 Ryan R. Smith
