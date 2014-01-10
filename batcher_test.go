@@ -38,3 +38,11 @@ func BenchmarkBatcher(b *testing.B) {
 		wg.Wait()
 	}
 }
+
+func TestLongBatchWrite(t *testing.T) {
+	batch := NewBatch(&config)
+	batch.Write(LogLine{line: LongTestData, when: time.Now()})
+	if batch.MsgCount != 8 {
+		t.Fatalf("MsgCount should be 8, but is %d", batch.MsgCount)
+	}
+}

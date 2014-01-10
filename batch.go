@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	SYSLOG_TIME_LENGTH = 15 // locally this is always 15 AFAICT, but may not be if we decide to take input from elsewhere
+	SYSLOG_TIME_LENGTH = 15    // locally this is always 15 AFAICT, but may not be if we decide to take input from elsewhere
+	LOGPLEX_MAX_LENGTH = 10000 // It's actually 10240, but leave enough space for headers
 )
 
 var (
@@ -54,9 +55,21 @@ func (b *Batch) WriteDrops(drops int) {
 }
 
 // Write a message into the buffer, incrementing MsgCount
+// TODO(edwardam): Ensure that we can't recurse forever
 func (b *Batch) writeMsg(prefix string, msg []byte) {
-	fmt.Fprintf(&b.Buffer, "%d %s%s", len(prefix)+len(msg), prefix, msg)
-	b.MsgCount++
+	msgLen := len(msg)
+	if msgLen > LOGPLEX_MAX_LENGTH {
+		for i := 0; i < msgLen; i += LOGPLEX_MAX_LENGTH {
+			target := i + LOGPLEX_MAX_LENGTH
+			if target > msgLen {
+				target = msgLen
+			}
+			b.writeMsg(prefix, msg[i:target])
+		}
+	} else {
+		fmt.Fprintf(&b.Buffer, "%d %s%s", len(prefix)+msgLen, prefix, msg)
+		b.MsgCount++
+	}
 }
 
 // Write an RFC5424 msg to the buffer from the RFC3164 formatted msg
