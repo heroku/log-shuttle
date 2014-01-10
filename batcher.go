@@ -72,7 +72,9 @@ func (batcher *Batcher) Batch() {
 func (batcher *Batcher) fillBatch(batch *Batch) bool {
 	// Fill the batch with log lines
 	var line LogLine
-	open := true
+
+	open := true      // Channel open flag
+	noTimeout := true // Flag to start timeout
 
 	timeout := time.NewTimer(batcher.config.WaitDuration)
 	timeout.Stop()       // don't timeout until we actually have a log line
@@ -89,10 +91,11 @@ func (batcher *Batcher) fillBatch(batch *Batch) bool {
 				return !open
 			}
 			batch.Write(line)
-			if batch.MsgCount == batcher.config.BatchSize {
+			if batch.MsgCount >= batcher.config.BatchSize {
 				return !open
 			}
-			if batch.MsgCount == 1 {
+			if noTimeout {
+				noTimeout = false
 				timeout.Reset(batcher.config.WaitDuration)
 			}
 		}
