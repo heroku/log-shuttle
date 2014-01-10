@@ -90,13 +90,13 @@ func (batcher *Batcher) fillBatch(batch *Batch) bool {
 			if !open {
 				return !open
 			}
-			batch.Write(line)
-			if batch.Full() {
-				return !open
-			}
 			if noTimeout {
 				noTimeout = false
 				timeout.Reset(batcher.config.WaitDuration)
+			}
+			batch.Write(line)
+			if batch.Full() {
+				return !open
 			}
 		}
 	}
