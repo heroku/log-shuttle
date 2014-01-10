@@ -1,3 +1,7 @@
+### 0.5.1 2014-01-10 Edward Muller (edward@heroku.com)
+
+* Seperate L12 (drops) and L13 (lost) into seperate messages.
+
 ### 0.5.1 2014-01-09 Edward Muller (edward@heroku.com)
 
 * Remove socket code. There are ways to do this outside of the program (nc/socat, see commit messages)
