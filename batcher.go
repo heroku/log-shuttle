@@ -57,7 +57,7 @@ func (batcher *Batcher) Batch() {
 				//Unable to deliver into the delivery channel,
 				//increment drops
 				batcher.stats <- NewNamedValue("batch.msg.dropped", float64(batch.MsgCount))
-				batcher.drops.Add(uint64(batch.MsgCount))
+				batcher.drops.Add(batch.MsgCount)
 			}
 		}
 		if closeDown {

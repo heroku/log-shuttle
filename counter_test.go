@@ -14,7 +14,7 @@ func TestCounter(t *testing.T) {
 		t.Fatalf("counter should be 1, but was %d", c)
 	}
 	counter.Add(2)
-	if c := counter.ReadAndReset(); c != 3 {
+	if c, _ := counter.ReadAndReset(); c != 3 {
 		t.Fatalf("counter should have been 3, but was %d", c)
 	}
 	if c := counter.Read(); c != 0 {
