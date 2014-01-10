@@ -143,6 +143,14 @@ func (b *Batch) Reset() {
 	b.Buffer.Reset()
 }
 
+// Is the batch full?
+func (b *Batch) Full() bool {
+	if b.MsgCount >= b.config.BatchSize {
+		return true
+	}
+	return false
+}
+
 // NoOpCloser
 func (b *Batch) Close() error { return nil }
 

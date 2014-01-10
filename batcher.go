@@ -91,7 +91,7 @@ func (batcher *Batcher) fillBatch(batch *Batch) bool {
 				return !open
 			}
 			batch.Write(line)
-			if batch.MsgCount >= batcher.config.BatchSize {
+			if batch.Full() {
 				return !open
 			}
 			if noTimeout {
