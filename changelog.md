@@ -1,3 +1,8 @@
+### 0.5.1 2014-01-09 Edward Muller (edward@heroku.com)
+
+* Remove socket code. There are ways to do this outside of the program (nc/socat, see commit messages)
+* Handle lines longer than logplex can accept (10K), by splitting them up and writing them to the batch as seperate messages.
+
 ### 0.5.0 2013-12-18 Edward Muller (edward@heroku.com)
 
 * Log shuttle metrics via a socket (optional)
