@@ -64,7 +64,7 @@ func (h *HttpOutlet) Outlet() {
 		err := h.post(batch)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
-			h.lost.Add(uint64(batch.MsgCount))
+			h.lost.Add(batch.MsgCount)
 		}
 
 		h.batchReturn <- batch
@@ -77,17 +77,21 @@ func (h *HttpOutlet) post(b *Batch) error {
 		return err
 	}
 
-	drops := h.drops.ReadAndReset()
-	lost := h.lost.ReadAndReset()
-	if lostAndDropped := drops + lost; lostAndDropped > 0 {
-		b.WriteDrops(int(lostAndDropped))
+	drops, dropsSince := h.drops.ReadAndReset()
+	if drops > 0 {
+		b.WriteDrops(drops, dropsSince)
+	}
+
+	lost, lostSince := h.lost.ReadAndReset()
+	if lost > 0 {
+		b.WriteLost(lost, lostSince)
 	}
 
 	req.ContentLength = int64(b.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
-	req.Header.Add("Logshuttle-Drops", strconv.Itoa(int(drops)))
-	req.Header.Add("Logshuttle-Lost", strconv.Itoa(int(lost)))
+	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
+	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
 	resp, err := h.timeRequest(req)
 	if err != nil {
 		return err

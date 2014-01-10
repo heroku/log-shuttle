@@ -11,6 +11,7 @@ import (
 const (
 	SYSLOG_TIME_LENGTH = 15    // locally this is always 15 AFAICT, but may not be if we decide to take input from elsewhere
 	LOGPLEX_MAX_LENGTH = 10000 // It's actually 10240, but leave enough space for headers
+	BATCH_TIME_FORMAT  = "2006-01-02T15:04:05.000000+00:00"
 )
 
 var (
@@ -39,19 +40,23 @@ func (b *Batch) MsgAgeRange() float64 {
 	return newest.Sub(*b.oldest).Seconds()
 }
 
-func (b *Batch) WriteDrops(drops int) {
-	now := time.Now().UTC().Format("2006-01-02T15:04:05.000000+00:00")
+func (b *Batch) writeError(code, codeMsg string) {
 	prefix := fmt.Sprintf("<172>%s %s heroku %s log-shuttle %s ",
 		b.config.Version,
-		now,
+		time.Now().UTC().Format(BATCH_TIME_FORMAT),
 		b.config.Appname,
 		b.config.Msgid,
 	)
-	msg := fmt.Sprintf("Error L12: %d messages dropped since %s.",
-		drops,
-		now,
-	)
+	msg := fmt.Sprintf("Error %s: %s.", code, codeMsg)
 	b.writeMsg(prefix, []byte(msg))
+}
+
+func (b *Batch) WriteDrops(dropped int, since time.Time) {
+	b.writeError("L12", fmt.Sprintf("%d messages dropped since %s", dropped, since.UTC().Format(BATCH_TIME_FORMAT)))
+}
+
+func (b *Batch) WriteLost(lost int, since time.Time) {
+	b.writeError("L13", fmt.Sprintf("%d messages lost since %s", lost, since.UTC().Format(BATCH_TIME_FORMAT)))
 }
 
 // Write a message into the buffer, incrementing MsgCount
@@ -94,7 +99,7 @@ func (b *Batch) writeRFC3164Msg(logLine LogLine) {
 	}
 
 	syslogPrefix := "<" + prival + ">" + b.config.Version + " " +
-		logLine.when.UTC().Format("2006-01-02T15:04:05.000000+00:00") + " " +
+		logLine.when.UTC().Format(BATCH_TIME_FORMAT) + " " +
 		b.config.Hostname + " " +
 		b.config.Appname + " " +
 		b.config.Procid + " " +
@@ -114,7 +119,7 @@ func (b *Batch) Write(logLine LogLine) {
 
 		if !b.config.SkipHeaders {
 			syslogPrefix = "<" + b.config.Prival + ">" + b.config.Version + " " +
-				logLine.when.UTC().Format("2006-01-02T15:04:05.000000+00:00") + " " +
+				logLine.when.UTC().Format(BATCH_TIME_FORMAT) + " " +
 				b.config.Hostname + " " +
 				b.config.Appname + " " +
 				b.config.Procid + " " +

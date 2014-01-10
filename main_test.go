@@ -104,7 +104,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("Logshuttle-Drops=%s\n", dropHeader[0])
 	}
 
-	if afterDrops := drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops, _ := drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 
@@ -164,7 +164,7 @@ func TestDrops(t *testing.T) {
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
-	if afterDrops := drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops, _ := drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 }

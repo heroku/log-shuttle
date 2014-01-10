@@ -2,38 +2,43 @@ package main
 
 import (
 	"sync"
+	"time"
 )
 
 type Counter struct {
-	value        uint64
-	allTimeValue uint64
+	value        int
+	allTimeValue int
+	lastRAR      time.Time
 	sync.Mutex
 }
 
-func NewCounter(initial uint64) *Counter {
-	return &Counter{value: initial, allTimeValue: initial}
+func NewCounter(initial int) *Counter {
+	return &Counter{value: initial, allTimeValue: initial, lastRAR: time.Now()}
 }
 
-func (c *Counter) Read() uint64 {
+func (c *Counter) Read() int {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
 	return c.value
 }
 
-func (c *Counter) AllTime() uint64 {
+func (c *Counter) AllTime() int {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
 	return c.allTimeValue
 }
 
-func (c *Counter) ReadAndReset() uint64 {
+func (c *Counter) ReadAndReset() (int, time.Time) {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
-	defer func() { c.value = 0 }()
-	return c.value
+	defer func() {
+		c.value = 0
+		c.lastRAR = time.Now()
+	}()
+	return c.value, c.lastRAR
 }
 
-func (c *Counter) Add(u uint64) uint64 {
+func (c *Counter) Add(u int) int {
 	c.Mutex.Lock()
 	defer c.Mutex.Unlock()
 	c.allTimeValue += u
