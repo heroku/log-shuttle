@@ -169,6 +169,25 @@ func TestDrops(t *testing.T) {
 	}
 }
 
+func TestRequestId(t *testing.T) {
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.LogsURL = ts.URL
+	config.SkipHeaders = false
+
+	reader, stats, _, _, logs, deliverables, _, bWaiter, oWaiter := MakeBasicBits(config)
+
+	reader.Read(NewTestInput())
+	Shutdown(logs, stats, deliverables, bWaiter, oWaiter)
+
+	_, ok := th.Headers["X-Request-Id"]
+	if !ok {
+		t.Fatalf("Header X-Request-ID not found in response")
+	}
+}
+
 func BenchmarkPipeline(b *testing.B) {
 	th := new(noopTestHelper)
 	ts := httptest.NewServer(th)

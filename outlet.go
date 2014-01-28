@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/nu7hatch/gouuid"
 	"net"
 	"net/http"
 	"os"
@@ -92,6 +93,13 @@ func (h *HttpOutlet) post(b *Batch) error {
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		fmt.Printf("at=generate_uuid err=\"%s\"\n", err)
+	} else {
+		req.Header.Add("X-Request-Id", uuid.String())
+	}
+
 	resp, err := h.timeRequest(req)
 	if err != nil {
 		return err

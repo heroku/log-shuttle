@@ -7,6 +7,10 @@
 			"Rev": "da72989a59aaaecda7110926d3a6198ee4421c1f"
 		},
 		{
+			"ImportPath": "github.com/nu7hatch/gouuid",
+			"Rev": "bcd29efdea6dde845e4146e0b347d15df3a23957"
+		},
+		{
 			"ImportPath": "github.com/pebbe/util",
 			"Rev": "55c63b3b022c13ed2081abd3277e425ac731ba68"
 		}
