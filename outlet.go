@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"io/ioutil"
 )
 
 func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
@@ -106,7 +107,13 @@ func (h *HttpOutlet) post(b *Batch) error {
 	}
 
 	if h.config.Verbose {
-		fmt.Printf("at=post status=%d\n", resp.StatusCode)
+		switch status := resp.StatusCode; {
+		case status >= 400:
+			body,_ := ioutil.ReadAll(resp.Body)
+			fmt.Printf("at=post status=%d body=%s\n", status, body)
+		default:
+			fmt.Printf("at=post status=%d\n", status)
+		}
 	}
 
 	resp.Body.Close()
