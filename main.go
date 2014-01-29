@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "0.5.3"
+	VERSION = "0.5.4"
 )
 
 func MakeBasicBits(config ShuttleConfig) (reader *Reader, stats chan NamedValue, drops, lost *Counter, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {

@@ -1,3 +1,9 @@
+
+### 0.5.4 2014-01-29 Edward Muller (edward@heroku.com)
+
+* Body logging of post responses in verbose mode (geoff@heroku.com)
+* Missing deps
+
 ### 0.5.3 2014-01-29 Edward Muller (edward@heroku.com)
 
 * Remove unused -report-every option
