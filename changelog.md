@@ -1,4 +1,9 @@
-### 0.5.1 2014-01-10 Edward Muller (edward@heroku.com)
+### 0.5.3 2014-01-29 Edward Muller (edward@heroku.com)
+
+* Remove unused -report-every option
+* Add X-Request-Id header to each outgoing batch
+
+### 0.5.2 2014-01-10 Edward Muller (edward@heroku.com)
 
 * Seperate L12 (drops) and L13 (lost) into seperate messages.
 
