@@ -4,13 +4,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/nu7hatch/gouuid"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"sync"
 	"time"
-	"io/ioutil"
 )
 
 func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
@@ -109,8 +109,13 @@ func (h *HttpOutlet) post(b *Batch) error {
 	if h.config.Verbose {
 		switch status := resp.StatusCode; {
 		case status >= 400:
-			body,_ := ioutil.ReadAll(resp.Body)
-			fmt.Printf("at=post status=%d body=%s\n", status, body)
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Printf("at=post status=%d error_reading_body=%s\n", status, err)
+			} else {
+				fmt.Printf("at=post status=%d body=%s\n", status, body)
+			}
+
 		default:
 			fmt.Printf("at=post status=%d\n", status)
 		}
