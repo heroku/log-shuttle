@@ -1,3 +1,6 @@
+### 0.5.5 2014-02-05 Edward Muller (edward@heroku.com)
+
+* Bump default timeout to 5s
 
 ### 0.5.4 2014-01-29 Edward Muller (edward@heroku.com)
 
