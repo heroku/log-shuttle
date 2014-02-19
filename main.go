@@ -3,8 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/syslog"
 	"os"
 	"sync"
+)
+
+var (
+	ErrLogger *log.Logger
 )
 
 const (
@@ -37,8 +42,18 @@ func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBa
 
 func main() {
 	var config ShuttleConfig
+	var err error
 
 	config.ParseFlags()
+
+	if config.UseStdErr {
+		ErrLogger = log.New(os.Stderr, "log-shuttle", log.LstdFlags)
+	} else {
+		ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, log.LstdFlags)
+		if err != nil {
+			log.Fatalf("Unable to setup syslog logger: %s\n", err)
+		}
+	}
 
 	if config.PrintVersion {
 		fmt.Println(VERSION)
@@ -46,7 +61,7 @@ func main() {
 	}
 
 	if !config.UseStdin() {
-		log.Fatalln("No stdin detected.")
+		ErrLogger.Fatalln("No stdin detected.")
 	}
 
 	reader, stats, _, _, logs, deliverableBatches, _, batchWaiter, outletWaiter := MakeBasicBits(config)

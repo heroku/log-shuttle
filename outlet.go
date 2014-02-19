@@ -2,12 +2,10 @@ package main
 
 import (
 	"crypto/tls"
-	"fmt"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -65,7 +63,7 @@ func (h *HttpOutlet) Outlet() {
 
 		err := h.post(batch)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "post-error=%s\n", err)
+			ErrLogger.Printf("post-erro=%s\n", err)
 			h.lost.Add(batch.MsgCount)
 		}
 
@@ -96,7 +94,7 @@ func (h *HttpOutlet) post(b *Batch) error {
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
 	uuid, err := uuid.NewV4()
 	if err != nil {
-		fmt.Printf("at=generate_uuid err=\"%s\"\n", err)
+		ErrLogger.Printf("at=generate_uuid err=\"%s\"\n", err)
 	} else {
 		req.Header.Add("X-Request-Id", uuid.String())
 	}
@@ -111,13 +109,13 @@ func (h *HttpOutlet) post(b *Batch) error {
 		case status >= 400:
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				fmt.Printf("at=post status=%d error_reading_body=%s\n", status, err)
+				ErrLogger.Printf("at=post status=%d error_reading_body=%s\n", status, err)
 			} else {
-				fmt.Printf("at=post status=%d body=%s\n", status, body)
+				ErrLogger.Printf("at=post status=%d body=%s\n", status, body)
 			}
 
 		default:
-			fmt.Printf("at=post status=%d\n", status)
+			ErrLogger.Printf("at=post status=%d\n", status)
 		}
 	}
 
