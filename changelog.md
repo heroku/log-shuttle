@@ -1,3 +1,8 @@
+### 0.6.0 2014-02-19 Edward Muller (edward@heroku.com)
+
+* Log using a logger. Default to stderr
+* Optional Syslog logger via -log-to-syslog (using syslog.error)
+
 ### 0.5.5 2014-02-05 Edward Muller (edward@heroku.com)
 
 * Bump default timeout to 5s
