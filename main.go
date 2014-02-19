@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	VERSION = "0.5.5"
+	VERSION = "0.6.0"
 )
 
 func MakeBasicBits(config ShuttleConfig) (reader *Reader, stats chan NamedValue, drops, lost *Counter, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
