@@ -47,7 +47,7 @@ func main() {
 	config.ParseFlags()
 
 	if config.LogToSyslog {
-		ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, log.LstdFlags)
+		ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
 		if err != nil {
 			log.Fatalf("Unable to setup syslog logger: %s\n", err)
 		}
