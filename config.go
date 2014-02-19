@@ -44,7 +44,7 @@ type ShuttleConfig struct {
 	SkipVerify   bool
 	PrintVersion bool
 	Verbose      bool
-	UseStdErr    bool
+	LogToSyslog  bool
 	WaitDuration time.Duration
 	Timeout      time.Duration
 }
@@ -71,7 +71,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.FrontBuff, "front-buff", DEFAULT_FRONT_BUFF, "Number of messages to buffer in log-shuttle's input chanel.")
 	flag.IntVar(&c.StatsBuff, "stats-buff", DEFAULT_STATS_BUFF, "Number of stats to buffer.")
 	flag.DurationVar(&c.Timeout, "timeout", time.Duration(DEFAULT_TIMEOUT), "Duration to wait for a response from Logplex.")
-	flag.BoolVar(&c.UseStdErr, "use-stderr", false, "Log to stderr instead of syslog")
+	flag.BoolVar(&c.LogToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
 	flag.Parse()
 }
 
