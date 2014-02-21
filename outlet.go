@@ -61,9 +61,14 @@ func (h *HttpOutlet) Outlet() {
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
-		err := h.post(batch)
+		rid, err := uuid.NewV4()
 		if err != nil {
-			ErrLogger.Printf("post-error=%q\n", err)
+			ErrLogger.Printf("at=generate_uuid err=%q\n", err)
+		}
+
+		err = h.post(rid, batch)
+		if err != nil {
+			ErrLogger.Printf("at=post request_id=%q error=%q\n", rid, err)
 			h.lost.Add(batch.MsgCount)
 		}
 
@@ -71,7 +76,7 @@ func (h *HttpOutlet) Outlet() {
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch) error {
+func (h *HttpOutlet) post(rid *uuid.UUID, b *Batch) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
@@ -92,12 +97,7 @@ func (h *HttpOutlet) post(b *Batch) error {
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		ErrLogger.Printf("at=generate_uuid err=%q\n", err)
-	} else {
-		req.Header.Add("X-Request-Id", uuid.String())
-	}
+	req.Header.Add("X-Request-Id", rid.String())
 
 	resp, err := h.timeRequest(req)
 	if err != nil {
@@ -108,14 +108,14 @@ func (h *HttpOutlet) post(b *Batch) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			ErrLogger.Printf("at=post status=%d error_reading_body=%q\n", status, err)
+			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", rid, status, err)
 		} else {
-			ErrLogger.Printf("at=post status=%d body=%q\n", status, body)
+			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", rid, status, body)
 		}
 
 	default:
 		if h.config.Verbose {
-			ErrLogger.Printf("at=post status=%d\n", status)
+			ErrLogger.Printf("at=post request_id=%q status=%d\n", rid, status)
 		}
 	}
 
