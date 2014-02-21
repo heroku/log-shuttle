@@ -8,7 +8,7 @@
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
-			"Rev": "bcd29efdea6dde845e4146e0b347d15df3a23957"
+			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 		},
 		{
 			"ImportPath": "github.com/pebbe/util",
