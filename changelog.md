@@ -1,3 +1,7 @@
+### 0.6.1 2014-02-20 Edward Muller (edward@heroku.com)
+
+* Add Request Id to Logs
+
 ### 0.6.0 2014-02-19 Edward Muller (edward@heroku.com)
 
 * Log using a logger. Default to stderr
