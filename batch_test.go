@@ -14,5 +14,14 @@ func TestBatchMsgAgeRange(t *testing.T) {
 	if mar := batch.MsgAgeRange(); mar < 0 {
 		t.Errorf("MsgAgeRange() is < 0, expected > 0 : %v", mar)
 	}
+}
 
+func TestBatchUUID(t *testing.T) {
+	batch := NewBatch(&config)
+	if batch.UUID == nil {
+		t.Errorf("Batch's UUID is nil, expected non nil")
+	}
+	if batch.UUID.String() == "" {
+		t.Errorf("Batch's UUID is empty, expect non empty")
+	}
 }
