@@ -84,15 +84,15 @@ func (h *HttpOutlet) Outlet() {
 
 // Retry io.EOF errors h.config.MaxRetries times
 func (h *HttpOutlet) retryPost(batch *Batch) {
-	for attempts := 0; attempts < h.config.MaxRetries; attempts++ {
+	for attempts := 1; attempts <= h.config.MaxRetries; attempts++ {
 		err := h.post(batch)
 		if err != nil {
 			err, eok := err.(*url.Error)
-			if eok && err.Err == io.EOF {
+			if eok && err.Err == io.EOF && attempts < h.config.MaxRetries {
 				time.Sleep(RETRY_SLEEP * time.Millisecond)
 				continue
 			} else {
-				ErrLogger.Printf("at=post request_id=%q error=%q\n", batch.UUID.String(), err)
+				ErrLogger.Printf("at=post request_id=%q attempts=%d error=%q\n", batch.UUID.String(), attempts, err)
 				h.lost.Add(batch.MsgCount)
 				return
 			}
