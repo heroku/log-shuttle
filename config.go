@@ -23,6 +23,7 @@ const (
 	DEFAULT_STATS_ADDR    = ""
 	DEFAULT_TIMEOUT       = 5 * time.Second
 	DEFAULT_WAIT_DURATION = 250 * time.Millisecond
+	DEFAULT_MAX_RETRIES   = 3
 )
 
 type ShuttleConfig struct {
@@ -32,6 +33,7 @@ type ShuttleConfig struct {
 	NumBatchers  int
 	NumOutlets   int
 	InputFormat  int
+	MaxRetries   int
 	LogsURL      string
 	Prival       string
 	Version      string
@@ -63,6 +65,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
 	flag.StringVar(&c.StatsAddr, "stats-addr", DEFAULT_STATS_ADDR, "Where to expose stats.")
+	flag.IntVar(&c.MaxRetries, "max-retries", DEFAULT_MAX_RETRIES, "Max number of retries.")
 	flag.IntVar(&c.InputFormat, "input-format", DEFAULT_INPUT_FORMAT, "0=raw (default), 1=rfc3164 (syslog(3))")
 	flag.IntVar(&c.NumBatchers, "num-batchers", 2, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", 4, "The number of outlets to run.")

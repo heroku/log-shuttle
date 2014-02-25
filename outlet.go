@@ -2,12 +2,18 @@ package main
 
 import (
 	"crypto/tls"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"time"
+)
+
+const (
+	RETRY_SLEEP = 100 // will be in ms
 )
 
 func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
@@ -60,38 +66,55 @@ func (h *HttpOutlet) Outlet() {
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
-		err := h.post(batch)
-		if err != nil {
-			ErrLogger.Printf("at=post request_id=%q error=%q\n", batch.UUID.String(), err)
-			h.lost.Add(batch.MsgCount)
+		drops, dropsSince := h.drops.ReadAndReset()
+		if drops > 0 {
+			batch.WriteDrops(drops, dropsSince)
 		}
+
+		lost, lostSince := h.lost.ReadAndReset()
+		if lost > 0 {
+			batch.WriteLost(lost, lostSince)
+		}
+
+		h.retryPost(batch)
 
 		h.batchReturn <- batch
 	}
 }
 
-func (h *HttpOutlet) post(b *Batch) error {
-	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
+// Retry io.EOF errors h.config.MaxRetries times
+func (h *HttpOutlet) retryPost(batch *Batch) {
+	for attempts := 0; attempts < h.config.MaxRetries; attempts++ {
+		err := h.post(batch)
+		if err != nil {
+			err, eok := err.(*url.Error)
+			if eok && err.Err == io.EOF {
+				time.Sleep(RETRY_SLEEP * time.Millisecond)
+				continue
+			} else {
+				ErrLogger.Printf("at=post request_id=%q error=%q\n", batch.UUID.String(), err)
+				h.lost.Add(batch.MsgCount)
+				return
+			}
+		} else {
+			return
+		}
+	}
+	return
+}
+
+func (h *HttpOutlet) post(batch *Batch) error {
+	req, err := http.NewRequest("POST", h.config.OutletURL(), batch)
 	if err != nil {
 		return err
 	}
 
-	drops, dropsSince := h.drops.ReadAndReset()
-	if drops > 0 {
-		b.WriteDrops(drops, dropsSince)
-	}
-
-	lost, lostSince := h.lost.ReadAndReset()
-	if lost > 0 {
-		b.WriteLost(lost, lostSince)
-	}
-
-	req.ContentLength = int64(b.Len())
+	req.ContentLength = int64(batch.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
-	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
-	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
-	req.Header.Add("X-Request-Id", b.UUID.String())
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(batch.MsgCount))
+	req.Header.Add("Logshuttle-Drops", strconv.Itoa(batch.Drops))
+	req.Header.Add("Logshuttle-Lost", strconv.Itoa(batch.Lost))
+	req.Header.Add("X-Request-Id", batch.UUID.String())
 
 	resp, err := h.timeRequest(req)
 	if err != nil {
@@ -102,14 +125,14 @@ func (h *HttpOutlet) post(b *Batch) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", b.UUID, status, err)
+			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", batch.UUID, status, err)
 		} else {
-			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", b.UUID, status, body)
+			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", batch.UUID, status, body)
 		}
 
 	default:
 		if h.config.Verbose {
-			ErrLogger.Printf("at=post request_id=%q status=%d\n", b.UUID, status)
+			ErrLogger.Printf("at=post request_id=%q status=%d\n", batch.UUID, status)
 		}
 	}
 

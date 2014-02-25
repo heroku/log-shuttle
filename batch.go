@@ -22,18 +22,19 @@ var (
 // A buffer suitable for posting with a http client
 // keeps track of line's Write()n to the buffer
 type Batch struct {
-	MsgCount int
-	config   *ShuttleConfig
-	oldest   *time.Time
-	newest   *time.Time
-	UUID     *uuid.UUID
+	MsgCount    int
+	config      *ShuttleConfig
+	oldest      *time.Time
+	newest      *time.Time
+	UUID        *uuid.UUID
+	Drops, Lost int
 	bytes.Buffer
 }
 
 // Create a new batch
 func NewBatch(config *ShuttleConfig) (batch *Batch) {
 	batch = &Batch{config: config}
-	batch.SetUUID()
+	batch.Reset()
 	return
 }
 
@@ -67,10 +68,12 @@ func (b *Batch) writeError(code, codeMsg string) {
 }
 
 func (b *Batch) WriteDrops(dropped int, since time.Time) {
+	b.Drops = dropped
 	b.writeError("L12", fmt.Sprintf("%d messages dropped since %s", dropped, since.UTC().Format(BATCH_TIME_FORMAT)))
 }
 
 func (b *Batch) WriteLost(lost int, since time.Time) {
+	b.Lost = lost
 	b.writeError("L13", fmt.Sprintf("%d messages lost since %s", lost, since.UTC().Format(BATCH_TIME_FORMAT)))
 }
 
@@ -160,6 +163,8 @@ func (b *Batch) Reset() {
 	b.MsgCount = 0
 	b.newest = nil
 	b.oldest = nil
+	b.Drops = 0
+	b.Lost = 0
 	b.SetUUID()
 	b.Buffer.Reset()
 }
