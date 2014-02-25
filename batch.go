@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/nu7hatch/gouuid"
 	"time"
 )
 
@@ -21,17 +22,32 @@ var (
 // A buffer suitable for posting with a http client
 // keeps track of line's Write()n to the buffer
 type Batch struct {
-	MsgCount int
-	config   *ShuttleConfig
-	oldest   *time.Time
-	newest   *time.Time
+	MsgCount    int
+	config      *ShuttleConfig
+	oldest      *time.Time
+	newest      *time.Time
+	UUID        *uuid.UUID
+	Drops, Lost int
 	bytes.Buffer
 }
 
+// Create a new batch
 func NewBatch(config *ShuttleConfig) (batch *Batch) {
-	return &Batch{config: config}
+	batch = &Batch{config: config}
+	batch.Reset()
+	return
 }
 
+// Generates a new UUID for the batch
+func (b *Batch) SetUUID() {
+	rid, err := uuid.NewV4()
+	if err != nil {
+		ErrLogger.Printf("at=generate_uuid err=%q\n", err)
+	}
+	b.UUID = rid
+}
+
+// Returns the time range of the messages in the batch in seconds
 func (b *Batch) MsgAgeRange() float64 {
 	if b.oldest == nil || b.newest == nil {
 		return 0.0
@@ -52,10 +68,12 @@ func (b *Batch) writeError(code, codeMsg string) {
 }
 
 func (b *Batch) WriteDrops(dropped int, since time.Time) {
+	b.Drops = dropped
 	b.writeError("L12", fmt.Sprintf("%d messages dropped since %s", dropped, since.UTC().Format(BATCH_TIME_FORMAT)))
 }
 
 func (b *Batch) WriteLost(lost int, since time.Time) {
+	b.Lost = lost
 	b.writeError("L13", fmt.Sprintf("%d messages lost since %s", lost, since.UTC().Format(BATCH_TIME_FORMAT)))
 }
 
@@ -145,6 +163,9 @@ func (b *Batch) Reset() {
 	b.MsgCount = 0
 	b.newest = nil
 	b.oldest = nil
+	b.Drops = 0
+	b.Lost = 0
+	b.SetUUID()
 	b.Buffer.Reset()
 }
 
