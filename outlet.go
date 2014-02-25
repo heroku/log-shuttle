@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/tls"
-	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -61,14 +60,9 @@ func (h *HttpOutlet) Outlet() {
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
-		rid, err := uuid.NewV4()
+		err := h.post(batch)
 		if err != nil {
-			ErrLogger.Printf("at=generate_uuid err=%q\n", err)
-		}
-
-		err = h.post(rid, batch)
-		if err != nil {
-			ErrLogger.Printf("at=post request_id=%q error=%q\n", rid, err)
+			ErrLogger.Printf("at=post request_id=%q error=%q\n", batch.UUID.String(), err)
 			h.lost.Add(batch.MsgCount)
 		}
 
@@ -76,7 +70,7 @@ func (h *HttpOutlet) Outlet() {
 	}
 }
 
-func (h *HttpOutlet) post(rid *uuid.UUID, b *Batch) error {
+func (h *HttpOutlet) post(b *Batch) error {
 	req, err := http.NewRequest("POST", h.config.OutletURL(), b)
 	if err != nil {
 		return err
@@ -97,7 +91,7 @@ func (h *HttpOutlet) post(rid *uuid.UUID, b *Batch) error {
 	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(b.MsgCount))
 	req.Header.Add("Logshuttle-Drops", strconv.Itoa(drops))
 	req.Header.Add("Logshuttle-Lost", strconv.Itoa(lost))
-	req.Header.Add("X-Request-Id", rid.String())
+	req.Header.Add("X-Request-Id", b.UUID.String())
 
 	resp, err := h.timeRequest(req)
 	if err != nil {
@@ -108,14 +102,14 @@ func (h *HttpOutlet) post(rid *uuid.UUID, b *Batch) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", rid, status, err)
+			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", b.UUID, status, err)
 		} else {
-			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", rid, status, body)
+			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", b.UUID, status, body)
 		}
 
 	default:
 		if h.config.Verbose {
-			ErrLogger.Printf("at=post request_id=%q status=%d\n", rid, status)
+			ErrLogger.Printf("at=post request_id=%q status=%d\n", b.UUID, status)
 		}
 	}
 

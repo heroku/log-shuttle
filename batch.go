@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/nu7hatch/gouuid"
 	"time"
 )
 
@@ -25,13 +26,27 @@ type Batch struct {
 	config   *ShuttleConfig
 	oldest   *time.Time
 	newest   *time.Time
+	UUID     *uuid.UUID
 	bytes.Buffer
 }
 
+// Create a new batch
 func NewBatch(config *ShuttleConfig) (batch *Batch) {
-	return &Batch{config: config}
+	batch = &Batch{config: config}
+	batch.SetUUID()
+	return
 }
 
+// Generates a new UUID for the batch
+func (b *Batch) SetUUID() {
+	rid, err := uuid.NewV4()
+	if err != nil {
+		ErrLogger.Printf("at=generate_uuid err=%q\n", err)
+	}
+	b.UUID = rid
+}
+
+// Returns the time range of the messages in the batch in seconds
 func (b *Batch) MsgAgeRange() float64 {
 	if b.oldest == nil || b.newest == nil {
 		return 0.0
@@ -145,6 +160,7 @@ func (b *Batch) Reset() {
 	b.MsgCount = 0
 	b.newest = nil
 	b.oldest = nil
+	b.SetUUID()
 	b.Buffer.Reset()
 }
 
