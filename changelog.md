@@ -1,3 +1,8 @@
+### 0.7.0 2014-02-25 Edward Muller (edward@heroku.com)
+
+* retry EOF errors -max-attempts times (defaults to 3), with a 100ms sleep in between
+* Log # of attempts at end
+
 ### 0.6.1 2014-02-20 Edward Muller (edward@heroku.com)
 
 * Add Request Id to Logs
