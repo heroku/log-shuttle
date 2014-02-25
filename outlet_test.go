@@ -66,7 +66,7 @@ func TestOutletEOFRetry(t *testing.T) {
 }
 
 func TestOutletEOFRetryMax(t *testing.T) {
-	th := &testEOFHelper{maxCloses: config.MaxRetries}
+	th := &testEOFHelper{maxCloses: config.MaxAttempts}
 	ts := httptest.NewTLSServer(th)
 	defer ts.Close()
 	config.LogsURL = ts.URL
@@ -88,8 +88,8 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	batch.Write(LogLine{[]byte("Hello"), time.Now()})
 
 	outlet.retryPost(batch)
-	if th.called != config.MaxRetries {
-		t.Errorf("th.called != %q, == %q\n", config.MaxRetries, th.called)
+	if th.called != config.MaxAttempts {
+		t.Errorf("th.called != %q, == %q\n", config.MaxAttempts, th.called)
 	}
 
 	if lost.Read() != 1 {
