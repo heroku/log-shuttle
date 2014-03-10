@@ -1,3 +1,8 @@
+### 0.7.1 2014-03-10 Edward Muller (edward@heroku.com)
+
+* Wrap the batch in a Reader so that we can properly retry delivery.
+  Before this we weren't actually delivering retries. :-(
+
 ### 0.7.0 2014-02-25 Edward Muller (edward@heroku.com)
 
 * retry EOF errors -max-attempts times (defaults to 3), with a 100ms sleep in between
