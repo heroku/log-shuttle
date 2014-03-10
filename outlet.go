@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"io"
 	"io/ioutil"
@@ -104,7 +105,7 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 }
 
 func (h *HttpOutlet) post(batch *Batch) error {
-	req, err := http.NewRequest("POST", h.config.OutletURL(), batch)
+	req, err := http.NewRequest("POST", h.config.OutletURL(), bytes.NewReader(batch.Bytes()))
 	if err != nil {
 		return err
 	}
