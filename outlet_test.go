@@ -35,6 +35,7 @@ func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestOutletEOFRetry(t *testing.T) {
+	logLineText := "Hello"
 	th := &testEOFHelper{maxCloses: 1}
 	ts := httptest.NewTLSServer(th)
 	defer ts.Close()
@@ -52,7 +53,7 @@ func TestOutletEOFRetry(t *testing.T) {
 
 	batch := NewBatch(&config)
 
-	batch.Write(LogLine{[]byte("Hello"), time.Now()})
+	batch.Write(LogLine{[]byte(logLineText), time.Now()})
 
 	outlet.retryPost(batch)
 	if th.called != 2 {
@@ -61,6 +62,11 @@ func TestOutletEOFRetry(t *testing.T) {
 
 	if batch.Lost != 0 {
 		t.Errorf("batch.lost != 0, == %q\n", batch.Lost)
+	}
+
+	pat := regexp.MustCompile(logLineText)
+	if !pat.Match(th.Actual) {
+		t.Fatalf("actual=%s, expected=%s\n", string(th.Actual), logLineText)
 	}
 
 }
