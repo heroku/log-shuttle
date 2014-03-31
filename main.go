@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	Logger    = log.New(os.Stdout, "log-shuttle: ", log.LstdFlags)
 	ErrLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
 )
 
@@ -47,9 +48,13 @@ func main() {
 	config.ParseFlags()
 
 	if config.LogToSyslog {
-		ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
+		Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
 		if err != nil {
 			log.Fatalf("Unable to setup syslog logger: %s\n", err)
+		}
+		ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
+		if err != nil {
+			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
 		}
 	}
 
