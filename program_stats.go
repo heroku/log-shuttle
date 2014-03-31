@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/bmizerany/perks/quantile"
-	"log"
 	"net"
 	"os"
 	"sort"
@@ -54,7 +53,7 @@ func NewProgramStats(on string, lost, drops *Counter, input <-chan NamedValue) *
 			network = netDeets[0]
 			address = netDeets[1]
 		default:
-			log.Fatalf("Invalid -stats-addr (%s). Must be of form <net>,<addr> (e.g. unix,/tmp/ff)\n", on)
+			ErrLogger.Fatalf("Invalid -stats-addr (%s). Must be of form <net>,<addr> (e.g. unix,/tmp/ff)\n", on)
 		}
 	}
 
@@ -92,13 +91,13 @@ func (stats *ProgramStats) Run() {
 		if unixSocket {
 			err := cleanUpSocket(stats.address)
 			if err != nil {
-				log.Fatalf("Unable to remove old stats socket (%s): %s\n", stats.address, err)
+				ErrLogger.Fatalf("Unable to remove old stats socket (%s): %s\n", stats.address, err)
 			}
 		}
 
 		listener, err := net.Listen(stats.network, stats.address)
 		if err != nil {
-			log.Fatalf("Unable to listen on %s,%s: %s\n", stats.network, stats.address, err)
+			ErrLogger.Fatalf("Unable to listen on %s,%s: %s\n", stats.network, stats.address, err)
 		}
 
 		go stats.accept(listener)
@@ -128,7 +127,7 @@ func (stats *ProgramStats) cleanup(listener net.Listener) {
 		if Exists(stats.address) {
 			err := os.Remove(stats.address)
 			if err != nil {
-				log.Printf("Unable to remove socket (%s): %s\n", stats.address, err)
+				ErrLogger.Printf("Unable to remove socket (%s): %s\n", stats.address, err)
 			}
 		}
 	}
@@ -154,7 +153,7 @@ func (stats *ProgramStats) accept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Error accepting connection: %s\n", err)
+			ErrLogger.Printf("Error accepting connection: %s\n", err)
 			break
 		}
 		go stats.handleConnection(conn)
@@ -189,7 +188,7 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	for i := range output {
 		_, err := conn.Write([]byte(output[i]))
 		if err != nil {
-			log.Printf("Error writting stats out: %s\n", err)
+			ErrLogger.Printf("Error writting stats out: %s\n", err)
 		}
 	}
 }
