@@ -17,22 +17,17 @@ const (
 	VERSION = "0.7.1"
 )
 
-func MakeBasicBits(config ShuttleConfig) (reader *Reader, stats chan NamedValue, drops, lost *Counter, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
+func MakeBasicBits(config ShuttleConfig) (reader *Reader, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
 	deliverableBatches = make(chan *Batch, config.NumOutlets*config.NumBatchers)
 	logs = make(chan LogLine, config.FrontBuff)
-	stats = make(chan NamedValue, config.StatsBuff)
-	drops = NewCounter(0)
-	lost = NewCounter(0)
-	reader = NewReader(logs, stats)
-	programStats = NewProgramStats(config.StatsAddr, config.StatsInterval, lost, drops, stats)
+	programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
+	reader = NewReader(logs, programStats.Input)
 	programStats.Listen()
-	if config.StatsInterval > 0 {
-		go StatsEmitter{ps: programStats, interval: config.StatsInterval, source: config.StatsSource}.Run()
-	}
-	getBatches, returnBatches := NewBatchManager(config, stats)
+	go EmitStats(programStats, config.StatsInterval, config.StatsSource)
+	getBatches, returnBatches := NewBatchManager(config, programStats.Input)
 	// Start outlets, then batches, then readers (reverse of Shutdown)
-	oWaiter = StartOutlets(config, drops, lost, stats, deliverableBatches, returnBatches)
-	bWaiter = StartBatchers(config, drops, stats, logs, getBatches, deliverableBatches)
+	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches, returnBatches)
+	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, logs, getBatches, deliverableBatches)
 	return
 }
 
@@ -70,10 +65,10 @@ func main() {
 		ErrLogger.Fatalln("No stdin detected.")
 	}
 
-	reader, stats, _, _, logs, deliverableBatches, _, batchWaiter, outletWaiter := MakeBasicBits(config)
+	reader, logs, deliverableBatches, programStats, batchWaiter, outletWaiter := MakeBasicBits(config)
 
 	reader.Read(os.Stdin)
 
 	// Shutdown everything else.
-	Shutdown(logs, stats, deliverableBatches, batchWaiter, outletWaiter)
+	Shutdown(logs, programStats.Input, deliverableBatches, batchWaiter, outletWaiter)
 }

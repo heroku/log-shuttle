@@ -33,20 +33,18 @@ func NewNamedValue(name string, value float64) NamedValue {
 	return NamedValue{name: name, value: value}
 }
 
-type StatsEmitter struct {
-	ps       *ProgramStats
-	interval time.Duration
-	source   string
+type Snapshotter interface {
+	Snapshot(bool) map[string]interface{}
 }
 
 // Emits Values via the standard logger at a given interval
-func (se StatsEmitter) Run() {
-	if se.interval > 0 {
-		ticker := time.Tick(se.interval)
+func EmitStats(snapper Snapshotter, interval time.Duration, source string) {
+	if interval > 0 {
+		ticker := time.Tick(interval)
 		for _ = range ticker {
-			snapshot := se.ps.Snapshot(true)
-			if se.source != "" {
-				snapshot["source"] = se.source
+			snapshot := snapper.Snapshot(true)
+			if source != "" {
+				snapshot["source"] = source
 			}
 			Logger.Println(slog.Context(snapshot))
 		}
@@ -54,9 +52,9 @@ func (se StatsEmitter) Run() {
 }
 
 type ProgramStats struct {
-	lost, drops      *Counter
+	Lost, Drops      *Counter
 	stats            map[string]*quantile.Stream
-	input            <-chan NamedValue
+	Input            chan NamedValue
 	lastPoll         time.Time
 	exposeStats      bool
 	network, address string
@@ -66,7 +64,7 @@ type ProgramStats struct {
 // Returns a new ProgramStats instance aggregating stats from the input channel
 // You will need to Listen() seperately if you need / want to export stats
 // polling
-func NewProgramStats(listen string, interval time.Duration, lost, drops *Counter, input <-chan NamedValue) *ProgramStats {
+func NewProgramStats(listen string, buffer int) *ProgramStats {
 	var network, address string
 	if len(listen) == 0 {
 		network = ""
@@ -83,9 +81,9 @@ func NewProgramStats(listen string, interval time.Duration, lost, drops *Counter
 	}
 
 	ps := ProgramStats{
-		input:       input,
-		lost:        lost,
-		drops:       drops,
+		Input:       make(chan NamedValue, buffer),
+		Lost:        NewCounter(0),
+		Drops:       NewCounter(0),
 		lastPoll:    time.Now(),
 		network:     network,
 		address:     address,
@@ -141,7 +139,7 @@ func (stats *ProgramStats) cleanup(listener net.Listener) {
 
 // Aggregate the values by name as them come in via the input channel
 func (stats *ProgramStats) aggregateValues() {
-	for namedValue := range stats.input {
+	for namedValue := range stats.Input {
 		stats.Mutex.Lock()
 
 		sample, ok := stats.stats[namedValue.name]
@@ -190,12 +188,12 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 }
 
 // Produces a point in time snapshot of the quantiles/other stats
-// If reset is true, then will call Reset() on each of the quantiles
+// If reset is true, then call Reset() on each of the quantiles
 func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
 	snapshot := make(map[string]interface{})
 	// We don't need locks for these values
-	snapshot["log-shuttle.alltime.drops.count"] = stats.drops.AllTime()
-	snapshot["log-shuttle.alltime.lost.count"] = stats.lost.AllTime()
+	snapshot["log-shuttle.alltime.drops.count"] = stats.Drops.AllTime()
+	snapshot["log-shuttle.alltime.lost.count"] = stats.Lost.AllTime()
 
 	stats.Mutex.Lock()
 	defer stats.Mutex.Unlock()
