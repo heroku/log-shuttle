@@ -1,3 +1,9 @@
+### 0.8.0 2014-04-01 Edward Muller (edward@heroku.com)
+
+* Log stats to syslog.info when configured with a delay
+* Don't reset stats when they are polled via the socket
+* Some refactorings
+
 ### 0.7.1 2014-03-10 Edward Muller (edward@heroku.com)
 
 * Wrap the batch in a Reader so that we can properly retry delivery.
