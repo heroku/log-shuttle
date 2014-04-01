@@ -25,7 +25,7 @@ type Batcher struct {
 	outBatches chan<- *Batch     // Where I send completed batches to
 	stats      chan<- NamedValue // Where to send measurements
 	drops      *Counter          // The drops counter
-	config     ShuttleConfig
+	timeout    time.Duration     // How long once we have a log line before we need to flush the batch
 }
 
 func NewBatcher(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *Batcher {
@@ -35,7 +35,7 @@ func NewBatcher(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, i
 		drops:      drops,
 		stats:      stats,
 		outBatches: outBatches,
-		config:     config,
+		timeout:    config.WaitDuration,
 	}
 }
 
@@ -69,34 +69,30 @@ func (batcher *Batcher) Batch() {
 // fillBatch coalesces individual log lines into batches. Delivery of the
 // batch happens on timeout after at least one message is received
 // or when the batch is full.
-func (batcher *Batcher) fillBatch(batch *Batch) bool {
-	// Fill the batch with log lines
-	var line LogLine
-
-	open := true      // Channel open flag
-	noTimeout := true // Flag to start timeout
-
-	timeout := time.NewTimer(batcher.config.WaitDuration)
-	timeout.Stop()       // don't timeout until we actually have a log line
-	defer timeout.Stop() // ensure timer is stopped when done
-	defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill.time", time.Since(t).Seconds()) }(time.Now())
+func (batcher *Batcher) fillBatch(batch *Batch) (chanOpen bool) {
+	timeout := new(time.Timer) // Gives us a nil channel and no timeout to start with
+	chanOpen = true            // Assume the channel is open
 
 	for {
 		select {
 		case <-timeout.C:
-			return !open
+			return !chanOpen
 
-		case line, open = <-batcher.inLogs:
-			if !open {
-				return !open
+		case line, chanOpen := <-batcher.inLogs:
+			if !chanOpen {
+				return !chanOpen
 			}
-			if noTimeout {
-				noTimeout = false
-				timeout.Reset(batcher.config.WaitDuration)
+			// We have a line now, so set a timeout
+			if timeout.C == nil {
+				defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill.time", time.Since(t).Seconds()) }(time.Now())
+				timeout = time.NewTimer(batcher.timeout)
+				defer timeout.Stop() // ensure timer is stopped when done
 			}
+
 			batch.Write(line)
+
 			if batch.Full() {
-				return !open
+				return !chanOpen
 			}
 		}
 	}
