@@ -45,6 +45,15 @@ func main() {
 
 	config.ParseFlags()
 
+	if config.PrintVersion {
+		fmt.Println(VERSION)
+		os.Exit(0)
+	}
+
+	if !config.UseStdin() {
+		ErrLogger.Fatalln("No stdin detected.")
+	}
+
 	if config.LogToSyslog {
 		Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
 		if err != nil {
@@ -54,15 +63,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
 		}
-	}
-
-	if config.PrintVersion {
-		fmt.Println(VERSION)
-		os.Exit(0)
-	}
-
-	if !config.UseStdin() {
-		ErrLogger.Fatalln("No stdin detected.")
 	}
 
 	reader, logs, deliverableBatches, programStats, batchWaiter, outletWaiter := MakeBasicBits(config)
