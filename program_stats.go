@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/bmizerany/perks/quantile"
+	"github.com/heroku/slog"
 	"net"
 	"os"
 	"sort"
@@ -24,12 +25,32 @@ func cleanUpSocket(path string) error {
 }
 
 type NamedValue struct {
-	value float64
 	name  string
+	value float64
 }
 
 func NewNamedValue(name string, value float64) NamedValue {
 	return NamedValue{name: name, value: value}
+}
+
+type StatsEmitter struct {
+	ps       *ProgramStats
+	interval time.Duration
+	source   string
+}
+
+// Emits Values via the standard logger at a given interval
+func (se StatsEmitter) Run() {
+	if se.interval > 0 {
+		ticker := time.Tick(se.interval)
+		for _ = range ticker {
+			snapshot := se.ps.Snapshot(true)
+			if se.source != "" {
+				snapshot["source"] = se.source
+			}
+			Logger.Println(slog.Context(snapshot))
+		}
+	}
 }
 
 type ProgramStats struct {
@@ -45,7 +66,7 @@ type ProgramStats struct {
 // Returns a new ProgramStats instance aggregating stats from the input channel
 // You will need to Listen() seperately if you need / want to export stats
 // polling
-func NewProgramStats(listen string, lost, drops *Counter, input <-chan NamedValue) *ProgramStats {
+func NewProgramStats(listen string, interval time.Duration, lost, drops *Counter, input <-chan NamedValue) *ProgramStats {
 	var network, address string
 	if len(listen) == 0 {
 		network = ""
@@ -73,7 +94,6 @@ func NewProgramStats(listen string, lost, drops *Counter, input <-chan NamedValu
 	}
 
 	go ps.aggregateValues()
-
 	return &ps
 }
 
@@ -184,9 +204,9 @@ func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
 	for name, stream := range stats.stats {
 		base := "log-shuttle." + name + "."
 		snapshot[base+"count"] = stream.Count()
-		snapshot[base+"p50.seconds"] = stream.Query(0.50)
-		snapshot[base+"p95.seconds"] = stream.Query(0.95)
-		snapshot[base+"p99.seconds"] = stream.Query(0.99)
+		snapshot[base+"p50.seconds"] = time.Duration(stream.Query(0.50) * float64(time.Second))
+		snapshot[base+"p95.seconds"] = time.Duration(stream.Query(0.95) * float64(time.Second))
+		snapshot[base+"p99.seconds"] = time.Duration(stream.Query(0.99) * float64(time.Second))
 		if reset {
 			stream.Reset()
 		}

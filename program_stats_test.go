@@ -2,13 +2,14 @@ package main
 
 import (
 	"testing"
+	"time"
 )
 
-func TestProgramStats_Snapshot(t *testing.T) {
+func TestProgramStatsSnapshot(t *testing.T) {
 	statsChannel := make(chan NamedValue)
 	lost := new(Counter)
 	drops := new(Counter)
-	ps := NewProgramStats("tcp,:9000", lost, drops, statsChannel)
+	ps := NewProgramStats("tcp,:9000", 0, lost, drops, statsChannel)
 
 	statsChannel <- NewNamedValue("test", 1.0)
 	snapshot := ps.Snapshot(false)
@@ -27,7 +28,7 @@ func TestProgramStats_Snapshot(t *testing.T) {
 		t.Error("Unable to find log-shuttle.test.p50.seconds in snapshot")
 	}
 
-	if v.(float64) != 1.0 {
+	if v.(time.Duration) != time.Second {
 		t.Errorf("Value of count (%d) is incorrect, expecting 1.0\n", v)
 	}
 	close(statsChannel)

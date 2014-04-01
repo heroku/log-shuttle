@@ -7,6 +7,10 @@
 			"Rev": "da72989a59aaaecda7110926d3a6198ee4421c1f"
 		},
 		{
+			"ImportPath": "github.com/heroku/slog",
+			"Rev": "9c7b57aeb70766e14038f7fd7784ee70fbd399bc"
+		},
+		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
 			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 		},

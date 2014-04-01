@@ -17,38 +17,42 @@ const (
 )
 
 const (
-	DEFAULT_INPUT_FORMAT  = INPUT_FORMAT_RAW
-	DEFAULT_FRONT_BUFF    = 1000
-	DEFAULT_STATS_BUFF    = 5000
-	DEFAULT_STATS_ADDR    = ""
-	DEFAULT_TIMEOUT       = 5 * time.Second
-	DEFAULT_WAIT_DURATION = 250 * time.Millisecond
-	DEFAULT_MAX_ATTEMPTS  = 3
+	DEFAULT_INPUT_FORMAT   = INPUT_FORMAT_RAW
+	DEFAULT_FRONT_BUFF     = 1000
+	DEFAULT_STATS_BUFF     = 5000
+	DEFAULT_STATS_ADDR     = ""
+	DEFAULT_TIMEOUT        = 5 * time.Second
+	DEFAULT_WAIT_DURATION  = 250 * time.Millisecond
+	DEFAULT_MAX_ATTEMPTS   = 3
+	DEFAULT_STATS_INTERVAL = 0 * time.Second
+	DEFAULT_STATS_SOURCE   = ""
 )
 
 type ShuttleConfig struct {
-	FrontBuff    int
-	StatsBuff    int
-	BatchSize    int
-	NumBatchers  int
-	NumOutlets   int
-	InputFormat  int
-	MaxAttempts  int
-	LogsURL      string
-	Prival       string
-	Version      string
-	Procid       string
-	Hostname     string
-	Appname      string
-	Msgid        string
-	StatsAddr    string
-	SkipHeaders  bool
-	SkipVerify   bool
-	PrintVersion bool
-	Verbose      bool
-	LogToSyslog  bool
-	WaitDuration time.Duration
-	Timeout      time.Duration
+	FrontBuff     int
+	StatsBuff     int
+	BatchSize     int
+	NumBatchers   int
+	NumOutlets    int
+	InputFormat   int
+	MaxAttempts   int
+	LogsURL       string
+	Prival        string
+	Version       string
+	Procid        string
+	Hostname      string
+	Appname       string
+	Msgid         string
+	StatsAddr     string
+	StatsSource   string
+	SkipHeaders   bool
+	SkipVerify    bool
+	PrintVersion  bool
+	Verbose       bool
+	LogToSyslog   bool
+	WaitDuration  time.Duration
+	Timeout       time.Duration
+	StatsInterval time.Duration
 }
 
 func (c *ShuttleConfig) ParseFlags() {
@@ -65,6 +69,8 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
 	flag.StringVar(&c.StatsAddr, "stats-addr", DEFAULT_STATS_ADDR, "Where to expose stats.")
+	flag.StringVar(&c.StatsSource, "stats-source", DEFAULT_STATS_SOURCE, "When emitting stats, add source=<stats-source> to the stats.")
+	flag.DurationVar(&c.StatsInterval, "stats-interval", time.Duration(DEFAULT_STATS_INTERVAL), "How often to emit/reset stats.")
 	flag.IntVar(&c.MaxAttempts, "max-attempts", DEFAULT_MAX_ATTEMPTS, "Max number of retries.")
 	flag.IntVar(&c.InputFormat, "input-format", DEFAULT_INPUT_FORMAT, "0=raw (default), 1=rfc3164 (syslog(3))")
 	flag.IntVar(&c.NumBatchers, "num-batchers", 2, "The number of batchers to run.")
