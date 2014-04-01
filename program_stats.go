@@ -37,55 +37,49 @@ type ProgramStats struct {
 	stats            map[string]*quantile.Stream
 	input            <-chan NamedValue
 	lastPoll         time.Time
+	exposeStats      bool
 	network, address string
 	sync.Mutex
 }
 
-func NewProgramStats(on string, lost, drops *Counter, input <-chan NamedValue) *ProgramStats {
+// Returns a new ProgramStats instance aggregating stats from the input channel
+// You will need to Listen() seperately if you need / want to export stats
+// polling
+func NewProgramStats(listen string, lost, drops *Counter, input <-chan NamedValue) *ProgramStats {
 	var network, address string
-	if len(on) == 0 {
+	if len(listen) == 0 {
 		network = ""
 		address = ""
 	} else {
-		netDeets := strings.Split(on, ",")
+		netDeets := strings.Split(listen, ",")
 		switch len(netDeets) {
 		case 2:
 			network = netDeets[0]
 			address = netDeets[1]
 		default:
-			ErrLogger.Fatalf("Invalid -stats-addr (%s). Must be of form <net>,<addr> (e.g. unix,/tmp/ff)\n", on)
+			ErrLogger.Fatalf("Invalid -stats-addr (%s). Must be of form <net>,<addr> (e.g. unix,/tmp/ff or tcp,:8080)\n", listen)
 		}
 	}
 
-	return &ProgramStats{
-		input:    input,
-		lost:     lost,
-		lastPoll: time.Now(),
-		drops:    drops,
-		network:  network,
-		address:  address,
-		stats:    make(map[string]*quantile.Stream),
-	}
-}
-
-func updateSampleInMap(m map[string]*quantile.Stream, name string, value float64) {
-	var sample *quantile.Stream
-
-	sample, ok := m[name]
-	if !ok {
-		sample = quantile.NewTargeted(0.50, 0.95, 0.99)
+	ps := ProgramStats{
+		input:       input,
+		lost:        lost,
+		drops:       drops,
+		lastPoll:    time.Now(),
+		network:     network,
+		address:     address,
+		exposeStats: network != "",
+		stats:       make(map[string]*quantile.Stream),
 	}
 
-	sample.Insert(value)
-	m[name] = sample
+	go ps.aggregateValues()
+
+	return &ps
 }
 
-func (stats *ProgramStats) Run() {
-	var listener net.Listener
-
-	exposeStats := stats.network != ""
-
-	if exposeStats {
+// Listen for stats requests if we should
+func (stats *ProgramStats) Listen() {
+	if stats.exposeStats {
 		unixSocket := stats.network == "unix"
 
 		if unixSocket {
@@ -100,24 +94,16 @@ func (stats *ProgramStats) Run() {
 			ErrLogger.Fatalf("Unable to listen on %s,%s: %s\n", stats.network, stats.address, err)
 		}
 
-		go stats.accept(listener)
-	}
-
-	go stats.handleValues(exposeStats, listener)
-}
-
-// Handle incoming values based on wether we are exposing them or not
-func (stats *ProgramStats) handleValues(exposeStats bool, listener net.Listener) {
-	if exposeStats {
-		stats.aggregateValues()
-		stats.cleanup(listener)
-	} else {
-		stats.consumeValues()
+		go func() {
+			stats.accept(listener)
+			stats.cleanup(listener)
+		}()
 	}
 }
 
 // Cleanup after ourselves
-// TODO(edwardam): Chances are that we won't get here because we'll exit before this
+// TODO(edwardam): Chances are that we won't get here because we'll exit before
+// this
 func (stats *ProgramStats) cleanup(listener net.Listener) {
 	if listener != nil {
 		listener.Close()
@@ -133,17 +119,19 @@ func (stats *ProgramStats) cleanup(listener net.Listener) {
 	}
 }
 
-// Basically /dev/null the values
-func (stats *ProgramStats) consumeValues() {
-	for _ = range stats.input {
-	}
-}
-
-// Aggregate the values by name
+// Aggregate the values by name as them come in via the input channel
 func (stats *ProgramStats) aggregateValues() {
 	for namedValue := range stats.input {
 		stats.Mutex.Lock()
-		updateSampleInMap(stats.stats, namedValue.name, namedValue.value)
+
+		sample, ok := stats.stats[namedValue.name]
+		// Zero value not good enough, so initialize
+		if !ok {
+			sample = quantile.NewTargeted(0.50, 0.95, 0.99)
+		}
+
+		sample.Insert(namedValue.value)
+		stats.stats[namedValue.name] = sample
 		stats.Mutex.Unlock()
 	}
 }
@@ -164,24 +152,12 @@ func (stats *ProgramStats) accept(listener net.Listener) {
 func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	output := make([]string, 0, len(stats.stats)+2)
-	output = append(output, fmt.Sprintf("log-shuttle.alltime.drops: %d\n", stats.drops.AllTime()))
-	output = append(output, fmt.Sprintf("log-shuttle.alltime.lost: %d\n", stats.lost.AllTime()))
+	snapshot := stats.Snapshot(false)
+	output := make([]string, 0, len(snapshot))
 
-	stats.Mutex.Lock()
-	now := time.Now()
-	output = append(output, fmt.Sprintf("log-shuttle.last.stats.connection: %d\n", stats.lastPoll.Unix()))
-	output = append(output, fmt.Sprintf("log-shuttle.last.stats.connection.since: %f\n", now.Sub(stats.lastPoll).Seconds()))
-	stats.lastPoll = now
-
-	for name, stream := range stats.stats {
-		output = append(output, fmt.Sprintf("log-shuttle.%s.count: %d\n", name, stream.Count()))
-		output = append(output, fmt.Sprintf("log-shuttle.%s.p50: %f\n", name, stream.Query(0.50)))
-		output = append(output, fmt.Sprintf("log-shuttle.%s.p95: %f\n", name, stream.Query(0.95)))
-		output = append(output, fmt.Sprintf("log-shuttle.%s.p99: %f\n", name, stream.Query(0.99)))
-		stream.Reset()
+	for key, value := range snapshot {
+		output = append(output, fmt.Sprintf("%s: %v\n", key, value))
 	}
-	stats.Mutex.Unlock()
 
 	sort.Strings(output)
 
@@ -191,4 +167,30 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 			ErrLogger.Printf("Error writting stats out: %s\n", err)
 		}
 	}
+}
+
+// Produces a point in time snapshot of the quantiles/other stats
+// If reset is true, then will call Reset() on each of the quantiles
+func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
+	snapshot := make(map[string]interface{})
+	// We don't need locks for these values
+	snapshot["log-shuttle.alltime.drops.count"] = stats.drops.AllTime()
+	snapshot["log-shuttle.alltime.lost.count"] = stats.lost.AllTime()
+
+	stats.Mutex.Lock()
+	defer stats.Mutex.Unlock()
+	snapshot["log-shuttle.last.stats.connection.since.seconds"] = time.Now().Sub(stats.lastPoll).Seconds()
+
+	for name, stream := range stats.stats {
+		base := "log-shuttle." + name + "."
+		snapshot[base+"count"] = stream.Count()
+		snapshot[base+"p50.seconds"] = stream.Query(0.50)
+		snapshot[base+"p95.seconds"] = stream.Query(0.95)
+		snapshot[base+"p99.seconds"] = stream.Query(0.99)
+		if reset {
+			stream.Reset()
+		}
+	}
+
+	return snapshot
 }
