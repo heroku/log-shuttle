@@ -1,3 +1,7 @@
+### 0.8.1 2014-04-01 Edward Muller (edward@heroku.com)
+
+* Reduce the amount of log-shuttle's in the stats output
+
 ### 0.8.0 2014-04-01 Edward Muller (edward@heroku.com)
 
 * Log stats to syslog.info when configured with a delay
