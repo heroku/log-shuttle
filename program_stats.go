@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/bmizerany/perks/quantile"
-	"github.com/heroku/slog"
 	"net"
 	"os"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/bmizerany/perks/quantile"
+	"github.com/heroku/slog"
 )
 
 func Exists(path string) bool {
@@ -44,7 +45,7 @@ func EmitStats(snapper Snapshotter, interval time.Duration, source string) {
 		for _ = range ticker {
 			snapshot := snapper.Snapshot(true)
 			if source != "" {
-				snapshot["source"] = source
+				snapshot["log_shuttle_stats_source"] = source
 			}
 			Logger.Println(slog.Context(snapshot))
 		}
@@ -192,15 +193,15 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
 	snapshot := make(map[string]interface{})
 	// We don't need locks for these values
-	snapshot["log-shuttle.alltime.drops.count"] = stats.Drops.AllTime()
-	snapshot["log-shuttle.alltime.lost.count"] = stats.Lost.AllTime()
+	snapshot["alltime.drops.count"] = stats.Drops.AllTime()
+	snapshot["alltime.lost.count"] = stats.Lost.AllTime()
 
 	stats.Mutex.Lock()
 	defer stats.Mutex.Unlock()
-	snapshot["log-shuttle.last.stats.connection.since.seconds"] = time.Now().Sub(stats.lastPoll).Seconds()
+	snapshot["last.stats.connection.since.seconds"] = time.Now().Sub(stats.lastPoll).Seconds()
 
 	for name, stream := range stats.stats {
-		base := "log-shuttle." + name + "."
+		base := name + "."
 		snapshot[base+"count"] = stream.Count()
 		snapshot[base+"p50.seconds"] = time.Duration(stream.Query(0.50) * float64(time.Second))
 		snapshot[base+"p95.seconds"] = time.Duration(stream.Query(0.95) * float64(time.Second))

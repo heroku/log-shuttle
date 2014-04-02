@@ -12,7 +12,7 @@ func TestProgramStatsSnapshot(t *testing.T) {
 	snapshot := ps.Snapshot(false)
 
 	//Test some of the values, but not all
-	v, ok := snapshot["log-shuttle.alltime.drops.count"]
+	v, ok := snapshot["alltime.drops.count"]
 	if !ok {
 		t.Fatal("Unable to find log-shuttle.alltime.drops.count")
 	}
@@ -20,7 +20,7 @@ func TestProgramStatsSnapshot(t *testing.T) {
 		t.Errorf("alltime.drops.count expected to be 0, got: %d\n", v)
 	}
 
-	v, ok = snapshot["log-shuttle.test.p50.seconds"]
+	v, ok = snapshot["test.p50.seconds"]
 	if !ok {
 		t.Fatal("Unable to find log-shuttle.test.p50.seconds in snapshot")
 	}
