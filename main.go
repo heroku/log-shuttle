@@ -17,17 +17,16 @@ const (
 	VERSION = "0.8.1"
 )
 
-func MakeBasicBits(config ShuttleConfig) (reader *Reader, logs chan LogLine, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
+func MakeBasicBits(config ShuttleConfig) (reader *Reader, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
 	deliverableBatches = make(chan *Batch, config.NumOutlets*config.NumBatchers)
-	logs = make(chan LogLine, config.FrontBuff)
 	programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
-	reader = NewReader(logs, programStats.Input)
+	reader = NewReader(config.FrontBuff, programStats.Input)
 	programStats.Listen()
 	go EmitStats(programStats, config.StatsInterval, config.StatsSource)
 	getBatches, returnBatches := NewBatchManager(config, programStats.Input)
 	// Start outlets, then batches, then readers (reverse of Shutdown)
 	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches, returnBatches)
-	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, logs, getBatches, deliverableBatches)
+	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, reader.Outbox, getBatches, deliverableBatches)
 	return
 }
 
@@ -65,10 +64,10 @@ func main() {
 		}
 	}
 
-	reader, logs, deliverableBatches, programStats, batchWaiter, outletWaiter := MakeBasicBits(config)
+	reader, deliverableBatches, programStats, batchWaiter, outletWaiter := MakeBasicBits(config)
 
 	reader.Read(os.Stdin)
 
 	// Shutdown everything else.
-	Shutdown(logs, programStats.Input, deliverableBatches, batchWaiter, outletWaiter)
+	Shutdown(reader.Outbox, programStats.Input, deliverableBatches, batchWaiter, outletWaiter)
 }

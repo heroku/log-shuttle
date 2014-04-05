@@ -68,16 +68,15 @@ func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		logs := make(chan LogLine, frontBuffSize)
 		stats := make(chan NamedValue, config.StatsBuff)
-		rdr := NewReader(logs, stats)
+		rdr := NewReader(frontBuffSize, stats)
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Consume(logs, stats)
+		testConsumer.Consume(rdr.Outbox, stats)
 		llp := NewInputProducer(TEST_PRODUCER_LINES)
 		b.StartTimer()
 		rdr.Read(llp)
 		b.SetBytes(int64(*llp.TotalBytes))
-		close(logs)
+		close(rdr.Outbox)
 		close(stats)
 		testConsumer.Wait()
 	}

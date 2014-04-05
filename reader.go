@@ -12,12 +12,15 @@ type LogLine struct {
 }
 
 type Reader struct {
-	outbox chan<- LogLine
+	Outbox chan LogLine
 	stats  chan<- NamedValue
 }
 
-func NewReader(out chan<- LogLine, stats chan<- NamedValue) *Reader {
-	return &Reader{outbox: out, stats: stats}
+func NewReader(frontBuff int, stats chan<- NamedValue) *Reader {
+	return &Reader{
+		Outbox: make(chan LogLine, frontBuff),
+		stats:  stats,
+	}
 }
 
 func (rdr *Reader) Read(input io.ReadCloser) error {
@@ -36,7 +39,7 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 
 		logLine := LogLine{line, currentLogTime}
 
-		rdr.outbox <- logLine
+		rdr.Outbox <- logLine
 		rdr.stats <- NewNamedValue("reader.line.delay", currentLogTime.Sub(lastLogTime).Seconds())
 		lastLogTime = currentLogTime
 	}

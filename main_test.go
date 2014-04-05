@@ -80,10 +80,10 @@ func TestIntegration(t *testing.T) {
 
 	config.LogsURL = ts.URL
 
-	reader, logs, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInput())
-	Shutdown(logs, stats.Input, deliverables, bWaiter, oWaiter)
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
@@ -118,10 +118,10 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
 
-	reader, logs, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInputWithHeaders())
-	Shutdown(logs, stats.Input, deliverables, bWaiter, oWaiter)
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
 	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
@@ -142,12 +142,12 @@ func TestDrops(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, logs, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	stats.Drops.Add(1)
 	stats.Drops.Add(1)
 	reader.Read(NewTestInput())
-	Shutdown(logs, stats.Input, deliverables, bWaiter, oWaiter)
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
 
 	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+`)
 	if !pat1.Match(th.Actual) {
@@ -177,10 +177,10 @@ func TestRequestId(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, logs, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInput())
-	Shutdown(logs, stats.Input, deliverables, bWaiter, oWaiter)
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
 
 	_, ok := th.Headers["X-Request-Id"]
 	if !ok {
@@ -196,7 +196,7 @@ func BenchmarkPipeline(b *testing.B) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, logs, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -206,5 +206,5 @@ func BenchmarkPipeline(b *testing.B) {
 		b.StartTimer()
 		reader.Read(ti)
 	}
-	Shutdown(logs, stats.Input, deliverables, bWaiter, oWaiter)
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
 }
