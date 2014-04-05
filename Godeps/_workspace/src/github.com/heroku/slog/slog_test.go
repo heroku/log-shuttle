@@ -31,7 +31,7 @@ func ExampleContext_mixed() {
 	fmt.Println(Context{"foo": "bar", "bar": "bazzle", "baz": 1, "bazzle": true})
 
 	//Output:
-	// bar=bazzle baz=1 bazzle=true foo=bar
+	// bar=bazzle baz=1 bazzle foo=bar
 }
 
 func ExampleContext_withError() {
@@ -47,6 +47,13 @@ func ExampleContext_float64() {
 
 	//Output:
 	// float64=1.34
+}
+
+func ExampleContext_bool() {
+	l := Context{"booltest": true}
+	fmt.Println(l)
+	//Output:
+	// booltest
 }
 
 func ExampleContext_duration() {
@@ -90,8 +97,8 @@ func ExampleContext_add() {
 	fmt.Println(l)
 
 	//Output:
-	// start=true
-	// error=BOOM start=true
+	// start
+	// error=BOOM start
 }
 
 func ExampleContext_empty() {

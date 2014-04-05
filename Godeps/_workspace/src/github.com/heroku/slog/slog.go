@@ -42,9 +42,11 @@ type Context map[string]interface{}
 // to an alphabetically key sorted string
 func (c Context) String() string {
 	var sv string
+	var twoParts bool
 	parts := make([]string, 0, len(c))
 
 	for k, v := range c {
+		twoParts = true
 		switch v.(type) {
 		case time.Time: // Format times the way we want them
 			sv = v.(time.Time).Format(time.RFC3339Nano)
@@ -67,6 +69,11 @@ func (c Context) String() string {
 			sv = fmt.Sprintf("%s", v.(string))
 		case error:
 			sv = fmt.Sprintf("%s", v.(error))
+		case bool:
+			twoParts = !v.(bool)
+			if twoParts {
+				sv = fmt.Sprintf("%t", v.(bool))
+			}
 		default: // Let Go figure out the representation
 			sv = fmt.Sprintf("%v", v)
 		}
@@ -81,7 +88,11 @@ func (c Context) String() string {
 		}
 
 		// Assemble the final part and append it to the array
-		parts = append(parts, fmt.Sprintf("%s=%s", k, sv))
+		if twoParts {
+			parts = append(parts, fmt.Sprintf("%s=%s", k, sv))
+		} else {
+			parts = append(parts, k)
+		}
 	}
 	sort.Strings(parts)
 	return strings.Join(parts, " ")
