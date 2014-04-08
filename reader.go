@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-type LogLine struct {
-	line []byte
-	when time.Time
-}
-
 type Reader struct {
 	Outbox chan LogLine
 	stats  chan<- NamedValue
