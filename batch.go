@@ -5,8 +5,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/nu7hatch/gouuid"
 	"time"
+
+	"github.com/nu7hatch/gouuid"
 )
 
 const (
