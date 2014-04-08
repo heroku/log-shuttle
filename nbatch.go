@@ -66,7 +66,12 @@ func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 		}
 	}
 
-	n, err = br.curFormatter.Read(p)
+	lp := len(p)
+	t := 0
+	for n < lp && err == nil {
+		t, err = br.curFormatter.Read(p[n:])
+		n += t
+	}
 
 	// if we're not at the last line and the err is io.EOF
 	// then we're not done reading, so ditch the current formatter
