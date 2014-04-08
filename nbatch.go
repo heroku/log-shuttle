@@ -42,7 +42,7 @@ func (br *LogplexBatchFormatter) MsgCount() (msgCount int) {
 }
 
 func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
-	// There is no currentReader, so figure one out
+	// There is no currentFormatter, so figure one out
 	if br.curFormatter == nil {
 		currentLine := br.b.logLines[br.curLogLine]
 
@@ -59,7 +59,7 @@ func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 				subBatch.Add(LogLine{line: currentLine.line[i:target], when: currentLine.when})
 			}
 
-			// Wrap the sub batch in a reader
+			// Wrap the sub batch in a formatter
 			br.curFormatter = NewLogplexBatchFormatter(subBatch, br.config)
 		} else {
 			br.curFormatter = NewLogplexLineFormatter(currentLine, br.config)
@@ -69,7 +69,7 @@ func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 	n, err = br.curFormatter.Read(p)
 
 	// if we're not at the last line and the err is io.EOF
-	// then we're not done reading, so ditch the current reader
+	// then we're not done reading, so ditch the current formatter
 	// and move to the next log line
 	if br.curLogLine < (br.b.MsgCount()-1) && err == io.EOF {
 		err = nil
