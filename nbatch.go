@@ -66,11 +66,10 @@ func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 		}
 	}
 
-	lp := len(p)
-	t := 0
-	for n < lp && err == nil {
-		t, err = br.curFormatter.Read(p[n:])
-		n += t
+	copied := 0
+	for n < len(p) && err == nil {
+		copied, err = br.curFormatter.Read(p[n:])
+		n += copied
 	}
 
 	// if we're not at the last line and the err is io.EOF
@@ -108,8 +107,7 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 }
 
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
-	lp := len(p)
-	for n < lp && err == nil {
+	for n < len(p) && err == nil {
 		if llf.totalPos >= llf.headerLength {
 			copied := copy(p[n:], llf.ll.line[llf.msgPos:])
 			llf.msgPos += copied
