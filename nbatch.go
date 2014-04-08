@@ -103,17 +103,22 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 }
 
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
-	if llf.totalPos >= llf.headerLength {
-		n = copy(p, llf.ll.line[llf.msgPos:])
-		llf.msgPos += n
-		llf.totalPos += n
-		if llf.msgPos >= llf.msgLength {
-			err = io.EOF
+	lp := len(p)
+	for n < lp && err == nil {
+		if llf.totalPos >= llf.headerLength {
+			copied := copy(p[n:], llf.ll.line[llf.msgPos:])
+			llf.msgPos += copied
+			llf.totalPos += copied
+			n += copied
+			if llf.msgPos >= llf.msgLength {
+				err = io.EOF
+			}
+		} else {
+			copied := copy(p[n:], llf.header[llf.headerPos:])
+			llf.headerPos += copied
+			llf.totalPos += copied
+			n += copied
 		}
-	} else {
-		n = copy(p, llf.header[llf.headerPos:])
-		llf.headerPos += n
-		llf.totalPos += n
 	}
 	return
 }

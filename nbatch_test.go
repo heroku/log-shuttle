@@ -71,8 +71,12 @@ func TestLogplexBatchFormatter_LongLine(t *testing.T) {
 
 	if c := strings.Count(string(d), " <190>1"); c != 5 {
 		t.Log("'" + string(d) + "'")
-		t.Logf("Length: %d\n", len(d))
 		t.Fatalf("5 frames weren't generated, %d were\n", c)
+	}
+
+	if len(d) != 30188 {
+		t.Log("'" + string(d) + "'")
+		t.Fatalf("Expected a length of 30044, but got %d\n", len(d))
 	}
 }
 
