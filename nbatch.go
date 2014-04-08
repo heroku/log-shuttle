@@ -23,44 +23,71 @@ func (nb *NBatch) MsgCount() int {
 	return len(nb.logLines)
 }
 
-type LogplexBatchReader struct {
-	curLogLine        int // Current Log Line
-	b                 *NBatch
-	currentLineReader *LogplexLineReader
-	config            *ShuttleConfig
+type LogplexBatchFormatter struct {
+	curLogLine   int // Current Log Line
+	b            *NBatch
+	curFormatter io.Reader // Current sub formatter
+	config       *ShuttleConfig
 }
 
-func NewLogplexBatchReader(b *NBatch, config *ShuttleConfig) *LogplexBatchReader {
-	return &LogplexBatchReader{b: b, config: config}
+func NewLogplexBatchFormatter(b *NBatch, config *ShuttleConfig) *LogplexBatchFormatter {
+	return &LogplexBatchFormatter{b: b, config: config}
 }
 
-func (br *LogplexBatchReader) Read(p []byte) (n int, err error) {
-	if br.currentLineReader == nil {
-		br.currentLineReader = NewLogplexLineReader(br.b.logLines[br.curLogLine], br.config)
+func (br *LogplexBatchFormatter) MsgCount() (msgCount int) {
+	for _, line := range br.b.logLines {
+		msgCount += 1 + int(len(line.line)/LOGPLEX_MAX_LENGTH)
+	}
+	return
+}
+
+func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
+	// There is no currentReader, so figure one out
+	if br.curFormatter == nil {
+		currentLine := br.b.logLines[br.curLogLine]
+
+		// The current line is too long, so make a sub batch
+		if cll := currentLine.Length(); cll > LOGPLEX_MAX_LENGTH {
+			subBatch := NewNBatch(int(cll/LOGPLEX_MAX_LENGTH) + 1)
+
+			for i := 0; i < cll; i += LOGPLEX_MAX_LENGTH {
+				target := i + LOGPLEX_MAX_LENGTH
+				if target > cll {
+					target = cll
+				}
+
+				subBatch.Add(LogLine{line: currentLine.line[i:target], when: currentLine.when})
+			}
+
+			// Wrap the sub batch in a reader
+			br.curFormatter = NewLogplexBatchFormatter(subBatch, br.config)
+		} else {
+			br.curFormatter = NewLogplexLineFormatter(currentLine, br.config)
+		}
 	}
 
-	n, err = br.currentLineReader.Read(p)
+	n, err = br.curFormatter.Read(p)
 
 	// if we're not at the last line and the err is io.EOF
-	// then we're not done reading, so ditch the current line reader
+	// then we're not done reading, so ditch the current reader
 	// and move to the next log line
 	if br.curLogLine < (br.b.MsgCount()-1) && err == io.EOF {
 		err = nil
 		br.curLogLine += 1
-		br.currentLineReader = nil
+		br.curFormatter = nil
 	}
 
 	return
 }
 
-type LogplexLineReader struct {
+type LogplexLineFormatter struct {
 	totalPos, headerPos, msgPos int // Positions in the the parts of the log lines
 	headerLength, msgLength     int // Header and Message Lengths
 	ll                          LogLine
 	header                      string
 }
 
-func NewLogplexLineReader(ll LogLine, config *ShuttleConfig) *LogplexLineReader {
+func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
 	syslogFrameHeader := fmt.Sprintf("<%s>%s %s %s %s %s %s ",
 		config.Prival,
 		config.Version,
@@ -72,10 +99,10 @@ func NewLogplexLineReader(ll LogLine, config *ShuttleConfig) *LogplexLineReader 
 	)
 	msgLength := len(ll.line)
 	header := fmt.Sprintf("%d %s", len(syslogFrameHeader)+msgLength, syslogFrameHeader)
-	return &LogplexLineReader{ll: ll, header: header, msgLength: msgLength, headerLength: len(header)}
+	return &LogplexLineFormatter{ll: ll, header: header, msgLength: msgLength, headerLength: len(header)}
 }
 
-func (llf *LogplexLineReader) Read(p []byte) (n int, err error) {
+func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	if llf.totalPos >= llf.headerLength {
 		n = copy(p, llf.ll.line[llf.msgPos:])
 		llf.msgPos += n
@@ -83,11 +110,10 @@ func (llf *LogplexLineReader) Read(p []byte) (n int, err error) {
 		if llf.msgPos >= llf.msgLength {
 			err = io.EOF
 		}
-		return
 	} else {
 		n = copy(p, llf.header[llf.headerPos:])
 		llf.headerPos += n
 		llf.totalPos += n
-		return
 	}
+	return
 }
