@@ -34,17 +34,17 @@ func NewLogplexBatchFormatter(b *NBatch, config *ShuttleConfig) *LogplexBatchFor
 	return &LogplexBatchFormatter{b: b, config: config}
 }
 
-func (br *LogplexBatchFormatter) MsgCount() (msgCount int) {
-	for _, line := range br.b.logLines {
+func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
+	for _, line := range bf.b.logLines {
 		msgCount += 1 + int(len(line.line)/LOGPLEX_MAX_LENGTH)
 	}
 	return
 }
 
-func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
+func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 	// There is no currentFormatter, so figure one out
-	if br.curFormatter == nil {
-		currentLine := br.b.logLines[br.curLogLine]
+	if bf.curFormatter == nil {
+		currentLine := bf.b.logLines[bf.curLogLine]
 
 		// The current line is too long, so make a sub batch
 		if cll := currentLine.Length(); cll > LOGPLEX_MAX_LENGTH {
@@ -60,25 +60,25 @@ func (br *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 			}
 
 			// Wrap the sub batch in a formatter
-			br.curFormatter = NewLogplexBatchFormatter(subBatch, br.config)
+			bf.curFormatter = NewLogplexBatchFormatter(subBatch, bf.config)
 		} else {
-			br.curFormatter = NewLogplexLineFormatter(currentLine, br.config)
+			bf.curFormatter = NewLogplexLineFormatter(currentLine, bf.config)
 		}
 	}
 
 	copied := 0
 	for n < len(p) && err == nil {
-		copied, err = br.curFormatter.Read(p[n:])
+		copied, err = bf.curFormatter.Read(p[n:])
 		n += copied
 	}
 
 	// if we're not at the last line and the err is io.EOF
 	// then we're not done reading, so ditch the current formatter
 	// and move to the next log line
-	if br.curLogLine < (br.b.MsgCount()-1) && err == io.EOF {
+	if bf.curLogLine < (bf.b.MsgCount()-1) && err == io.EOF {
 		err = nil
-		br.curLogLine += 1
-		br.curFormatter = nil
+		bf.curLogLine += 1
+		bf.curFormatter = nil
 	}
 
 	return
