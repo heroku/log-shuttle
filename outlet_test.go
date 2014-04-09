@@ -25,34 +25,11 @@ Yeah man, it really tied the room together.
 Ac lorem aliquam placerat.`
 )
 
-/*
-var (
-	config ShuttleConfig
-)
-
-func init() {
-	config.ParseFlags() //Load defaults. Why is there no seperate function for this?
-	config.Appname = "token"
-	// Some test defaults
-}
-*/
-
 type testEOFHelper struct {
 	Actual            []byte
 	called, maxCloses int
 	Headers           http.Header
 }
-
-/*
-type noopTestHelper struct{}
-
-func (th *noopTestHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-}
-*/
 
 func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.called++
@@ -157,30 +134,28 @@ func BenchmarkOutlet(b *testing.B) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
 	config.SkipVerify = true
+	config.NumOutlets = 1
 
 	devNull := make(chan NamedValue)
 	outbox := make(chan *Batch)
 
-	getBatches, returnBatches := NewBatchManager(config, devNull)
-	outlet := NewOutlet(config, &Counter{}, &Counter{}, devNull, outbox, returnBatches)
-
 	// pipe everything from the stats channel to a black hole, we don't care
-	// this is probably wrong... what about shutdown?
-	go func() {
-		for {
-			<-devNull
-		}
-	}()
+	go ConsumeNamedValues(devNull)
 
-	go outlet.Outlet()
+	getBatches, returnBatches := NewBatchManager(config, devNull)
+	outletWait := StartOutlets(config, &Counter{}, &Counter{}, devNull, outbox, returnBatches)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		b.SetBytes(int64(len(outletTestInput)))
-		b.StartTimer()
 		batch := <-getBatches
 		batch.Write(LogLine{[]byte(outletTestInput), time.Now()})
+		b.StartTimer()
 		outbox <- batch
 	}
+
+	// cleanup
+	close(outbox)
+	outletWait.Wait()
 }
