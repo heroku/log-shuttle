@@ -11,11 +11,48 @@ import (
 	"time"
 )
 
+const (
+	outletTestInput = `Lebowski ipsum what in God's holy name are you blathering about?
+Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.
+They're nihilists.
+Pellentesque ac lectus quis elit blandit fringilla a ut turpis praesent.
+Mein nommen iss Karl.
+Is hard to verk in zese clozes.
+Felis ligula, malesuada suscipit malesuada non, ultrices non.
+Shomer shabbos.
+Urna sed orci ipsum, placerat id condimentum rutrum, rhoncus.
+Yeah man, it really tied the room together.
+Ac lorem aliquam placerat.`
+)
+
+/*
+var (
+	config ShuttleConfig
+)
+
+func init() {
+	config.ParseFlags() //Load defaults. Why is there no seperate function for this?
+	config.Appname = "token"
+	// Some test defaults
+}
+*/
+
 type testEOFHelper struct {
 	Actual            []byte
 	called, maxCloses int
 	Headers           http.Header
 }
+
+/*
+type noopTestHelper struct{}
+
+func (th *noopTestHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	_, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+}
+*/
 
 func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.called++
@@ -108,4 +145,42 @@ func TestOutletEOFRetryMax(t *testing.T) {
 		t.Errorf("logMessage is wrong: %q\n", logMessage)
 	}
 
+}
+
+func BenchmarkOutlet(b *testing.B) {
+	// This boilerplate harness startup was yanked from main_test.go.
+	// May want to consolidate it in the future.
+	th := new(noopTestHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.LogsURL = ts.URL
+	config.SkipHeaders = true
+	config.SkipVerify = true
+
+	devNull := make(chan NamedValue)
+	outbox := make(chan *Batch)
+
+	getBatches, returnBatches := NewBatchManager(config, devNull)
+	outlet := NewOutlet(config, &Counter{}, &Counter{}, devNull, outbox, returnBatches)
+
+	// pipe everything from the stats channel to a black hole, we don't care
+	// this is probably wrong... what about shutdown?
+	go func() {
+		for {
+			<-devNull
+		}
+	}()
+
+	go outlet.Outlet()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		b.SetBytes(int64(len(outletTestInput)))
+		b.StartTimer()
+		batch := <-getBatches
+		batch.Write(LogLine{[]byte(outletTestInput), time.Now()})
+		outbox <- batch
+	}
 }
