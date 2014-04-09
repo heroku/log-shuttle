@@ -17,6 +17,11 @@ const (
 	RETRY_SLEEP = 100 // will be in ms
 )
 
+type Destination struct {
+	url  string
+	lost *Counter
+}
+
 func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
@@ -64,7 +69,10 @@ func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedVal
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
 func (h *HttpOutlet) Outlet() {
 
+	destinations := [...]Destination{Destination{"http://foo.com", Counter{}}, Destination{"http://bar.com", Counter{}}}
+
 	for batch := range h.inbox {
+		// for destinations {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
 		drops, dropsSince := h.drops.ReadAndReset()
@@ -77,16 +85,25 @@ func (h *HttpOutlet) Outlet() {
 			batch.WriteLost(lost, lostSince)
 		}
 
+		//for dest := range destinations {
+		//	wg.Add(1)
+		//	go func() {
+		//V		h.retryPost(batch, dest)
+		//		wg.Done()
+		//	}()
+		//}
+		//wg.Wait()
 		h.retryPost(batch)
 
 		h.batchReturn <- batch
+		// }
 	}
 }
 
 // Retry io.EOF errors h.config.MaxAttempts times
-func (h *HttpOutlet) retryPost(batch *Batch) {
+func (h *HttpOutlet) retryPost(batch *Batch, dest Destination) {
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
-		err := h.post(batch)
+		err := h.post(batch, dest)
 		if err != nil {
 			err, eok := err.(*url.Error)
 			if eok && err.Err == io.EOF && attempts < h.config.MaxAttempts {
@@ -104,8 +121,13 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 	return
 }
 
-func (h *HttpOutlet) post(batch *Batch) error {
-	req, err := http.NewRequest("POST", h.config.OutletURL(), bytes.NewReader(batch.Bytes()))
+func (h *HttpOutlet) post(batch *Batch, dest Destination) error {
+	// extract the destination's lost count and timestamp and append it to the logs we're posting
+	lost, lostSince := dest.lost.ReadAndReset()
+	lostMsg := fmt.Sprintf("Lost %d messages since %s", lost, lostSince.UTC().Format(BATCH_TIME_FORMAT))
+	postBytes := append(batch.Bytes(), []byte(lostMsg))
+
+	req, err := http.NewRequest("POST", dest.url, bytes.NewReader(postBytes))
 	if err != nil {
 		return err
 	}
