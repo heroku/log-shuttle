@@ -5,24 +5,9 @@ import (
 	"io"
 )
 
-type NBatch struct {
-	logLines []LogLine
-}
-
-func NewNBatch(capacity int) *NBatch {
-	return &NBatch{logLines: make([]LogLine, 0, capacity)}
-}
-
-// Add a logline to the batch
-func (nb *NBatch) Add(ll LogLine) {
-	nb.logLines = append(nb.logLines, ll)
-}
-
-// The count of msgs in the batch
-func (nb *NBatch) MsgCount() int {
-	return len(nb.logLines)
-}
-
+// A LogplexBatchWithHeadersFormatter implements an io.Reader that returns
+// Logplex formatted log lines.  Assumes the loglines in the batch are already
+// syslog rfc5424 formatted and less than LOGPLEX_MAX_LENGTH
 type LogplexBatchWithHeadersFormatter struct {
 	curLogLine int // Current Log Line
 	curLinePos int // Current position in the current line
@@ -30,14 +15,17 @@ type LogplexBatchWithHeadersFormatter struct {
 	config     *ShuttleConfig
 }
 
+// Returns a new LogplexBatchWithHeadersFormatter, wrapping the existing Batch
 func NewLogplexBatchWithHeadersFormatter(b *NBatch, config *ShuttleConfig) *LogplexBatchWithHeadersFormatter {
 	return &LogplexBatchWithHeadersFormatter{b: b, config: config}
 }
 
+// Return the number of formatted messages in the batch.
 func (bf *LogplexBatchWithHeadersFormatter) MsgCount() (msgCount int) {
 	return bf.b.MsgCount()
 }
 
+// io.Reader implementation Returns io.EOF when done.
 func (bf *LogplexBatchWithHeadersFormatter) Read(p []byte) (n int, err error) {
 	cl := bf.b.logLines[bf.curLogLine].line
 	if bf.curLinePos == 0 {
@@ -56,6 +44,9 @@ func (bf *LogplexBatchWithHeadersFormatter) Read(p []byte) (n int, err error) {
 	return
 }
 
+// LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
+// log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
+// them as necessary to LOGPLEX_MAX_LENGTH
 type LogplexBatchFormatter struct {
 	curLogLine   int // Current Log Line
 	b            *NBatch
@@ -63,10 +54,14 @@ type LogplexBatchFormatter struct {
 	config       *ShuttleConfig
 }
 
+// Returns a new LogplexBatchFormatter wrapping the provided batch
 func NewLogplexBatchFormatter(b *NBatch, config *ShuttleConfig) *LogplexBatchFormatter {
 	return &LogplexBatchFormatter{b: b, config: config}
 }
 
+// The msgcount of the wrapped batch. Because it splits lines at
+// LOGPLEX_MAX_LENGTH this may be different from the actual MsgCount of the
+// batch
 func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 	for _, line := range bf.b.logLines {
 		msgCount += 1 + int(len(line.line)/LOGPLEX_MAX_LENGTH)
@@ -74,6 +69,7 @@ func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 	return
 }
 
+// Implements the io.Reader interface
 func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 	// There is no currentFormatter, so figure one out
 	if bf.curFormatter == nil {
@@ -117,6 +113,8 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 	return
 }
 
+// LogplexLineFormatter formats individual loglines into length prefixed
+// rfc5424 messages via an io.Reader interface
 type LogplexLineFormatter struct {
 	totalPos, headerPos, msgPos int // Positions in the the parts of the log lines
 	headerLength, msgLength     int // Header and Message Lengths
@@ -124,6 +122,7 @@ type LogplexLineFormatter struct {
 	header                      string
 }
 
+// Returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
 	syslogFrameHeader := fmt.Sprintf("<%s>%s %s %s %s %s %s ",
 		config.Prival,
@@ -139,6 +138,7 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 	return &LogplexLineFormatter{ll: ll, header: header, msgLength: msgLength, headerLength: len(header)}
 }
 
+// Implements the io.Reader interface
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	for n < len(p) && err == nil {
 		if llf.totalPos >= llf.headerLength {

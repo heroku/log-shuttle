@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -10,14 +9,16 @@ import (
 )
 
 var (
-	NewLine                   = byte('\n')
-	LogLineOne                = LogLine{line: []byte("Hello World\n"), when: time.Now()}
-	logplexTestLineOnePattern = regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World\n`)
-	LogLineTwo                = LogLine{line: []byte("The Second Test Line \n"), when: time.Now()}
-	logplexTestLineTwoPattern = regexp.MustCompile(`88 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - The Second Test Line \n`)
-	LongLogLine               = LogLine{when: time.Now()}
-	LogLineOneWithHeaders     = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n"), when: time.Now()}
-	LogLineTwoWithHeaders     = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] other message\n"), when: time.Now()}
+	NewLine                          = byte('\n')
+	LogLineOne                       = LogLine{line: []byte("Hello World\n"), when: time.Now()}
+	logplexTestLineOnePattern        = regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World\n`)
+	LogLineTwo                       = LogLine{line: []byte("The Second Test Line \n"), when: time.Now()}
+	logplexTestLineTwoPattern        = regexp.MustCompile(`88 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - The Second Test Line \n`)
+	LongLogLine                      = LogLine{when: time.Now()}
+	LogLineOneWithHeaders            = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n"), when: time.Now()}
+	LogLineTwoWithHeaders            = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] other message\n"), when: time.Now()}
+	logplexLineOneWithHeadersPattern = regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1\n`)
+	logplexLineTwoWithHeadersPattern = regexp.MustCompile(`94 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] other message\n`)
 )
 
 func init() {
@@ -106,5 +107,10 @@ func TestLogplexBatchWithHeadersFormatter(t *testing.T) {
 		t.Fatalf("Error reading everything from batch: %q", err)
 	}
 
-	fmt.Println(string(d))
+	if !logplexLineOneWithHeadersPattern.Match(d) {
+		t.Fatalf("Line One actual=%q\n", d)
+	}
+	if !logplexLineTwoWithHeadersPattern.Match(d) {
+		t.Fatalf("Line Two actual=%q\n", d)
+	}
 }
