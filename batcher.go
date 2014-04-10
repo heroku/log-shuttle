@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *sync.WaitGroup {
+func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- *Batch) *sync.WaitGroup {
 	batchWaiter := new(sync.WaitGroup)
 	for i := 0; i < config.NumBatchers; i++ {
 		batchWaiter.Add(1)
 		go func() {
 			defer batchWaiter.Done()
-			batcher := NewBatcher(config, drops, stats, inLogs, inBatches, outBatches)
+			batcher := NewBatcher(config.BatchSize, config.Timeout, drops, stats, inLogs, outBatches)
 			batcher.Batch()
 		}()
 	}
@@ -21,45 +21,47 @@ func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue
 
 type Batcher struct {
 	inLogs     <-chan LogLine    // Where I get the log lines to batch from
-	inBatches  <-chan *Batch     // Where I get empty batches from
 	outBatches chan<- *Batch     // Where I send completed batches to
 	stats      chan<- NamedValue // Where to send measurements
 	drops      *Counter          // The drops counter
 	timeout    time.Duration     // How long once we have a log line before we need to flush the batch
+	batchSize  int               // The size of the batches
 }
 
-func NewBatcher(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, inBatches <-chan *Batch, outBatches chan<- *Batch) *Batcher {
+func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- *Batch) *Batcher {
 	return &Batcher{
 		inLogs:     inLogs,
-		inBatches:  inBatches,
 		drops:      drops,
 		stats:      stats,
 		outBatches: outBatches,
-		timeout:    config.WaitDuration,
+		timeout:    timeout,
+		batchSize:  batchSize,
 	}
 }
 
 // Loops getting an empty batch and filling it.
 func (batcher *Batcher) Batch() {
 
-	for batch := range batcher.inBatches {
-		batcher.stats <- NewNamedValue("batcher.inBatches.length", float64(len(batcher.inBatches)))
-		batcher.stats <- NewNamedValue("batcher.inLogs.length", float64(len(batcher.inLogs)))
+	for {
+		//Make a new batch
+		batch := NewBatch(batcher.batchSize)
 
 		closeDown := batcher.fillBatch(batch)
-		if batch.MsgCount > 0 {
-			batcher.stats <- NewNamedValue("batch.msg.count", float64(batch.MsgCount))
+
+		if msgCount := batch.MsgCount(); msgCount > 0 {
 			select {
 			case batcher.outBatches <- batch:
+				batcher.stats <- NewNamedValue("batch.msg.count", float64(msgCount))
 			// submitted into the delivery channel,
 			// nothing to do here.
 			default:
 				//Unable to deliver into the delivery channel,
 				//increment drops
-				batcher.stats <- NewNamedValue("batch.msg.dropped", float64(batch.MsgCount))
-				batcher.drops.Add(batch.MsgCount)
+				batcher.stats <- NewNamedValue("batch.msg.dropped", float64(msgCount))
+				batcher.drops.Add(msgCount)
 			}
 		}
+
 		if closeDown {
 			break
 		}
@@ -72,6 +74,7 @@ func (batcher *Batcher) Batch() {
 func (batcher *Batcher) fillBatch(batch *Batch) (chanOpen bool) {
 	timeout := new(time.Timer) // Gives us a nil channel and no timeout to start with
 	chanOpen = true            // Assume the channel is open
+	count := 0
 
 	for {
 		select {
@@ -82,6 +85,7 @@ func (batcher *Batcher) fillBatch(batch *Batch) (chanOpen bool) {
 			if !chanOpen {
 				return !chanOpen
 			}
+
 			// We have a line now, so set a timeout
 			if timeout.C == nil {
 				defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill.time", time.Since(t).Seconds()) }(time.Now())
@@ -89,9 +93,10 @@ func (batcher *Batcher) fillBatch(batch *Batch) (chanOpen bool) {
 				defer timeout.Stop() // ensure timer is stopped when done
 			}
 
-			batch.Write(line)
+			batch.Add(line)
+			count += 1
 
-			if batch.Full() {
+			if count >= batcher.batchSize {
 				return !chanOpen
 			}
 		}

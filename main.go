@@ -23,10 +23,9 @@ func MakeBasicBits(config ShuttleConfig) (reader *Reader, deliverableBatches cha
 	reader = NewReader(config.FrontBuff, programStats.Input)
 	programStats.Listen()
 	go EmitStats(programStats, config.StatsInterval, config.StatsSource)
-	getBatches, returnBatches := NewBatchManager(config, programStats.Input)
 	// Start outlets, then batches, then readers (reverse of Shutdown)
-	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches, returnBatches)
-	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, reader.Outbox, getBatches, deliverableBatches)
+	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches)
+	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, reader.Outbox, deliverableBatches)
 	return
 }
 

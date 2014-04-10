@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/tls"
 	"io"
 	"io/ioutil"
@@ -17,14 +16,14 @@ const (
 	RETRY_SLEEP = 100 // will be in ms
 )
 
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewOutlet(config, drops, lost, stats, inbox, batchReturn)
+			outlet := NewOutlet(config, drops, lost, stats, inbox)
 			outlet.Outlet()
 		}()
 	}
@@ -33,23 +32,21 @@ func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- Named
 }
 
 type HttpOutlet struct {
-	inbox       <-chan *Batch
-	batchReturn chan<- *Batch
-	stats       chan<- NamedValue
-	drops       *Counter
-	lost        *Counter
-	client      *http.Client
-	config      ShuttleConfig
+	inbox  <-chan *Batch
+	stats  chan<- NamedValue
+	drops  *Counter
+	lost   *Counter
+	client *http.Client
+	config ShuttleConfig
 }
 
-func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch, batchReturn chan<- *Batch) *HttpOutlet {
+func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch) *HttpOutlet {
 	return &HttpOutlet{
-		drops:       drops,
-		lost:        lost,
-		stats:       stats,
-		inbox:       inbox,
-		batchReturn: batchReturn,
-		config:      config,
+		drops:  drops,
+		lost:   lost,
+		stats:  stats,
+		inbox:  inbox,
+		config: config,
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 				ResponseHeaderTimeout: config.Timeout,
@@ -67,19 +64,17 @@ func (h *HttpOutlet) Outlet() {
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
-		drops, dropsSince := h.drops.ReadAndReset()
-		if drops > 0 {
-			batch.WriteDrops(drops, dropsSince)
-		}
+		// drops, dropsSince := h.drops.ReadAndReset()
+		//if drops > 0 {
+		//		batch.WriteDrops(drops, dropsSince)
+		//}
 
-		lost, lostSince := h.lost.ReadAndReset()
-		if lost > 0 {
-			batch.WriteLost(lost, lostSince)
-		}
+		// lost, lostSince := h.lost.ReadAndReset()
+		//if lost > 0 {
+		//	batch.WriteLost(lost, lostSince)
+		//}
 
 		h.retryPost(batch)
-
-		h.batchReturn <- batch
 	}
 }
 
@@ -94,7 +89,7 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 				continue
 			} else {
 				ErrLogger.Printf("at=post request_id=%q attempts=%d error=%q\n", batch.UUID.String(), attempts, err)
-				h.lost.Add(batch.MsgCount)
+				h.lost.Add(batch.MsgCount())
 				return
 			}
 		} else {
@@ -105,16 +100,22 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 }
 
 func (h *HttpOutlet) post(batch *Batch) error {
-	req, err := http.NewRequest("POST", h.config.OutletURL(), bytes.NewReader(batch.Bytes()))
+	var reader io.Reader
+	if h.config.SkipHeaders {
+		reader = NewLogplexBatchWithHeadersFormatter(batch, &h.config)
+	} else {
+		reader = NewLogplexBatchFormatter(batch, &h.config)
+	}
+
+	req, err := http.NewRequest("POST", h.config.OutletURL(), reader)
 	if err != nil {
 		return err
 	}
 
-	req.ContentLength = int64(batch.Len())
 	req.Header.Add("Content-Type", "application/logplex-1")
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(batch.MsgCount))
-	req.Header.Add("Logshuttle-Drops", strconv.Itoa(batch.Drops))
-	req.Header.Add("Logshuttle-Lost", strconv.Itoa(batch.Lost))
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(reader.(MsgCounter).MsgCount()))
+	//req.Header.Add("Logshuttle-Drops", strconv.Itoa(batch.Drops))
+	//req.Header.Add("Logshuttle-Lost", strconv.Itoa(batch.Lost))
 	req.Header.Add("X-Request-Id", batch.UUID.String())
 
 	resp, err := h.timeRequest(req)

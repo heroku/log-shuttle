@@ -29,7 +29,7 @@ func init() {
 }
 
 func TestLogplexBatchFormatter(t *testing.T) {
-	b := NewNBatch(1)
+	b := NewBatch(1)
 	b.Add(LogLineOne)
 	b.Add(LogLineTwo)
 	br := NewLogplexBatchFormatter(b, &config)
@@ -50,7 +50,7 @@ func TestLogplexBatchFormatter(t *testing.T) {
 }
 
 func TestLogplexBatchFormatter_MsgCount(t *testing.T) {
-	b := NewNBatch(1)
+	b := NewBatch(1)
 	b.Add(LogLineOne)  // 1 frame
 	b.Add(LongLogLine) // 3 frames
 
@@ -62,7 +62,7 @@ func TestLogplexBatchFormatter_MsgCount(t *testing.T) {
 }
 
 func TestLogplexBatchFormatter_LongLine(t *testing.T) {
-	b := NewNBatch(3)
+	b := NewBatch(3)
 	b.Add(LogLineOne)  // 1 frame
 	b.Add(LongLogLine) // 3 frames
 	b.Add(LogLineTwo)  // 1 frame
@@ -97,7 +97,7 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 }
 
 func TestLogplexBatchWithHeadersFormatter(t *testing.T) {
-	b := NewNBatch(2)
+	b := NewBatch(2)
 	b.Add(LogLineOneWithHeaders) // 1 frame
 	b.Add(LogLineTwoWithHeaders) // 1 frame
 

@@ -20,12 +20,12 @@ func BenchmarkBatcher(b *testing.B) {
 	b.ResetTimer()
 	stats := make(chan NamedValue, config.StatsBuff)
 	go ConsumeNamedValues(stats)
-	inBatches, outBatches := NewBatchManager(config, stats)
+	outBatches := make(chan *Batch)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		logs := make(chan LogLine, config.FrontBuff)
 		drops := NewCounter(0)
-		batcher := NewBatcher(config, drops, stats, logs, inBatches, outBatches)
+		batcher := NewBatcher(config.BatchSize, config.Timeout, drops, stats, logs, outBatches)
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
 		b.StartTimer()
@@ -36,13 +36,5 @@ func BenchmarkBatcher(b *testing.B) {
 		ProduceLogLines(TEST_PRODUCER_LINES, logs)
 		close(logs)
 		wg.Wait()
-	}
-}
-
-func TestLongBatchWrite(t *testing.T) {
-	batch := NewBatch(&config)
-	batch.Write(LogLine{line: LongTestData, when: time.Now()})
-	if batch.MsgCount != 8 {
-		t.Fatalf("MsgCount should be 8, but is %d", batch.MsgCount)
 	}
 }
