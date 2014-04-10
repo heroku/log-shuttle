@@ -39,7 +39,6 @@ func (bf *LogplexBatchWithHeadersFormatter) MsgCount() (msgCount int) {
 }
 
 func (bf *LogplexBatchWithHeadersFormatter) Read(p []byte) (n int, err error) {
-	fmt.Println("top")
 	cl := bf.b.logLines[bf.curLogLine].line
 	if bf.curLinePos == 0 {
 		n = copy(p[n:], fmt.Sprintf("%d ", len(cl)))
