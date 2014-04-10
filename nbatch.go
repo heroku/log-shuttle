@@ -23,6 +23,40 @@ func (nb *NBatch) MsgCount() int {
 	return len(nb.logLines)
 }
 
+type LogplexBatchWithHeadersFormatter struct {
+	curLogLine int // Current Log Line
+	curLinePos int // Current position in the current line
+	b          *NBatch
+	config     *ShuttleConfig
+}
+
+func NewLogplexBatchWithHeadersFormatter(b *NBatch, config *ShuttleConfig) *LogplexBatchWithHeadersFormatter {
+	return &LogplexBatchWithHeadersFormatter{b: b, config: config}
+}
+
+func (bf *LogplexBatchWithHeadersFormatter) MsgCount() (msgCount int) {
+	return bf.b.MsgCount()
+}
+
+func (bf *LogplexBatchWithHeadersFormatter) Read(p []byte) (n int, err error) {
+	fmt.Println("top")
+	cl := bf.b.logLines[bf.curLogLine].line
+	if bf.curLinePos == 0 {
+		n = copy(p[n:], fmt.Sprintf("%d ", len(cl)))
+	}
+	copied := copy(p[n:], cl[bf.curLinePos:])
+	bf.curLinePos += copied
+	n += copied
+	if bf.curLinePos >= len(cl) {
+		bf.curLinePos = 0
+		bf.curLogLine += 1
+	}
+	if bf.curLogLine >= bf.b.MsgCount() {
+		err = io.EOF
+	}
+	return
+}
+
 type LogplexBatchFormatter struct {
 	curLogLine   int // Current Log Line
 	b            *NBatch

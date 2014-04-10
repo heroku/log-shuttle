@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -15,6 +16,8 @@ var (
 	LogLineTwo                = LogLine{line: []byte("The Second Test Line \n"), when: time.Now()}
 	logplexTestLineTwoPattern = regexp.MustCompile(`88 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - The Second Test Line \n`)
 	LongLogLine               = LogLine{when: time.Now()}
+	LogLineOneWithHeaders     = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n"), when: time.Now()}
+	LogLineTwoWithHeaders     = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] other message\n"), when: time.Now()}
 )
 
 func init() {
@@ -58,7 +61,7 @@ func TestLogplexBatchFormatter_MsgCount(t *testing.T) {
 }
 
 func TestLogplexBatchFormatter_LongLine(t *testing.T) {
-	b := NewNBatch(1)
+	b := NewNBatch(3)
 	b.Add(LogLineOne)  // 1 frame
 	b.Add(LongLogLine) // 3 frames
 	b.Add(LogLineTwo)  // 1 frame
@@ -90,4 +93,18 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 	if !logplexTestLineOnePattern.Match(d) {
 		t.Fatalf("actual=%q\n", d)
 	}
+}
+
+func TestLogplexBatchWithHeadersFormatter(t *testing.T) {
+	b := NewNBatch(2)
+	b.Add(LogLineOneWithHeaders) // 1 frame
+	b.Add(LogLineTwoWithHeaders) // 1 frame
+
+	bf := NewLogplexBatchWithHeadersFormatter(b, &config)
+	d, err := ioutil.ReadAll(bf)
+	if err != nil {
+		t.Fatalf("Error reading everything from batch: %q", err)
+	}
+
+	fmt.Println(string(d))
 }
