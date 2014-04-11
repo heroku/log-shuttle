@@ -153,14 +153,14 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 // rfc5424 messages via an io.Reader interface
 type LogplexLineFormatter struct {
 	headerPos, msgPos int // Positions in the the parts of the log lines
-	ll                LogLine
+	line              []byte
 	header            string
 }
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
 	return &LogplexLineFormatter{
-		ll: ll,
+		line: ll.line,
 		header: fmt.Sprintf(config.syslogFrameHeaderFormat,
 			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
 			ll.when.UTC().Format(BATCH_TIME_FORMAT)),
@@ -171,10 +171,10 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	for n < len(p) && err == nil {
 		if llf.headerPos >= len(llf.header) {
-			copied := copy(p[n:], llf.ll.line[llf.msgPos:])
+			copied := copy(p[n:], llf.line[llf.msgPos:])
 			llf.msgPos += copied
 			n += copied
-			if llf.msgPos >= len(llf.ll.line) {
+			if llf.msgPos >= len(llf.line) {
 				err = io.EOF
 			}
 		} else {
