@@ -107,43 +107,47 @@ func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 
 // Implements the io.Reader interface
 func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
-	// There is no currentFormatter, so figure one out
-	if bf.curFormatter == nil {
-		currentLine := bf.b.logLines[bf.curLogLine]
+	var copied int
 
-		// The current line is too long, so make a sub batch
-		if cll := currentLine.Length(); cll > LOGPLEX_MAX_LENGTH {
-			subBatch := NewBatch(int(cll/LOGPLEX_MAX_LENGTH) + 1)
+	for n < len(p) && err == nil {
 
-			for i := 0; i < cll; i += LOGPLEX_MAX_LENGTH {
-				target := i + LOGPLEX_MAX_LENGTH
-				if target > cll {
-					target = cll
+		// There is no currentFormatter, so figure one out
+		if bf.curFormatter == nil {
+			currentLine := bf.b.logLines[bf.curLogLine]
+
+			// The current line is too long, so make a sub batch
+			if cll := currentLine.Length(); cll > LOGPLEX_MAX_LENGTH {
+				subBatch := NewBatch(int(cll/LOGPLEX_MAX_LENGTH) + 1)
+
+				for i := 0; i < cll; i += LOGPLEX_MAX_LENGTH {
+					target := i + LOGPLEX_MAX_LENGTH
+					if target > cll {
+						target = cll
+					}
+
+					subBatch.Add(LogLine{line: currentLine.line[i:target], when: currentLine.when})
 				}
 
-				subBatch.Add(LogLine{line: currentLine.line[i:target], when: currentLine.when})
+				// Wrap the sub batch in a formatter
+				bf.curFormatter = NewLogplexBatchFormatter(subBatch, bf.config)
+			} else {
+				bf.curFormatter = NewLogplexLineFormatter(currentLine, bf.config)
 			}
-
-			// Wrap the sub batch in a formatter
-			bf.curFormatter = NewLogplexBatchFormatter(subBatch, bf.config)
-		} else {
-			bf.curFormatter = NewLogplexLineFormatter(currentLine, bf.config)
 		}
-	}
 
-	copied := 0
-	for n < len(p) && err == nil {
-		copied, err = bf.curFormatter.Read(p[n:])
-		n += copied
-	}
+		for n < len(p) && err == nil {
+			copied, err = bf.curFormatter.Read(p[n:])
+			n += copied
+		}
 
-	// if we're not at the last line and the err is io.EOF
-	// then we're not done reading, so ditch the current formatter
-	// and move to the next log line
-	if bf.curLogLine < (bf.b.MsgCount()-1) && err == io.EOF {
-		err = nil
-		bf.curLogLine += 1
-		bf.curFormatter = nil
+		// if we're not at the last line and the err is io.EOF
+		// then we're not done reading, so ditch the current formatter
+		// and move to the next log line
+		if bf.curLogLine < (bf.b.MsgCount()-1) && err == io.EOF {
+			err = nil
+			bf.curLogLine += 1
+			bf.curFormatter = nil
+		}
 	}
 
 	return
