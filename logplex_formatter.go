@@ -38,45 +38,35 @@ func (bf *LogplexBatchWithHeadersFormatter) MsgCount() (msgCount int) {
 
 // io.Reader implementation Returns io.EOF when done.
 func (bf *LogplexBatchWithHeadersFormatter) Read(p []byte) (n int, err error) {
-	//fmt.Printf("cll: %d\n", bf.curLogLine)
-	//fmt.Printf("bf.b: %+v\n", bf.b)
-	//fmt.Printf("len(p): %d\n", len(p))
 	if bf.curLogLine > (bf.b.MsgCount() - 1) {
 		return 0, io.EOF
 	}
-	cl := bf.b.logLines[bf.curLogLine].line
-	prefix := fmt.Sprintf("%d ", len(cl))
-	//fmt.Printf("len(prefix): %d\n", len(prefix))
-	//fmt.Printf("curPrefixPos: %d\n", bf.curPrefixPos)
-	if (len(prefix) - 1) > bf.curPrefixPos {
-		copied := copy(p, prefix[bf.curPrefixPos:])
-		n += copied
-		bf.curPrefixPos += copied
-		//fmt.Printf("prefix p: %s\n", string(p))
-		//fmt.Printf("prefix n: %d\n", n)
-		if n >= len(p) {
-			//fmt.Println("prefix returning")
-			return
+
+	for n < len(p) && err == nil {
+		cl := bf.b.logLines[bf.curLogLine].line
+		prefix := fmt.Sprintf("%d ", len(cl))
+
+		if bf.curPrefixPos >= len(prefix) {
+			copied := copy(p[n:], cl[bf.curLinePos:])
+			n += copied
+			bf.curLinePos += copied
+
+			if bf.curLinePos >= len(cl) {
+				bf.curLinePos = 0
+				bf.curPrefixPos = 0
+				bf.curLogLine += 1
+			}
+
+			if bf.curLogLine > (bf.b.MsgCount() - 1) {
+				err = io.EOF
+			}
+		} else {
+			copied := copy(p[n:], prefix[bf.curPrefixPos:])
+			n += copied
+			bf.curPrefixPos += copied
 		}
 	}
-	//fmt.Printf("post lp n: %d\n", n)
-	copied := copy(p[n:], cl[bf.curLinePos:])
-	bf.curLinePos += copied
-	//fmt.Printf("curLinePos: %d\n", bf.curLinePos)
-	//fmt.Printf("len(cl): %d\n", len(cl))
-	n += copied
-	if bf.curLinePos >= len(cl) {
-		bf.curLinePos = 0
-		bf.curPrefixPos = 0
-		bf.curLogLine += 1
-	}
-	//fmt.Printf("curLogLine: %d\n", bf.curLogLine)
-	//fmt.Printf("b.MsgCount(): %d\n", bf.b.MsgCount())
-	if bf.curLogLine > (bf.b.MsgCount() - 1) {
-		err = io.EOF
-	}
-	//fmt.Printf("n: %d, err: %v\n", n, err)
-	//fmt.Printf("p: %s\n", string(p))
+
 	return
 }
 
