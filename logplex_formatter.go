@@ -152,9 +152,9 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 // LogplexLineFormatter formats individual loglines into length prefixed
 // rfc5424 messages via an io.Reader interface
 type LogplexLineFormatter struct {
-	headerPos, msgPos int // Positions in the the parts of the log lines
-	line              []byte
-	header            string
+	headerPos, msgPos int    // Positions in the the parts of the log lines
+	line              []byte // the raw line bytes
+	header            string // the precomputed, length prefixed syslog frame header
 }
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
@@ -168,6 +168,7 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 }
 
 // Implements the io.Reader interface
+// tries to fill p as full as possible before returning
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	for n < len(p) && err == nil {
 		if llf.headerPos >= len(llf.header) {
