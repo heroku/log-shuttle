@@ -159,17 +159,12 @@ type LogplexLineFormatter struct {
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
-	syslogFrameHeader := fmt.Sprintf("<%s>%s %s %s %s %s %s ",
-		config.Prival,
-		config.Version,
-		ll.when.UTC().Format(BATCH_TIME_FORMAT),
-		config.Hostname,
-		config.Appname,
-		config.Procid,
-		config.Msgid,
-	)
-	header := fmt.Sprintf("%d %s", len(syslogFrameHeader)+len(ll.line), syslogFrameHeader)
-	return &LogplexLineFormatter{ll: ll, header: header}
+	return &LogplexLineFormatter{
+		ll: ll,
+		header: fmt.Sprintf(config.syslogFrameHeaderFormat,
+			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
+			ll.when.UTC().Format(BATCH_TIME_FORMAT)),
+	}
 }
 
 // Implements the io.Reader interface

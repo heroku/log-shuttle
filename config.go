@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
-	"github.com/pebbe/util"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/pebbe/util"
 )
 
 var LogplexUrl = os.Getenv("LOGPLEX_URL")
@@ -29,30 +31,32 @@ const (
 )
 
 type ShuttleConfig struct {
-	FrontBuff     int
-	StatsBuff     int
-	BatchSize     int
-	NumBatchers   int
-	NumOutlets    int
-	InputFormat   int
-	MaxAttempts   int
-	LogsURL       string
-	Prival        string
-	Version       string
-	Procid        string
-	Hostname      string
-	Appname       string
-	Msgid         string
-	StatsAddr     string
-	StatsSource   string
-	SkipHeaders   bool
-	SkipVerify    bool
-	PrintVersion  bool
-	Verbose       bool
-	LogToSyslog   bool
-	WaitDuration  time.Duration
-	Timeout       time.Duration
-	StatsInterval time.Duration
+	FrontBuff                           int
+	StatsBuff                           int
+	BatchSize                           int
+	NumBatchers                         int
+	NumOutlets                          int
+	InputFormat                         int
+	MaxAttempts                         int
+	LogsURL                             string
+	Prival                              string
+	Version                             string
+	Procid                              string
+	Hostname                            string
+	Appname                             string
+	Msgid                               string
+	StatsAddr                           string
+	StatsSource                         string
+	SkipHeaders                         bool
+	SkipVerify                          bool
+	PrintVersion                        bool
+	Verbose                             bool
+	LogToSyslog                         bool
+	WaitDuration                        time.Duration
+	Timeout                             time.Duration
+	StatsInterval                       time.Duration
+	lengthPrefixedSyslogFrameHeaderSize int
+	syslogFrameHeaderFormat             string
 }
 
 func (c *ShuttleConfig) ParseFlags() {
@@ -64,7 +68,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Version, "syslog-version", "1", "The version of syslog.")
 	flag.StringVar(&c.Procid, "procid", "shuttle", "The procid field for the syslog header.")
 	flag.StringVar(&c.Appname, "appname", "", "The app-name field for the syslog header.")
-	flag.StringVar(&c.Appname, "logplex-token", "", "Secret logplex token.")
+	flag.StringVar(&c.Appname, "logplex-token", "token", "Secret logplex token.")
 	flag.StringVar(&c.Hostname, "hostname", "shuttle", "The hostname field for the syslog header.")
 	flag.StringVar(&c.Msgid, "msgid", "- -", "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
@@ -86,6 +90,20 @@ func (c *ShuttleConfig) ParseFlags() {
 	if c.MaxAttempts < 1 {
 		log.Fatalf("-max-attempts must be >= 1")
 	}
+
+	// This is here to pre-comute this so other's don't have to later
+	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(BATCH_TIME_FORMAT) +
+		len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >
+
+	c.syslogFrameHeaderFormat = fmt.Sprintf("%s <%s>%s %s %s %s %s %s ",
+		"%d",
+		c.Prival,
+		c.Version,
+		"%s", // The time should be put here
+		c.Hostname,
+		c.Appname,
+		c.Procid,
+		c.Msgid)
 }
 
 func (c *ShuttleConfig) OutletURL() string {

@@ -14,9 +14,7 @@ var (
 )
 
 func init() {
-	config.ParseFlags() //Load defaults. Why is there no seperate function for this?
-	config.Appname = "token"
-	// Some test defaults
+	config.ParseFlags() //Do this once for the test. Defaults should always be good for the tests
 }
 
 type testInput struct {
