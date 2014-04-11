@@ -114,3 +114,30 @@ func TestLogplexBatchWithHeadersFormatter(t *testing.T) {
 		t.Fatalf("Line Two actual=%q\n", d)
 	}
 }
+
+func BenchmarkLogplexLineFormatter(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		lf := NewLogplexLineFormatter(LogLineOne, &config)
+		_, err := ioutil.ReadAll(lf)
+		if err != nil {
+			b.Fatalf("Error reading everything from line: %q", err)
+		}
+	}
+}
+
+func BenchmarkLogplexBatchFormatter(b *testing.B) {
+	batch := NewBatch(50)
+	for i := 0; i < 25; i++ {
+		batch.Add(LogLineOne)
+		batch.Add(LogLineTwo)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		bf := NewLogplexBatchFormatter(batch, &config)
+		_, err := ioutil.ReadAll(bf)
+		if err != nil {
+			b.Fatalf("Error reading everything from line: %q", err)
+		}
+	}
+}

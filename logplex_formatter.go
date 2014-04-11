@@ -152,10 +152,9 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 // LogplexLineFormatter formats individual loglines into length prefixed
 // rfc5424 messages via an io.Reader interface
 type LogplexLineFormatter struct {
-	totalPos, headerPos, msgPos int // Positions in the the parts of the log lines
-	headerLength, msgLength     int // Header and Message Lengths
-	ll                          LogLine
-	header                      string
+	headerPos, msgPos int // Positions in the the parts of the log lines
+	ll                LogLine
+	header            string
 }
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
@@ -169,26 +168,23 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 		config.Procid,
 		config.Msgid,
 	)
-	msgLength := len(ll.line)
-	header := fmt.Sprintf("%d %s", len(syslogFrameHeader)+msgLength, syslogFrameHeader)
-	return &LogplexLineFormatter{ll: ll, header: header, msgLength: msgLength, headerLength: len(header)}
+	header := fmt.Sprintf("%d %s", len(syslogFrameHeader)+len(ll.line), syslogFrameHeader)
+	return &LogplexLineFormatter{ll: ll, header: header}
 }
 
 // Implements the io.Reader interface
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	for n < len(p) && err == nil {
-		if llf.totalPos >= llf.headerLength {
+		if llf.headerPos >= len(llf.header) {
 			copied := copy(p[n:], llf.ll.line[llf.msgPos:])
 			llf.msgPos += copied
-			llf.totalPos += copied
 			n += copied
-			if llf.msgPos >= llf.msgLength {
+			if llf.msgPos >= len(llf.ll.line) {
 				err = io.EOF
 			}
 		} else {
 			copied := copy(p[n:], llf.header[llf.headerPos:])
 			llf.headerPos += copied
-			llf.totalPos += copied
 			n += copied
 		}
 	}
