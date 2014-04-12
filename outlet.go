@@ -100,12 +100,7 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 }
 
 func (h *HttpOutlet) post(batch *Batch) error {
-	var reader io.Reader
-	if h.config.SkipHeaders {
-		reader = NewLogplexBatchWithHeadersFormatter(batch, &h.config)
-	} else {
-		reader = NewLogplexBatchFormatter(batch, &h.config)
-	}
+	reader := NewLogplexBatchFormatter(batch, &h.config)
 
 	req, err := http.NewRequest("POST", h.config.OutletURL(), reader)
 	if err != nil {
@@ -113,7 +108,7 @@ func (h *HttpOutlet) post(batch *Batch) error {
 	}
 
 	req.Header.Add("Content-Type", "application/logplex-1")
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(reader.(MsgCounter).MsgCount()))
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(reader.MsgCount()))
 	//req.Header.Add("Logshuttle-Drops", strconv.Itoa(batch.Drops))
 	//req.Header.Add("Logshuttle-Lost", strconv.Itoa(batch.Lost))
 	req.Header.Add("X-Request-Id", batch.UUID.String())

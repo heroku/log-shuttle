@@ -11,65 +11,6 @@ const (
 	BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00"
 )
 
-type MsgCounter interface {
-	MsgCount() int
-}
-
-// A LogplexBatchWithHeadersFormatter implements an io.Reader that returns
-// Logplex formatted log lines.  Assumes the loglines in the batch are already
-// syslog rfc5424 formatted and less than LOGPLEX_MAX_LENGTH
-type LogplexBatchWithHeadersFormatter struct {
-	curLogLine   int // Current Log Line
-	curLinePos   int // Current position in the current line
-	curPrefixPos int
-	b            *Batch
-	config       *ShuttleConfig
-}
-
-// Returns a new LogplexBatchWithHeadersFormatter, wrapping the existing Batch
-func NewLogplexBatchWithHeadersFormatter(b *Batch, config *ShuttleConfig) *LogplexBatchWithHeadersFormatter {
-	return &LogplexBatchWithHeadersFormatter{b: b, config: config}
-}
-
-// Return the number of formatted messages in the batch.
-func (bf *LogplexBatchWithHeadersFormatter) MsgCount() (msgCount int) {
-	return bf.b.MsgCount()
-}
-
-// io.Reader implementation Returns io.EOF when done.
-func (bf *LogplexBatchWithHeadersFormatter) Read(p []byte) (n int, err error) {
-	if bf.curLogLine > (bf.b.MsgCount() - 1) {
-		return 0, io.EOF
-	}
-
-	for n < len(p) && err == nil {
-		cl := bf.b.logLines[bf.curLogLine].line
-		prefix := fmt.Sprintf("%d ", len(cl))
-
-		if bf.curPrefixPos >= len(prefix) {
-			copied := copy(p[n:], cl[bf.curLinePos:])
-			n += copied
-			bf.curLinePos += copied
-
-			if bf.curLinePos >= len(cl) {
-				bf.curLinePos = 0
-				bf.curPrefixPos = 0
-				bf.curLogLine += 1
-			}
-
-			if bf.curLogLine > (bf.b.MsgCount() - 1) {
-				err = io.EOF
-			}
-		} else {
-			copied := copy(p[n:], prefix[bf.curPrefixPos:])
-			n += copied
-			bf.curPrefixPos += copied
-		}
-	}
-
-	return
-}
-
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to LOGPLEX_MAX_LENGTH
@@ -89,8 +30,12 @@ func NewLogplexBatchFormatter(b *Batch, config *ShuttleConfig) *LogplexBatchForm
 // LOGPLEX_MAX_LENGTH this may be different from the actual MsgCount of the
 // batch
 func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
-	for _, line := range bf.b.logLines {
-		msgCount += 1 + int(len(line.line)/LOGPLEX_MAX_LENGTH)
+	if bf.config.SkipHeaders {
+		msgCount = bf.b.MsgCount()
+	} else {
+		for _, line := range bf.b.logLines {
+			msgCount += 1 + int(len(line.line)/LOGPLEX_MAX_LENGTH)
+		}
 	}
 	return
 }
@@ -106,7 +51,7 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 			currentLine := bf.b.logLines[bf.curLogLine]
 
 			// The current line is too long, so make a sub batch
-			if cll := currentLine.Length(); cll > LOGPLEX_MAX_LENGTH {
+			if cll := currentLine.Length(); !bf.config.SkipVerify && cll > LOGPLEX_MAX_LENGTH {
 				subBatch := NewBatch(int(cll/LOGPLEX_MAX_LENGTH) + 1)
 
 				for i := 0; i < cll; i += LOGPLEX_MAX_LENGTH {
@@ -153,11 +98,17 @@ type LogplexLineFormatter struct {
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
-	return &LogplexLineFormatter{
-		line: ll.line,
-		header: fmt.Sprintf(config.syslogFrameHeaderFormat,
+	var header string
+	if config.SkipHeaders {
+		header = fmt.Sprintf("%d ", len(ll.line))
+	} else {
+		header = fmt.Sprintf(config.syslogFrameHeaderFormat,
 			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
-			ll.when.UTC().Format(BATCH_TIME_FORMAT)),
+			ll.when.UTC().Format(BATCH_TIME_FORMAT))
+	}
+	return &LogplexLineFormatter{
+		line:   ll.line,
+		header: header,
 	}
 }
 
