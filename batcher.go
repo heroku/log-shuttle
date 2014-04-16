@@ -11,7 +11,7 @@ func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue
 		batchWaiter.Add(1)
 		go func() {
 			defer batchWaiter.Done()
-			batcher := NewBatcher(config.BatchSize, config.Timeout, drops, stats, inLogs, outBatches)
+			batcher := NewBatcher(config.BatchSize, config.WaitDuration, drops, stats, inLogs, outBatches)
 			batcher.Batch()
 		}()
 	}
