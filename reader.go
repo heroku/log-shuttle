@@ -35,7 +35,7 @@ func (rdr *Reader) Read(input io.ReadCloser) error {
 		logLine := LogLine{line, currentLogTime}
 
 		rdr.Outbox <- logLine
-		rdr.stats <- NewNamedValue("reader.line.delay", currentLogTime.Sub(lastLogTime).Seconds())
+		rdr.stats <- NewNamedValue("reader.line.delay.time", currentLogTime.Sub(lastLogTime).Seconds())
 		lastLogTime = currentLogTime
 	}
 	return nil

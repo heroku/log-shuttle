@@ -162,7 +162,7 @@ func (h *HttpOutlet) post(batch *Batch, dropData, lostData errData) error {
 
 func (h *HttpOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {
 	defer func(t time.Time) {
-		name := "outlet.post"
+		name := "outlet.post.time"
 		if err != nil {
 			name += ".failure"
 		} else {
