@@ -64,24 +64,22 @@ func (h *HttpOutlet) Outlet() {
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
 
-		// drops, dropsSince := h.drops.ReadAndReset()
-		//if drops > 0 {
-		//		batch.WriteDrops(drops, dropsSince)
-		//}
-
-		// lost, lostSince := h.lost.ReadAndReset()
-		//if lost > 0 {
-		//	batch.WriteLost(lost, lostSince)
-		//}
-
 		h.retryPost(batch)
 	}
 }
 
 // Retry io.EOF errors h.config.MaxAttempts times
 func (h *HttpOutlet) retryPost(batch *Batch) {
+	var dropData, lostData errData
+
+	dropData.count, dropData.since = h.drops.ReadAndReset()
+	dropData.eType = errDrop
+
+	lostData.count, lostData.since = h.lost.ReadAndReset()
+	lostData.eType = errLost
+
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
-		err := h.post(batch)
+		err := h.post(batch, dropData, lostData)
 		if err != nil {
 			err, eok := err.(*url.Error)
 			if eok && err.Err == io.EOF && attempts < h.config.MaxAttempts {
@@ -99,18 +97,43 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 	return
 }
 
-func (h *HttpOutlet) post(batch *Batch) error {
-	reader := NewLogplexBatchFormatter(batch, &h.config)
+func (h *HttpOutlet) post(batch *Batch, dropData, lostData errData) error {
+	var contentLength int
 
-	req, err := http.NewRequest("POST", h.config.OutletURL(), reader)
+	readers := make([]io.Reader, 0, 3)
+
+	if dropData.count > 0 {
+		rdr := NewLogplexErrorFormatter(dropData, h.config)
+		readers = append(readers, rdr)
+		contentLength += rdr.Length()
+	}
+
+	if lostData.count > 0 {
+		rdr := NewLogplexErrorFormatter(lostData, h.config)
+		readers = append(readers, rdr)
+		contentLength += rdr.Length()
+	}
+
+	msgReader := NewLogplexBatchFormatter(batch, &h.config)
+	readers = append(readers, msgReader)
+	contentLength += msgReader.Length()
+
+	req, err := http.NewRequest("POST", h.config.OutletURL(), io.MultiReader(readers...))
 	if err != nil {
 		return err
 	}
 
 	req.Header.Add("Content-Type", "application/logplex-1")
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(reader.MsgCount()))
-	//req.Header.Add("Logshuttle-Drops", strconv.Itoa(batch.Drops))
-	//req.Header.Add("Logshuttle-Lost", strconv.Itoa(batch.Lost))
+	if contentLength > 0 {
+		req.ContentLength = int64(contentLength)
+	}
+	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(msgReader.MsgCount()))
+	if dropData.count > 0 {
+		req.Header.Add("Logshuttle-Drops", strconv.Itoa(dropData.count))
+	}
+	if lostData.count > 0 {
+		req.Header.Add("Logshuttle-Lost", strconv.Itoa(lostData.count))
+	}
 	req.Header.Add("X-Request-Id", batch.UUID.String())
 
 	resp, err := h.timeRequest(req)

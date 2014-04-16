@@ -3,13 +3,17 @@ package main
 import (
 	"fmt"
 	"io"
+	"time"
 )
 
 const (
-	LOGPLEX_MAX_LENGTH = 10000 // It's actually 10240, but leave enough space for headers
-	//TODO: Move this and the stuff that uses it to LogLine
-	BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00"
+	LOGPLEX_MAX_LENGTH        = 10000                              // It's actually 10240, but leave enough space for headers
+	LOGPLEX_BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00" // The format of the timestamp
 )
+
+type Lengthy interface {
+	Length() int
+}
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
@@ -40,6 +44,32 @@ func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 	return
 }
 
+//Splits the line into a batch of loglines of LOGPLEX_MAX_LENGTH length
+func splitLine(ll LogLine) *Batch {
+	l := ll.Length()
+	batch := NewBatch(int(l/LOGPLEX_MAX_LENGTH) + 1)
+	for i := 0; i < l; i += LOGPLEX_MAX_LENGTH {
+		t := i + LOGPLEX_MAX_LENGTH
+		if t > l {
+			t = l
+		}
+		batch.Add(LogLine{line: ll.line[i:t], when: ll.when})
+	}
+	return batch
+}
+
+func (bf *LogplexBatchFormatter) Length() (length int) {
+	for cli := 0; cli < len(bf.b.logLines); cli++ {
+		cl := bf.b.logLines[cli]
+		if cll := cl.Length(); !bf.config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
+			length += NewLogplexBatchFormatter(splitLine(cl), bf.config).Length()
+		} else {
+			length += NewLogplexLineFormatter(cl, bf.config).Length()
+		}
+	}
+	return
+}
+
 // Implements the io.Reader interface
 func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 	var copied int
@@ -50,21 +80,12 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 		if bf.curFormatter == nil {
 			currentLine := bf.b.logLines[bf.curLogLine]
 
-			// The current line is too long, so make a sub batch
-			if cll := currentLine.Length(); !bf.config.SkipVerify && cll > LOGPLEX_MAX_LENGTH {
-				subBatch := NewBatch(int(cll/LOGPLEX_MAX_LENGTH) + 1)
-
-				for i := 0; i < cll; i += LOGPLEX_MAX_LENGTH {
-					target := i + LOGPLEX_MAX_LENGTH
-					if target > cll {
-						target = cll
-					}
-
-					subBatch.Add(LogLine{line: currentLine.line[i:target], when: currentLine.when})
-				}
-
+			// The current log line has headers (so we assume it's length is okay)
+			// but if the not and the log line is too long, we need to split it to do
+			// this we make a sub batch.
+			if cll := currentLine.Length(); !bf.config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
 				// Wrap the sub batch in a formatter
-				bf.curFormatter = NewLogplexBatchFormatter(subBatch, bf.config)
+				bf.curFormatter = NewLogplexBatchFormatter(splitLine(currentLine), bf.config)
 			} else {
 				bf.curFormatter = NewLogplexLineFormatter(currentLine, bf.config)
 			}
@@ -104,12 +125,16 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 	} else {
 		header = fmt.Sprintf(config.syslogFrameHeaderFormat,
 			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
-			ll.when.UTC().Format(BATCH_TIME_FORMAT))
+			ll.when.UTC().Format(LOGPLEX_BATCH_TIME_FORMAT))
 	}
 	return &LogplexLineFormatter{
 		line:   ll.line,
 		header: header,
 	}
+}
+
+func (llf *LogplexLineFormatter) Length() (lenth int) {
+	return len(llf.header) + len(llf.line)
 }
 
 // Implements the io.Reader interface
@@ -130,4 +155,31 @@ func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 		}
 	}
 	return
+}
+
+func NewLogplexErrorFormatter(err errData, config ShuttleConfig) *LogplexLineFormatter {
+	var what, code string
+
+	switch err.eType {
+	case errDrop:
+		what = "dropped"
+		code = "L12"
+	case errLost:
+		what = "lost"
+		code = "L13"
+	}
+
+	msg := fmt.Sprintf("<172>%s %s heroku %s log-shuttle %s Error %s: %d messages %s since %s\n",
+		config.Version,
+		time.Now().UTC().Format(LOGPLEX_BATCH_TIME_FORMAT),
+		config.Appname,
+		config.Msgid,
+		code,
+		err.count,
+		what,
+		err.since.UTC().Format(LOGPLEX_BATCH_TIME_FORMAT))
+	return &LogplexLineFormatter{
+		line:   []byte(msg),
+		header: fmt.Sprintf("%d ", len(msg)),
+	}
 }

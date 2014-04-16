@@ -30,6 +30,19 @@ const (
 	DEFAULT_STATS_SOURCE   = ""
 )
 
+const (
+	errDrop errType = iota
+	errLost
+)
+
+type errType int
+
+type errData struct {
+	count int
+	since time.Time
+	eType errType
+}
+
 type ShuttleConfig struct {
 	FrontBuff                           int
 	StatsBuff                           int
@@ -92,7 +105,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	}
 
 	// This is here to pre-comute this so other's don't have to later
-	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(BATCH_TIME_FORMAT) +
+	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(LOGPLEX_BATCH_TIME_FORMAT) +
 		len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >
 
 	c.syslogFrameHeaderFormat = fmt.Sprintf("%s <%s>%s %s %s %s %s %s ",

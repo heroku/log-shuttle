@@ -93,17 +93,6 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
 
-	t.SkipNow()
-
-	dropHeader, ok := th.Headers["Logshuttle-Drops"]
-	if !ok {
-		t.Fatalf("Header Logshuttle-Drops not found in response")
-	}
-
-	if dropHeader[0] != "0" {
-		t.Fatalf("Logshuttle-Drops=%s\n", dropHeader[0])
-	}
-
 	if afterDrops, _ := stats.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
@@ -135,7 +124,6 @@ func TestSkipHeadersIntegration(t *testing.T) {
 }
 
 func TestDrops(t *testing.T) {
-	t.SkipNow()
 	th := new(testHelper)
 	ts := httptest.NewServer(th)
 	defer ts.Close()
@@ -150,7 +138,7 @@ func TestDrops(t *testing.T) {
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
 
-	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+`)
+	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+\n`)
 	if !pat1.Match(th.Actual) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
@@ -167,6 +155,41 @@ func TestDrops(t *testing.T) {
 	//Should be 0 because it was reset during delivery to the testHelper
 	if afterDrops, _ := stats.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
+	}
+}
+
+func TestLost(t *testing.T) {
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.LogsURL = ts.URL
+	config.SkipHeaders = false
+
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+
+	stats.Lost.Add(1)
+	stats.Lost.Add(1)
+	reader.Read(NewTestInput())
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+
+	pat1 := regexp.MustCompile(`135 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L13: 2 messages lost since [0-9T:\+\-\.]+\n`)
+	if !pat1.Match(th.Actual) {
+		t.Fatalf("actual=%s\n", string(th.Actual))
+	}
+
+	lostHeader, ok := th.Headers["Logshuttle-Lost"]
+	if !ok {
+		t.Fatalf("Header Logshuttle-Lost not found in response")
+	}
+
+	if lostHeader[0] != "2" {
+		t.Fatalf("Logshuttle-Lost=%s\n", lostHeader[0])
+	}
+
+	//Should be 0 because it was reset during delivery to the testHelper
+	if afterLost, _ := stats.Lost.ReadAndReset(); afterLost != 0 {
+		t.Fatalf("afterLost=%d\n", afterLost)
 	}
 }
 
