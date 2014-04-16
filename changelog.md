@@ -1,3 +1,18 @@
+### 0.9.0 2014-04-16 Edward Muller (edward@heroku.com)
+
+* Large re-write of batching behaviour. Previously logs were written into the
+  batch in logplex format. Now incoming data is stored in raw form and
+  Formatters, supporting the io.Reader interface, are used to format the batch
+  for http.Client's delivery to logplex. This change allowed me to get rid of the
+  batch_manager as batches are now much lighter. In testing I've seen an overall
+  decerase in RAM and an overall increase in performance as well. This also paves
+  the way for other formatters. There is still work to do to abstract outlets a
+  bit though, but I'm waiting until I implement delivery in another format to
+  worry about that.
+* Some changes to the metrics that are emitted. Previously they were all being
+  written out as time durations, even when they're not actually.
+* reset lastPoll when the socket is polled
+
 ### 0.8.1 2014-04-01 Edward Muller (edward@heroku.com)
 
 * Reduce the amount of log-shuttle's in the stats output
