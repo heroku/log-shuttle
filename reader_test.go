@@ -16,23 +16,23 @@ var (
 )
 
 type InputProducer struct {
-	Total, Curr *int
-	TotalBytes  *int
+	Total, Curr int
+	TotalBytes  int
 	Data        []byte
 }
 
-func NewInputProducer(c int) InputProducer {
+func NewInputProducer(c int) *InputProducer {
 	curr := 0
 	tb := 0
-	return InputProducer{Total: &c, Curr: &curr, TotalBytes: &tb, Data: TestData}
+	return &InputProducer{Total: c, Curr: curr, TotalBytes: tb, Data: TestData}
 }
 
-func (llp InputProducer) Read(p []byte) (n int, err error) {
-	if *llp.Curr > *llp.Total {
+func (llp *InputProducer) Read(p []byte) (n int, err error) {
+	if llp.Curr > llp.Total {
 		return 0, io.EOF
 	} else {
-		*llp.Curr += 1
-		*llp.TotalBytes += len(llp.Data)
+		llp.Curr += 1
+		llp.TotalBytes += len(llp.Data)
 		return copy(p, llp.Data), nil
 	}
 }
@@ -75,7 +75,7 @@ func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
 		llp := NewInputProducer(TEST_PRODUCER_LINES)
 		b.StartTimer()
 		rdr.Read(llp)
-		b.SetBytes(int64(*llp.TotalBytes))
+		b.SetBytes(int64(llp.TotalBytes))
 		close(rdr.Outbox)
 		close(stats)
 		testConsumer.Wait()
