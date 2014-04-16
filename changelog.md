@@ -1,3 +1,6 @@
+### 0.9.1 2014-04-16 Edward Muller (edward@heroku.com)
+
+* Set the user agent to something sane: log-shuttle/0.9.0 (go1.2.1; darwin; amd64; gc)
 ### 0.9.0 2014-04-16 Edward Muller (edward@heroku.com)
 
 * Large re-write of batching behaviour. Previously logs were written into the
