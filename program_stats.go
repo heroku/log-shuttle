@@ -203,9 +203,15 @@ func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
 	for name, stream := range stats.stats {
 		base := name + "."
 		snapshot[base+"count"] = stream.Count()
-		snapshot[base+"p50"] = time.Duration(stream.Query(0.50) * float64(time.Second))
-		snapshot[base+"p95"] = time.Duration(stream.Query(0.95) * float64(time.Second))
-		snapshot[base+"p99"] = time.Duration(stream.Query(0.99) * float64(time.Second))
+		if strings.Contains(base, "time") {
+			snapshot[base+"p50"] = time.Duration(stream.Query(0.50) * float64(time.Second))
+			snapshot[base+"p95"] = time.Duration(stream.Query(0.95) * float64(time.Second))
+			snapshot[base+"p99"] = time.Duration(stream.Query(0.99) * float64(time.Second))
+		} else {
+			snapshot[base+"p50"] = stream.Query(0.50)
+			snapshot[base+"p95"] = stream.Query(0.95)
+			snapshot[base+"p99"] = stream.Query(0.99)
+		}
 		if reset {
 			stream.Reset()
 		}

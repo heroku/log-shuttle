@@ -1,9 +1,6 @@
 package main
 
-import (
-	"testing"
-	"time"
-)
+import "testing"
 
 func TestProgramStatsSnapshot(t *testing.T) {
 	ps := NewProgramStats("tcp,:9000", 0)
@@ -20,12 +17,12 @@ func TestProgramStatsSnapshot(t *testing.T) {
 		t.Errorf("alltime.drops.count expected to be 0, got: %d\n", v)
 	}
 
-	v, ok = snapshot["test.p50.seconds"]
+	v, ok = snapshot["test.p50"]
 	if !ok {
-		t.Fatal("Unable to find log-shuttle.test.p50.seconds in snapshot")
+		t.Fatal("Unable to find log-shuttle.test.p50 in snapshot")
 	}
 
-	if v.(time.Duration) != time.Second {
+	if v != 1.0 {
 		t.Errorf("Value of count (%d) is incorrect, expecting 1.0\n", v)
 	}
 	close(ps.Input)
