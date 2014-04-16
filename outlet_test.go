@@ -60,9 +60,9 @@ func TestOutletEOFRetry(t *testing.T) {
 		t.Errorf("th.called != 2, == %q\n", th.called)
 	}
 
-	//if batch.Lost != 0 {
-	//	t.Errorf("batch.lost != 0, == %q\n", batch.Lost)
-	//}
+	if lost.Read() != 0 {
+		t.Errorf("lost != 0, == %q\n", lost.Read())
+	}
 
 	pat := regexp.MustCompile(logLineText)
 	if !pat.Match(th.Actual) {
