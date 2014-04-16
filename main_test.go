@@ -193,6 +193,30 @@ func TestLost(t *testing.T) {
 	}
 }
 
+func TestUserAgentHeader(t *testing.T) {
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.LogsURL = ts.URL
+	config.SkipHeaders = false
+
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+
+	reader.Read(NewTestInput())
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+
+	uaHeader, ok := th.Headers["User-Agent"]
+	if !ok {
+		t.Fatalf("Header User-Agent not found in response")
+	}
+
+	uaPattern := regexp.MustCompile(`^log-shuttle/\d+\.\d+\.\d+ \(go\d+\.\d+\.\d+; \w+; \w+; \w+\)$`)
+	if !uaPattern.MatchString(uaHeader[0]) {
+		t.Fatalf("Header User-Agent doesn't match expected pattern. Actual: %s\n", uaHeader[0])
+	}
+}
+
 func TestRequestId(t *testing.T) {
 	th := new(testHelper)
 	ts := httptest.NewServer(th)

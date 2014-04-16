@@ -2,11 +2,13 @@ package main
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -14,6 +16,10 @@ import (
 
 const (
 	RETRY_SLEEP = 100 // will be in ms
+)
+
+var (
+	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
 func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch) *sync.WaitGroup {
@@ -135,6 +141,7 @@ func (h *HttpOutlet) post(batch *Batch, dropData, lostData errData) error {
 		req.Header.Add("Logshuttle-Lost", strconv.Itoa(lostData.count))
 	}
 	req.Header.Add("X-Request-Id", batch.UUID.String())
+	req.Header.Add("User-Agent", userAgent)
 
 	resp, err := h.timeRequest(req)
 	if err != nil {
