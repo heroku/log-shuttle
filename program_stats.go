@@ -167,9 +167,15 @@ func (stats *ProgramStats) accept(listener net.Listener) {
 	}
 }
 
+// Updates lastPoll to the provided time.
+func (stats *ProgramStats) updateLastPoll(t time.Time) {
+	stats.lastPoll = t
+}
+
 // we create a buffer (output) in order to sort the output
 func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	defer conn.Close()
+	defer stats.updateLastPoll(time.Now())
 
 	snapshot := stats.Snapshot(false)
 	output := make([]string, 0, len(snapshot))
