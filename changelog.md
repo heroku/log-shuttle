@@ -1,3 +1,9 @@
+### 0.9.3 2014-04-17 Edward Muller (edward@heroku.com)
+
+* -back-buff=50 default, 100 was probably too many
+* Simplify LogplexBatchFormatter, adding a few MB/s performance wise.
+* Other cleanups
+
 ### 0.9.2 2014-04-17 Edward Muller (edward@heroku.com)
 
 * -back-buff=100 default to handle spikes in logs.
