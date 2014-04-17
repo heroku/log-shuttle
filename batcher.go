@@ -48,12 +48,10 @@ func (batcher Batcher) Batch() {
 		if msgCount := batch.MsgCount(); msgCount > 0 {
 			select {
 			case batcher.outBatches <- batch:
+				// submitted into the delivery channel, just record some stats
 				batcher.stats <- NewNamedValue("batch.msg.count", float64(msgCount))
-			// submitted into the delivery channel,
-			// nothing to do here.
 			default:
-				//Unable to deliver into the delivery channel,
-				//increment drops
+				//Unable to deliver into the delivery channel, increment drops
 				batcher.stats <- NewNamedValue("batch.msg.dropped", float64(msgCount))
 				batcher.drops.Add(msgCount)
 			}
@@ -68,10 +66,11 @@ func (batcher Batcher) Batch() {
 // fillBatch coalesces individual log lines into batches. Delivery of the
 // batch happens on timeout after at least one message is received
 // or when the batch is full.
-func (batcher Batcher) fillBatch() (chanOpen bool, batch Batch) {
-	batch = NewBatch(batcher.batchSize) // Make a batch
-	timeout := new(time.Timer)          // Gives us a nil channel and no timeout to start with
-	chanOpen = true                     // Assume the channel is open
+// returns the channel status, completed batch
+func (batcher Batcher) fillBatch() (bool, Batch) {
+	batch := NewBatch(batcher.batchSize) // Make a batch
+	timeout := new(time.Timer)           // Gives us a nil channel and no timeout to start with
+	chanOpen := true                     // Assume the channel is open
 	count := 0
 
 	for {
