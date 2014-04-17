@@ -1,3 +1,7 @@
+### 0.9.2 2014-04-17 Edward Muller (edward@heroku.com)
+
+* -back-buff=100 default to handle spikes in logs.
+
 ### 0.9.1 2014-04-16 Edward Muller (edward@heroku.com)
 
 * Set the user agent to something sane: log-shuttle/0.9.0 (go1.2.1; darwin; amd64; gc)
