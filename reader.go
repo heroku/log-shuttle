@@ -11,14 +11,14 @@ type Reader struct {
 	stats  chan<- NamedValue
 }
 
-func NewReader(frontBuff int, stats chan<- NamedValue) *Reader {
-	return &Reader{
+func NewReader(frontBuff int, stats chan<- NamedValue) Reader {
+	return Reader{
 		Outbox: make(chan LogLine, frontBuff),
 		stats:  stats,
 	}
 }
 
-func (rdr *Reader) Read(input io.ReadCloser) error {
+func (rdr Reader) Read(input io.ReadCloser) error {
 	rdrIo := bufio.NewReader(input)
 
 	lastLogTime := time.Now()
