@@ -22,7 +22,7 @@ var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
@@ -38,7 +38,7 @@ func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- Named
 }
 
 type HttpOutlet struct {
-	inbox  <-chan *Batch
+	inbox  <-chan Batch
 	stats  chan<- NamedValue
 	drops  *Counter
 	lost   *Counter
@@ -46,7 +46,7 @@ type HttpOutlet struct {
 	config ShuttleConfig
 }
 
-func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan *Batch) *HttpOutlet {
+func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *HttpOutlet {
 	return &HttpOutlet{
 		drops:  drops,
 		lost:   lost,
@@ -75,7 +75,7 @@ func (h *HttpOutlet) Outlet() {
 }
 
 // Retry io.EOF errors h.config.MaxAttempts times
-func (h *HttpOutlet) retryPost(batch *Batch) {
+func (h *HttpOutlet) retryPost(batch Batch) {
 	var dropData, lostData errData
 
 	dropData.count, dropData.since = h.drops.ReadAndReset()
@@ -103,7 +103,7 @@ func (h *HttpOutlet) retryPost(batch *Batch) {
 	return
 }
 
-func (h *HttpOutlet) post(batch *Batch, dropData, lostData errData) error {
+func (h *HttpOutlet) post(batch Batch, dropData, lostData errData) error {
 	var contentLength int
 
 	readers := make([]io.Reader, 0, 3)

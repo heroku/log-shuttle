@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- *Batch) *sync.WaitGroup {
+func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
 	batchWaiter := new(sync.WaitGroup)
 	for i := 0; i < config.NumBatchers; i++ {
 		batchWaiter.Add(1)
@@ -21,15 +21,15 @@ func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue
 
 type Batcher struct {
 	inLogs     <-chan LogLine    // Where I get the log lines to batch from
-	outBatches chan<- *Batch     // Where I send completed batches to
+	outBatches chan<- Batch      // Where I send completed batches to
 	stats      chan<- NamedValue // Where to send measurements
 	drops      *Counter          // The drops counter
 	timeout    time.Duration     // How long once we have a log line before we need to flush the batch
 	batchSize  int               // The size of the batches
 }
 
-func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- *Batch) *Batcher {
-	return &Batcher{
+func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) Batcher {
+	return Batcher{
 		inLogs:     inLogs,
 		drops:      drops,
 		stats:      stats,
@@ -40,13 +40,10 @@ func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan
 }
 
 // Loops getting an empty batch and filling it.
-func (batcher *Batcher) Batch() {
+func (batcher Batcher) Batch() {
 
 	for {
-		//Make a new batch
-		batch := NewBatch(batcher.batchSize)
-
-		closeDown := batcher.fillBatch(batch)
+		closeDown, batch := batcher.fillBatch()
 
 		if msgCount := batch.MsgCount(); msgCount > 0 {
 			select {
@@ -71,19 +68,20 @@ func (batcher *Batcher) Batch() {
 // fillBatch coalesces individual log lines into batches. Delivery of the
 // batch happens on timeout after at least one message is received
 // or when the batch is full.
-func (batcher *Batcher) fillBatch(batch *Batch) (chanOpen bool) {
-	timeout := new(time.Timer) // Gives us a nil channel and no timeout to start with
-	chanOpen = true            // Assume the channel is open
+func (batcher Batcher) fillBatch() (chanOpen bool, batch Batch) {
+	batch = NewBatch(batcher.batchSize) // Make a batch
+	timeout := new(time.Timer)          // Gives us a nil channel and no timeout to start with
+	chanOpen = true                     // Assume the channel is open
 	count := 0
 
 	for {
 		select {
 		case <-timeout.C:
-			return !chanOpen
+			return !chanOpen, batch
 
 		case line, chanOpen := <-batcher.inLogs:
 			if !chanOpen {
-				return !chanOpen
+				return !chanOpen, batch
 			}
 
 			// We have a line now, so set a timeout
@@ -97,7 +95,7 @@ func (batcher *Batcher) fillBatch(batch *Batch) (chanOpen bool) {
 			count += 1
 
 			if count >= batcher.batchSize {
-				return !chanOpen
+				return !chanOpen, batch
 			}
 		}
 	}

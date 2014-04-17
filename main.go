@@ -17,8 +17,8 @@ const (
 	VERSION = "0.9.2"
 )
 
-func MakeBasicBits(config ShuttleConfig) (reader *Reader, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
-	deliverableBatches = make(chan *Batch, config.BackBuff)
+func MakeBasicBits(config ShuttleConfig) (reader *Reader, deliverableBatches chan Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
+	deliverableBatches = make(chan Batch, config.BackBuff)
 	programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
 	reader = NewReader(config.FrontBuff, programStats.Input)
 	programStats.Listen()
@@ -29,7 +29,7 @@ func MakeBasicBits(config ShuttleConfig) (reader *Reader, deliverableBatches cha
 	return
 }
 
-func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBatches chan *Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
+func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBatches chan Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
 	close(deliverableLogs)    // Close the log line channel, all of the batchers will stop once they are done
 	bWaiter.Wait()            // Wait for them to be done
 	close(deliverableBatches) // Close the batch channel, all of the outlet will stop once they are done

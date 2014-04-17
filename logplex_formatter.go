@@ -20,13 +20,13 @@ type Lengthy interface {
 // them as necessary to LOGPLEX_MAX_LENGTH
 type LogplexBatchFormatter struct {
 	curLogLine   int // Current Log Line
-	b            *Batch
+	b            Batch
 	curFormatter io.Reader // Current sub formatter
 	config       *ShuttleConfig
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b *Batch, config *ShuttleConfig) *LogplexBatchFormatter {
+func NewLogplexBatchFormatter(b Batch, config *ShuttleConfig) *LogplexBatchFormatter {
 	return &LogplexBatchFormatter{b: b, config: config}
 }
 
@@ -45,7 +45,7 @@ func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 }
 
 //Splits the line into a batch of loglines of LOGPLEX_MAX_LENGTH length
-func splitLine(ll LogLine) *Batch {
+func splitLine(ll LogLine) Batch {
 	l := ll.Length()
 	batch := NewBatch(int(l/LOGPLEX_MAX_LENGTH) + 1)
 	for i := 0; i < l; i += LOGPLEX_MAX_LENGTH {

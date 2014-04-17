@@ -20,7 +20,7 @@ func BenchmarkBatcher(b *testing.B) {
 	b.ResetTimer()
 	stats := make(chan NamedValue, config.StatsBuff)
 	go ConsumeNamedValues(stats)
-	outBatches := make(chan *Batch)
+	outBatches := make(chan Batch)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		logs := make(chan LogLine, config.FrontBuff)
