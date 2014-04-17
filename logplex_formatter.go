@@ -19,26 +19,36 @@ type Lengthy interface {
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to LOGPLEX_MAX_LENGTH
 type LogplexBatchFormatter struct {
-	curLogLine   int // Current Log Line
-	b            Batch
-	curFormatter io.Reader // Current sub formatter
-	config       *ShuttleConfig
+	curFormatter int
+	formatters   []io.Reader // Formatters
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
 func NewLogplexBatchFormatter(b Batch, config *ShuttleConfig) *LogplexBatchFormatter {
-	return &LogplexBatchFormatter{b: b, config: config}
+	bf := &LogplexBatchFormatter{formatters: make([]io.Reader, 0, b.MsgCount())}
+
+	for cli := 0; cli < len(b.logLines); cli++ {
+		cl := b.logLines[cli]
+		if cll := len(cl.line); !config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
+			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl), config))
+		} else {
+			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(cl, config))
+		}
+	}
+
+	return bf
 }
 
 // The msgcount of the wrapped batch. Because it splits lines at
 // LOGPLEX_MAX_LENGTH this may be different from the actual MsgCount of the
 // batch
 func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
-	if bf.config.SkipHeaders {
-		msgCount = bf.b.MsgCount()
-	} else {
-		for _, line := range bf.b.logLines {
-			msgCount += 1 + int(len(line.line)/LOGPLEX_MAX_LENGTH)
+	for _, f := range bf.formatters {
+		switch t := f.(type) {
+		case *LogplexBatchFormatter:
+			msgCount += t.MsgCount()
+		default:
+			msgCount += 1
 		}
 	}
 	return
@@ -59,13 +69,9 @@ func splitLine(ll LogLine) Batch {
 }
 
 func (bf *LogplexBatchFormatter) Length() (length int) {
-	for cli := 0; cli < len(bf.b.logLines); cli++ {
-		cl := bf.b.logLines[cli]
-		if cll := cl.Length(); !bf.config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
-			length += NewLogplexBatchFormatter(splitLine(cl), bf.config).Length()
-		} else {
-			length += NewLogplexLineFormatter(cl, bf.config).Length()
-		}
+	for _, f := range bf.formatters {
+		v := f.(Lengthy)
+		length += v.Length()
 	}
 	return
 }
@@ -75,34 +81,15 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 	var copied int
 
 	for n < len(p) && err == nil {
+		copied, err = bf.formatters[bf.curFormatter].Read(p[n:])
+		n += copied
 
-		// There is no currentFormatter, so figure one out
-		if bf.curFormatter == nil {
-			currentLine := bf.b.logLines[bf.curLogLine]
-
-			// The current log line has headers (so we assume it's length is okay)
-			// but if the not and the log line is too long, we need to split it to do
-			// this we make a sub batch.
-			if cll := currentLine.Length(); !bf.config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
-				// Wrap the sub batch in a formatter
-				bf.curFormatter = NewLogplexBatchFormatter(splitLine(currentLine), bf.config)
-			} else {
-				bf.curFormatter = NewLogplexLineFormatter(currentLine, bf.config)
-			}
-		}
-
-		for n < len(p) && err == nil {
-			copied, err = bf.curFormatter.Read(p[n:])
-			n += copied
-		}
-
-		// if we're not at the last line and the err is io.EOF
+		// if we're not at the last formatter and the err is io.EOF
 		// then we're not done reading, so ditch the current formatter
 		// and move to the next log line
-		if bf.curLogLine < (bf.b.MsgCount()-1) && err == io.EOF {
+		if err == io.EOF && bf.curFormatter < (len(bf.formatters)-1) {
 			err = nil
-			bf.curLogLine += 1
-			bf.curFormatter = nil
+			bf.curFormatter += 1
 		}
 	}
 
