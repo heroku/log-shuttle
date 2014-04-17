@@ -21,6 +21,7 @@ const (
 const (
 	DEFAULT_INPUT_FORMAT   = INPUT_FORMAT_RAW
 	DEFAULT_FRONT_BUFF     = 1000
+	DEFAULT_BACK_BUFF      = 100
 	DEFAULT_STATS_BUFF     = 5000
 	DEFAULT_STATS_ADDR     = ""
 	DEFAULT_TIMEOUT        = 5 * time.Second
@@ -44,6 +45,7 @@ type errData struct {
 }
 
 type ShuttleConfig struct {
+	BackBuff                            int
 	FrontBuff                           int
 	StatsBuff                           int
 	BatchSize                           int
@@ -95,6 +97,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.DurationVar(&c.WaitDuration, "wait", time.Duration(DEFAULT_WAIT_DURATION), "Duration to wait to flush messages to logplex")
 	flag.IntVar(&c.BatchSize, "batch-size", 500, "Number of messages to pack into a logplex http request.")
 	flag.IntVar(&c.FrontBuff, "front-buff", DEFAULT_FRONT_BUFF, "Number of messages to buffer in log-shuttle's input chanel.")
+	flag.IntVar(&c.BackBuff, "back-buff", DEFAULT_BACK_BUFF, "Number of batches to buffer before dropping.")
 	flag.IntVar(&c.StatsBuff, "stats-buff", DEFAULT_STATS_BUFF, "Number of stats to buffer.")
 	flag.DurationVar(&c.Timeout, "timeout", time.Duration(DEFAULT_TIMEOUT), "Duration to wait for a response from Logplex.")
 	flag.BoolVar(&c.LogToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")

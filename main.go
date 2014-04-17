@@ -18,7 +18,7 @@ const (
 )
 
 func MakeBasicBits(config ShuttleConfig) (reader *Reader, deliverableBatches chan *Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
-	deliverableBatches = make(chan *Batch, config.NumOutlets*config.NumBatchers)
+	deliverableBatches = make(chan *Batch, config.BackBuff)
 	programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
 	reader = NewReader(config.FrontBuff, programStats.Input)
 	programStats.Listen()
