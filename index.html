@@ -61,15 +61,12 @@ source s_all {
 	file("/proc/kmsg" program_override("kernel: "));
 };
 destination log_shuttle {
-	unix-stream("/tmp/log-shuttle");
+  program("/usr/bin/log-shuttle -skip-headers" flags(no_multi_line, syslog-protocol)); };
 };
+
 log {
 	source(s_all); destination(log_shuttle);
 };
-	</code></pre>
-	<em>log-shuttle setup</em>
-	<pre><code>
-$ ./log-shuttle -skip-headers -socket="/tmp/log-suttle"
 	</code></pre>
 
 	<h2>Tail Files</h2>
