@@ -45,7 +45,7 @@
 	<h2>Synopsis</h2>
 	<p>Log-shuttle is an open source UNIX program that delivers messages from applications and daemons to log routers and processors via HTTPs.</p>
 	<p>One of the motivations behind log-shuttle is to provide a simpler form of encrypted & authenticated log delivery. Using HTTPs & Basic Authentication is simpler than the techniques described in RFC5425. TLS transport mapping for Syslog requires that you maintain both client & server certificates for authentication. In multi-tenant environments, the maintenance of certificate management can be quite burdensome.</p>
-	<p>When using log-shuttle with <a href="https://devcenter.heroku.com/articles/logplex">logplex</a> it is recomended that you spawn 1 log-shuttle per logplex token. This will isolate data between customers and ensure a good QoS. It is also recomeded that log-shuttle not buffer incomming data so as not to slow down the sending process. This is how log-shuttle works by default, and while not advised, incoming data can be buffered using the <code>-front-buff</code> flag. Run log-shuttle's help command for more options.</p>
+  <p>When using log-shuttle with <a href="https://github.com/heroku/logplex">logplex</a> it is recomended that you spawn 1 log-shuttle per logplex token. This will isolate data between and can be used to help ensure a good QoS.</p>
 	<h2>Quick Start</h2>
 	<pre><code>
 $ echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
