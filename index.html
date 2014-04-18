@@ -48,7 +48,6 @@
 	<p>When using log-shuttle with <a href="https://devcenter.heroku.com/articles/logplex">logplex</a> it is recomended that you spawn 1 log-shuttle per logplex token. This will isolate data between customers and ensure a good QoS. It is also recomeded that log-shuttle not buffer incomming data so as not to slow down the sending process. This is how log-shuttle works by default, and while not advised, incoming data can be buffered using the <code>-front-buff</code> flag. Run log-shuttle's help command for more options.</p>
 	<h2>Quick Start</h2>
 	<pre><code>
-$ curl http://log-shuttle.io/v0.2/osx/log-shuttle.tar.gz | tar xvz
 $ echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
 	</code></pre>
 
