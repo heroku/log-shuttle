@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -78,14 +77,25 @@ func (h *HttpOutlet) Outlet() {
 func (h *HttpOutlet) retryPost(batch Batch) {
 	var dropData, lostData errData
 
+	edata := make([]errData, 0, 2)
+
 	dropData.count, dropData.since = h.drops.ReadAndReset()
-	dropData.eType = errDrop
+	if dropData.count > 0 {
+		dropData.eType = errDrop
+		edata = append(edata, dropData)
+	}
 
 	lostData.count, lostData.since = h.lost.ReadAndReset()
-	lostData.eType = errLost
+	if lostData.count > 0 {
+		lostData.eType = errLost
+		edata = append(edata, lostData)
+	}
+
+	uuid := batch.UUID.String()
 
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
-		err := h.post(batch, dropData, lostData)
+		formatter := NewLogplexBatchFormatter(batch, edata, &h.config)
+		err := h.post(formatter, uuid)
 		if err != nil {
 			err, eok := err.(*url.Error)
 			if eok && err.Err == io.EOF && attempts < h.config.MaxAttempts {
@@ -103,45 +113,22 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 	return
 }
 
-func (h *HttpOutlet) post(batch Batch, dropData, lostData errData) error {
-	var contentLength int
+func (h *HttpOutlet) post(formatter Formatter, uuid string) error {
 
-	readers := make([]io.Reader, 0, 3)
-
-	if dropData.count > 0 {
-		rdr := NewLogplexErrorFormatter(dropData, h.config)
-		readers = append(readers, rdr)
-		contentLength += rdr.ContentLength()
-	}
-
-	if lostData.count > 0 {
-		rdr := NewLogplexErrorFormatter(lostData, h.config)
-		readers = append(readers, rdr)
-		contentLength += rdr.ContentLength()
-	}
-
-	msgReader := NewLogplexBatchFormatter(batch, &h.config)
-	readers = append(readers, msgReader)
-	contentLength += msgReader.ContentLength()
-
-	req, err := http.NewRequest("POST", h.config.OutletURL(), io.MultiReader(readers...))
+	req, err := http.NewRequest("POST", h.config.OutletURL(), formatter)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Add("Content-Type", "application/logplex-1")
-	if contentLength > 0 {
-		req.ContentLength = int64(contentLength)
+	if cl := formatter.ContentLength(); cl > 0 {
+		req.ContentLength = cl
 	}
-	req.Header.Add("Logplex-Msg-Count", strconv.Itoa(msgReader.MsgCount()))
-	if dropData.count > 0 {
-		req.Header.Add("Logshuttle-Drops", strconv.Itoa(dropData.count))
-	}
-	if lostData.count > 0 {
-		req.Header.Add("Logshuttle-Lost", strconv.Itoa(lostData.count))
-	}
-	req.Header.Add("X-Request-Id", batch.UUID.String())
+	req.Header.Add("X-Request-Id", uuid)
 	req.Header.Add("User-Agent", userAgent)
+
+	for k, v := range formatter.Headers() {
+		req.Header.Add(k, v)
+	}
 
 	resp, err := h.timeRequest(req)
 	if err != nil {
@@ -152,14 +139,14 @@ func (h *HttpOutlet) post(batch Batch, dropData, lostData errData) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", batch.UUID, status, err)
+			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", uuid, status, err)
 		} else {
-			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", batch.UUID, status, body)
+			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", uuid, status, body)
 		}
 
 	default:
 		if h.config.Verbose {
-			ErrLogger.Printf("at=post request_id=%q status=%d\n", batch.UUID, status)
+			ErrLogger.Printf("at=post request_id=%q status=%d\n", uuid, status)
 		}
 	}
 

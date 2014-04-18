@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"strconv"
 	"time"
 )
 
@@ -11,45 +12,59 @@ const (
 	LOGPLEX_BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00" // The format of the timestamp
 )
 
-type ContentLength interface {
-	ContentLength() int
-}
-
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to LOGPLEX_MAX_LENGTH
 type LogplexBatchFormatter struct {
 	curFormatter int
-	formatters   []io.Reader // Formatters
+	formatters   []Formatter
+	headers      map[string]string
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, config *ShuttleConfig) *LogplexBatchFormatter {
-	bf := &LogplexBatchFormatter{formatters: make([]io.Reader, 0, b.MsgCount())}
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) *LogplexBatchFormatter {
+	bf := &LogplexBatchFormatter{
+		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
+		headers:    make(map[string]string),
+	}
+	bf.headers["Content-Type"] = "application/logplex-1"
 
+	//Process any errData that we were passed first so it's at the top of the batch
+	for _, edata := range eData {
+		bf.formatters = append(bf.formatters, NewLogplexErrorFormatter(edata, *config))
+		switch edata.eType {
+		case errDrop:
+			bf.headers["Logshuttle-Drops"] = strconv.Itoa(edata.count)
+		case errLost:
+			bf.headers["Logshuttle-Lost"] = strconv.Itoa(edata.count)
+		}
+	}
+
+	// Make all of the sub formatters
 	for cli := 0; cli < len(b.logLines); cli++ {
 		cl := b.logLines[cli]
 		if cll := len(cl.line); !config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
-			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl), config))
+			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl), make([]errData, 0), config))
 		} else {
 			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(cl, config))
 		}
 	}
 
+	// Take the msg count after the formatters are created so we have the right count
+	bf.headers["Logplex-Msg-Count"] = strconv.Itoa(bf.MsgCount())
+
 	return bf
 }
 
-// The msgcount of the wrapped batch. Because it splits lines at
-// LOGPLEX_MAX_LENGTH this may be different from the actual MsgCount of the
-// batch
+func (bf *LogplexBatchFormatter) Headers() map[string]string {
+	return bf.headers
+}
+
+// The msgcount of the wrapped batch. We itterate over the sub forwarders to
+// determine final msgcount
 func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 	for _, f := range bf.formatters {
-		switch t := f.(type) {
-		case *LogplexBatchFormatter:
-			msgCount += t.MsgCount()
-		default:
-			msgCount += 1
-		}
+		msgCount += f.MsgCount()
 	}
 	return
 }
@@ -68,10 +83,9 @@ func splitLine(ll LogLine) Batch {
 	return batch
 }
 
-func (bf *LogplexBatchFormatter) ContentLength() (length int) {
+func (bf *LogplexBatchFormatter) ContentLength() (length int64) {
 	for _, f := range bf.formatters {
-		v := f.(ContentLength)
-		length += v.ContentLength()
+		length += f.ContentLength()
 	}
 	return
 }
@@ -120,8 +134,16 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 	}
 }
 
-func (llf *LogplexLineFormatter) ContentLength() (lenth int) {
-	return len(llf.header) + len(llf.line)
+func (llf *LogplexLineFormatter) ContentLength() (lenth int64) {
+	return int64(len(llf.header) + len(llf.line))
+}
+
+func (llf *LogplexLineFormatter) MsgCount() int {
+	return 1
+}
+
+func (llf *LogplexLineFormatter) Headers() map[string]string {
+	return make(map[string]string)
 }
 
 // Implements the io.Reader interface
