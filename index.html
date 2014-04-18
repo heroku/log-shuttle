@@ -20,19 +20,22 @@
       font-family: 'Audiowide', cursive;
       margin-bottom: 0px;
     }
+    h2 {
+      font-size: 2em;
+      font-family: 'Audiowide', cursive;
+    }
+    h3 {
+      font-size: 1.5em;
+      font-family: 'Audiowide', cursive;
+    }
     p {
       font-size: 16px;
       line-height: 20px;
     }
     ul {
-      width: 65%;
-      padding: 0;
-      margin: 20px auto 0 auto;
-      
     }
     li {
-      font-weight: bold;
-      padding: 0 2% 0 8%;
+      padding-bottom: 1em;
     }
     a {
       color:grey;
@@ -41,22 +44,22 @@
 </head>
 
 <body>
+  <a href="https://github.com/heroku/log-shuttle"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/a6677b08c955af8400f44c6298f40e7d19cc5b2d/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677261795f3664366436642e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png"></a>
 	<h1>log shuttle</h1>
 	<h2>Synopsis</h2>
-  <p>Log-shuttle is an open source command line program that reads <a href="http://en.wikipedia.org/wiki/Line_feed">line feed</a> seperated ("\n") messages from stdin and delivers them to log processors via https.</p>
+  <p>Log-shuttle is an open source command line program that reads <a href="http://en.wikipedia.org/wiki/Line_feed">line feed</a> seperated ("\n") messages from stdin and delivers them to log processors via HTTPS.</p>
   <p>Log-shuttle batches logs, encoding the HTTP body in length prefixed <a href="http://tools.ietf.org/html/rfc5424">RFC5424</a> frames. Both <a href="https://github.com/heroku/logplex">logplex</a> and <a href="https://github.com/heroku/log-iss">log-iss</a> understand this format. This trio of programs handles nearly all log delivery inside of <a href="http://heroku.com">Heroku</a>.</p>
-  <p>Log-shuttle provides:</p>
+  <h2>Provides</h2>
   <ul>
-    <li>Http(s) transport of logs</li>
-    <li>When paired with a http(s) load balancer like haproxy and/or Amazon ELB, good distribution of logs to backend receivers (indexers; log routers; etc).</li>
-    <li>Gzip compression when supported by the receiver</li>
-    <li>Https server cert validation</li>
-    <li>http <a href="http://en.wikipedia.org/wiki/Basic_access_authentication">basic auth</a></li>
-    <li>Configurable batch size and timeout (to ensure timely delivery)</li>
-    <li>Configurable number of http outlets</li>
-    <li>Optional statistics about it's operation</li>
+    <li>HTTP(S) transport of logs</li>
+    <li>When paired with a HTTP(S) load balancer like <a href="http://haproxy.1wt.eu/">haproxy</a> or <a href="https://aws.amazon.com/elasticloadbalancing/">Amazon ELB</a>, good distribution of logs to backend receivers (e.g. indexers, log routers, etc).</li>
+    <li>Gzip compression when supported by the receiver.</li>
+    <li>HTTPS server cert validation.</li>
+    <li>HTTP <a href="http://en.wikipedia.org/wiki/Basic_access_authentication">basic auth</a>.</li>
+    <li>Configurable batch size and timeouts to ensure timely delivery.</li>
+    <li>Configurable number of HTTP outlets.</li>
+    <li>Optional statistics about it's operation.</li>
   </ul>
-  
 
 	<h2>Quick Start</h2>
   <h3>From Source</h3>
@@ -112,7 +115,6 @@ $ tail -qF -n 0 /var/log/* | ./log-shuttle
 	<pre><code>
 $ ./log-shuttle -logplex-token="t.abc123" \
 	-logs-url="https://east.logplex.io/logs" \
-	-workers=5 \
 	-front-buff=500 \
 	-batch-size=300
   </code></pre>
