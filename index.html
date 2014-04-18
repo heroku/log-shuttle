@@ -56,20 +56,20 @@ $ git clone https://github.com/heroku/log-shuttle.git
 $ go get github.com/tools/godep
 $ cd log-shuttle
 $ godep go build ./...
-echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
+$ echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
     </code></pre>
 
   <h3>Linux Binary</h3>
   <pre><code>
-curl -O https://log-shuttle-build.herokuapp.com/bin/log-shuttle
-echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
+$ curl -O https://log-shuttle-build.herokuapp.com/bin/log-shuttle
+$ echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
   </code></pre>
 
   <h3>Linux Package</h3>
   <pre><code>
-curl -O https://log-shuttle-build.herokuapp.com/log-shuttle_0.9.3_amd64.deb
-dpkg -i log-shuttle_0.9.3_amd64.deb
-echo 'hello world' | log-shuttle -logs-url="https://east.logplex.io/logs"
+$ curl -O https://log-shuttle-build.herokuapp.com/log-shuttle_0.9.3_amd64.deb
+$ dpkg -i log-shuttle_0.9.3_amd64.deb
+$ echo 'hello world' | log-shuttle -logs-url="https://east.logplex.io/logs"
   </code></pre>
 
 	<h2>Syslog-ng Integration</h2>
@@ -104,8 +104,6 @@ $ ./log-shuttle -logplex-token="t.abc123" \
 	-front-buff=500 \
 	-batch-size=300
 	</pre></code>
-
-
 	
 	<h2>Contact</h2>
 	<p><a href="https://github.com/heroku/log-shuttle">Github</a></p>
