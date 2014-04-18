@@ -1,4 +1,5 @@
 <!doctype html>
+<html>
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
@@ -7,44 +8,55 @@
 	<meta name="description" content="log-shuttle" />
 	<link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
 
-</head>
 
-<style>
-	body {
-		font-family: Helvetica, sans-serif;
-		width: 60%;
-		margin: auto;
-	}
-	h1 {
-		font-size: 5em;
-		font-family: 'Audiowide', cursive;
-		margin-bottom: 0px;
-	}
-	p {
-		font-size: 16px;
-		line-height: 20px;
-	}
-	ul {
-		width: 65%;
-		padding: 0;
-		margin: 20px auto 0 auto;
-		
-	}
-	li {
-		font-weight: bold;
-		padding: 0 2% 0 8%;
-	}
-	a {
-		color:grey;
-	}
-</style>
+  <style>
+    body {
+      font-family: Helvetica, sans-serif;
+      width: 60%;
+      margin: auto;
+    }
+    h1 {
+      font-size: 5em;
+      font-family: 'Audiowide', cursive;
+      margin-bottom: 0px;
+    }
+    p {
+      font-size: 16px;
+      line-height: 20px;
+    }
+    ul {
+      width: 65%;
+      padding: 0;
+      margin: 20px auto 0 auto;
+      
+    }
+    li {
+      font-weight: bold;
+      padding: 0 2% 0 8%;
+    }
+    a {
+      color:grey;
+    }
+  </style>
+</head>
 
 <body>
 	<h1>log shuttle</h1>
 	<h2>Synopsis</h2>
-  <p>Log-shuttle is an open source UNIX program that delivers <a href="http://en.wikipedia.org/wiki/Line_feed">line feed</a> seperated ("\n") messages from applications and daemons to log routers and processors via HTTPs.</p>
-  <p>One of the motivations behind log-shuttle is to provide a simpler form of encrypted &amp; authenticated log delivery. Using HTTPs &amp; Basic Authentication is simpler than the techniques described in <a href="https://tools.ietf.org/html/rfc5425">RFC5425</a>.</p>
-  <p>log-shuttle can send logs to <a href="https://github.com/heroku/logplex">logplex</a> and/or <a href="https://github.com/heroku/log-iss">log-iss</a>. This trio of programs handle all log delivery at <a href="http://heroku.com">Heroku</a>.</p>
+  <p>Log-shuttle is an open source command line program that reads <a href="http://en.wikipedia.org/wiki/Line_feed">line feed</a> seperated ("\n") messages from stdin and delivers them to log processors via https.</p>
+  <p>Log-shuttle batches logs, encoding the HTTP body in length prefixed <a href="http://tools.ietf.org/html/rfc5424">RFC5424</a> frames. Both <a href="https://github.com/heroku/logplex">logplex</a> and <a href="https://github.com/heroku/log-iss">log-iss</a> understand this format. This trio of programs handles nearly all log delivery inside of <a href="http://heroku.com">Heroku</a>.</p>
+  <p>Log-shuttle provides:</p>
+  <ul>
+    <li>Http(s) transport of logs</li>
+    <li>When paired with a http(s) load balancer like haproxy and/or Amazon ELB, good distribution of logs to backend receivers (indexers; log routers; etc).</li>
+    <li>Gzip compression when supported by the receiver</li>
+    <li>Https server cert validation</li>
+    <li>http <a href="http://en.wikipedia.org/wiki/Basic_access_authentication">basic auth</a></li>
+    <li>Configurable batch size and timeout (to ensure timely delivery)</li>
+    <li>Configurable number of http outlets</li>
+    <li>Optional statistics about it's operation</li>
+  </ul>
+  
 
 	<h2>Quick Start</h2>
   <h3>From Source</h3>
@@ -93,7 +105,7 @@ log {
 	<h2>Tail Files</h2>
 	<pre><code>
 $ tail -qF -n 0 /var/log/* | ./log-shuttle
-	</pre></code>
+  </code></pre>
 
 	<h2>Heroku Logplex</h2>
 	<p>Checkout Heroku's <a href="https://devcenter.heroku.com/articles/add-on-provider-log-integration">Dev Center Article</a> for instructions on how to acquire an app's logplex token. Once you have the token, run the following command:</p>
@@ -103,7 +115,7 @@ $ ./log-shuttle -logplex-token="t.abc123" \
 	-workers=5 \
 	-front-buff=500 \
 	-batch-size=300
-	</pre></code>
+  </code></pre>
 	
 	<h2>Contact</h2>
 	<p><a href="https://github.com/heroku/log-shuttle">Github</a></p>
