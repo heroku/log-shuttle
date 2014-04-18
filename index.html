@@ -49,7 +49,8 @@
   <ol>
     <li>Install a current version of <a href="http://golang.org/doc/install">Go</a>.</li>
     <li><pre><code>go get github.com/tools/godep</code></pre></li>
-    <li><pre><code>godep go get github.com/heroku/log-shuttle</code></pre></li>
+    <li><pre><code>go get github.com/heroku/log-shuttle</code></pre></li>
+    <li><pre><code>cd $GOPATH/src/github.com/heroku/log-shuttle; godep go install ./...</code></pre></li>
     <li><pre><code>echo 'hello world' | log-shuttle -logs-url="https://east.logplex.io/logs"</code></pre></li>
   </ol>
 
