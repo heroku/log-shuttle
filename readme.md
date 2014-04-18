@@ -28,8 +28,9 @@ Fork the repo, hack, submit PRs.
 $ go version
 go version go1.2.1 darwin/amd64
 $ git clone https://github.com/heroku/log-shuttle.git
+# go get github.com/tools/godep
 $ cd log-shuttle
-$ go build
+$ godep go build ./...
 ```
 
 ### Testing
