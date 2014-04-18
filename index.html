@@ -43,16 +43,31 @@
 	<h1>log shuttle</h1>
 	<h2>Synopsis</h2>
 	<p>Log-shuttle is an open source UNIX program that delivers messages from applications and daemons to log routers and processors via HTTPs.</p>
-	<p>One of the motivations behind log-shuttle is to provide a simpler form of encrypted & authenticated log delivery. Using HTTPs & Basic Authentication is simpler than the techniques described in RFC5425. TLS transport mapping for Syslog requires that you maintain both client & server certificates for authentication. In multi-tenant environments, the maintenance of certificate management can be quite burdensome.</p>
+	<p>One of the motivations behind log-shuttle is to provide a simpler form of encrypted &amp; authenticated log delivery. Using HTTPs &amp; Basic Authentication is simpler than the techniques described in RFC5425. TLS transport mapping for Syslog requires that you maintain both client &amp; server certificates for authentication. In multi-tenant environments, the maintenance of certificate management can be quite burdensome.</p>
   <p>When using log-shuttle with <a href="https://github.com/heroku/logplex">logplex</a> it is recomended that you spawn 1 log-shuttle per logplex token. This will isolate data between and can be used to help ensure a good QoS.</p>
 	<h2>Quick Start</h2>
-  <ol>
-    <li>Install a current version of <a href="http://golang.org/doc/install">Go</a>.</li>
-    <li><pre><code>go get github.com/tools/godep</code></pre></li>
-    <li><pre><code>go get github.com/heroku/log-shuttle</code></pre></li>
-    <li><pre><code>cd $GOPATH/src/github.com/heroku/log-shuttle; godep go install ./...</code></pre></li>
-    <li><pre><code>echo 'hello world' | log-shuttle -logs-url="https://east.logplex.io/logs"</code></pre></li>
-  </ol>
+  <h3>From Source</h3>
+  <p>Install a current version of <a href="http://golang.org/doc/install">Go</a>.</p>
+    <pre><code>
+go get github.com/tools/godep
+go get github.com/heroku/log-shuttle
+cd $GOPATH/src/github.com/heroku/log-shuttle
+godep go install ./...
+echo 'hello world' | $GOPATH/bin/log-shuttle -logs-url="https://east.logplex.io/logs"
+    </code></pre>
+
+  <h3>Linux Binary</h3>
+  <pre><code>
+curl -O https://log-shuttle-build.herokuapp.com/bin/log-shuttle
+echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
+  </code></pre>
+
+  <h3>Linux Package</h3>
+  <pre><code>
+curl -O https://log-shuttle-build.herokuapp.com/log-shuttle_0.9.3_amd64.deb
+dpkg -i log-shuttle_0.9.3_amd64.deb
+echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
+  </code></pre>
 
 	<h2>Syslog-ng Integration</h2>
 	<em>/etc/syslog-ng.conf</em>
