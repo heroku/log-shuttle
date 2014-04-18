@@ -50,11 +50,13 @@
   <h3>From Source</h3>
   <p>Install a current version of <a href="http://golang.org/doc/install">Go</a>.</p>
     <pre><code>
-go get github.com/tools/godep
-go get github.com/heroku/log-shuttle
-cd $GOPATH/src/github.com/heroku/log-shuttle
-godep go install ./...
-echo 'hello world' | $GOPATH/bin/log-shuttle -logs-url="https://east.logplex.io/logs"
+$ go version
+go version go1.2.1 darwin/amd64
+$ git clone https://github.com/heroku/log-shuttle.git
+$ go get github.com/tools/godep
+$ cd log-shuttle
+$ godep go build ./...
+echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
     </code></pre>
 
   <h3>Linux Binary</h3>
