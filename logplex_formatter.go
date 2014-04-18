@@ -11,8 +11,8 @@ const (
 	LOGPLEX_BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00" // The format of the timestamp
 )
 
-type Lengthy interface {
-	Length() int
+type ContentLength interface {
+	ContentLength() int
 }
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
@@ -68,10 +68,10 @@ func splitLine(ll LogLine) Batch {
 	return batch
 }
 
-func (bf *LogplexBatchFormatter) Length() (length int) {
+func (bf *LogplexBatchFormatter) ContentLength() (length int) {
 	for _, f := range bf.formatters {
-		v := f.(Lengthy)
-		length += v.Length()
+		v := f.(ContentLength)
+		length += v.ContentLength()
 	}
 	return
 }
@@ -120,7 +120,7 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 	}
 }
 
-func (llf *LogplexLineFormatter) Length() (lenth int) {
+func (llf *LogplexLineFormatter) ContentLength() (lenth int) {
 	return len(llf.header) + len(llf.line)
 }
 

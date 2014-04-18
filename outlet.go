@@ -111,18 +111,18 @@ func (h *HttpOutlet) post(batch Batch, dropData, lostData errData) error {
 	if dropData.count > 0 {
 		rdr := NewLogplexErrorFormatter(dropData, h.config)
 		readers = append(readers, rdr)
-		contentLength += rdr.Length()
+		contentLength += rdr.ContentLength()
 	}
 
 	if lostData.count > 0 {
 		rdr := NewLogplexErrorFormatter(lostData, h.config)
 		readers = append(readers, rdr)
-		contentLength += rdr.Length()
+		contentLength += rdr.ContentLength()
 	}
 
 	msgReader := NewLogplexBatchFormatter(batch, &h.config)
 	readers = append(readers, msgReader)
-	contentLength += msgReader.Length()
+	contentLength += msgReader.ContentLength()
 
 	req, err := http.NewRequest("POST", h.config.OutletURL(), io.MultiReader(readers...))
 	if err != nil {
