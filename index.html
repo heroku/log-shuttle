@@ -1,71 +1,111 @@
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Log-shuttle by heroku</title>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>log-shuttle</title>
+	<meta name="author" content="Heroku">
+	<meta name="description" content="log-shuttle" />
+	<link href='http://fonts.googleapis.com/css?family=Audiowide' rel='stylesheet' type='text/css'>
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-  </head>
-  <body>
-    <div class="wrapper">
-      <header>
-        <h1>Log-shuttle</h1>
-        <p>HTTP log transport. Replaces logger(1) and syslog-ng(8)</p>
+</head>
 
-        <p class="view"><a href="https://github.com/heroku/log-shuttle">View the Project on GitHub <small>heroku/log-shuttle</small></a></p>
+<style>
+	body {
+		font-family: Helvetica, sans-serif;
+		width: 50%;
+		margin: auto;
+	}
+	h1 {
+		font-size: 5em;
+		font-family: 'Audiowide', cursive;
+		margin-bottom: 0px;
+	}
+	p {
+		font-size: 16px;
+		line-height: 20px;
+	}
+	ul {
+		width: 65%;
+		padding: 0;
+		margin: 20px auto 0 auto;
+		
+	}
+	li {
+		font-weight: bold;
+		display: inline;
+		padding: 0 2% 0 8%;
+	}
+	a {
+		color:grey;
+	}
+</style>
+
+<body>
+	<h1>log shuttle</h1>
+	<ul>
+		<li><a href="https://s3-us-west-2.amazonaws.com/log-shuttle.io/v0.2/linux/amd64/log-shuttle.tar.gz">linux</a></li>
+		<li><a href="https://s3-us-west-2.amazonaws.com/log-shuttle.io/v0.2/osx/log-shuttle.tar.gz">osx</a></li>
+		<li><a href="https://s3-us-west-2.amazonaws.com/log-shuttle.io/v0.2/linux/amd64/log-shuttle_0.2_amd64.deb">deb</a></li>
+		<li><a href="https://github.com/heroku/log-shuttle">src</a></li>
+	</ul>
+	<h2>Synopsis</h2>
+	<p>Log-shuttle is an open source UNIX program that delivers messages from applications and daemons to log routers and processors via HTTPs.</p>
+	<p>One of the motivations behind log-shuttle is to provide a simpler form of encrypted & authenticated log delivery. Using HTTPs & Basic Authentication is simpler than the techniques described in RFC5425. TLS transport mapping for Syslog requires that you maintain both client & server certificates for authentication. In multi-tenant environments, the maintenance of certificate management can be quite burdensome.</p>
+	<p>When using log-shuttle with <a href="https://devcenter.heroku.com/articles/logplex">logplex</a> it is recomended that you spawn 1 log-shuttle per logplex token. This will isolate data between customers and ensure a good QoS. It is also recomeded that log-shuttle not buffer incomming data so as not to slow down the sending process. This is how log-shuttle works by default, and while not advised, incoming data can be buffered using the <code>-front-buff</code> flag. Run log-shuttle's help command for more options.</p>
+	<h2>Quick Start</h2>
+	<pre><code>
+$ curl http://log-shuttle.io/v0.2/osx/log-shuttle.tar.gz | tar xvz
+$ echo 'hello world' | ./log-shuttle -logs-url="https://east.logplex.io/logs"
+	</code></pre>
+
+	<h2>Syslog-ng Integration</h2>
+	<em>/etc/syslog-ng.conf</em>
+	<pre><code>
+source s_all {
+	internal();
+	unix-dgram("/dev/log");
+	file("/proc/kmsg" program_override("kernel: "));
+};
+destination log_shuttle {
+	unix-stream("/tmp/log-shuttle");
+};
+log {
+	source(s_all); destination(log_shuttle);
+};
+	</code></pre>
+	<em>log-shuttle setup</em>
+	<pre><code>
+$ ./log-shuttle -skip-headers -socket="/tmp/log-suttle"
+	</code></pre>
+
+	<h2>Tail Files</h2>
+	<pre><code>
+$ tail -qF -n 0 /var/log/* | ./log-shuttle
+	</pre></code>
+
+	<h2>Heroku Logplex</h2>
+	<p>Checkout Heroku's <a href="https://devcenter.heroku.com/articles/add-on-provider-log-integration">Dev Center Article</a> for instructions on how to acquire an app's logplex token. Once you have the token, run the following command:</p>
+	<pre><code>
+$ ./log-shuttle -logplex-token="t.abc123" \
+	-logs-url="https://east.logplex.io/logs" \
+	-workers=5 \
+	-front-buff=500 \
+	-batch-size=300
+	</pre></code>
 
 
-        <ul>
-          <li><a href="https://github.com/heroku/log-shuttle/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/heroku/log-shuttle/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/heroku/log-shuttle">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+	
+	<h2>Contact</h2>
+	<p><a href="https://github.com/heroku/log-shuttle">Github</a>, <a href="https://groups.google.com/d/forum/log-shuttle">Mailing List</a>.</p>
+</body>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+  ga('create', 'UA-35585527-3', 'log-shuttle.io');
+  ga('send', 'pageview');
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
-
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
-
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/heroku">heroku</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
-  </body>
+</script>
 </html>
