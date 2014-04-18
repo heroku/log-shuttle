@@ -42,7 +42,7 @@
 <body>
 	<h1>log shuttle</h1>
 	<h2>Synopsis</h2>
-	<p>Log-shuttle is an open source UNIX program that delivers new line seperated ("\n") messages from applications and daemons to log routers and processors via HTTPs.</p>
+  <p>Log-shuttle is an open source UNIX program that delivers <a href="http://en.wikipedia.org/wiki/Line_feed">line feed</a> seperated ("\n") messages from applications and daemons to log routers and processors via HTTPs.</p>
 	<p>One of the motivations behind log-shuttle is to provide a simpler form of encrypted &amp; authenticated log delivery. Using HTTPs &amp; Basic Authentication is simpler than the techniques described in RFC5425. TLS transport mapping for Syslog requires that you maintain both client &amp; server certificates for authentication. In multi-tenant environments, the maintenance of certificate management can be quite burdensome.</p>
   <p>When using log-shuttle with <a href="https://github.com/heroku/logplex">logplex</a> it is recomended that you spawn 1 log-shuttle per logplex token. This will isolate data between and can be used to help ensure a good QoS.</p>
 	<h2>Quick Start</h2>
