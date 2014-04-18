@@ -71,7 +71,7 @@ sudo rm -f /dev/log
 
 ## License
 
-Copyright (c) 201314 Heroku Inc.
+Copyright (c) 2013-14 Heroku Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
