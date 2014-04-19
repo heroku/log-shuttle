@@ -1,3 +1,6 @@
+### 0.9.4 2014-04-18 Edward Muller (edward@heroku.com)
+
+* Formalized the Formatter Interface, pretty much only an internal change
 ### 0.9.3 2014-04-17 Edward Muller (edward@heroku.com)
 
 * -back-buff=50 default, 100 was probably too many
