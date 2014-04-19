@@ -48,7 +48,7 @@
 	<h1>log shuttle</h1>
 	<h2>Synopsis</h2>
   <p>Log-shuttle is an open source command line program that reads <a href="http://en.wikipedia.org/wiki/Line_feed">line feed</a> seperated ("\n") messages from stdin and delivers them to log processors via HTTPS.</p>
-  <p>Log-shuttle batches logs, encoding the HTTP body in length prefixed <a href="http://tools.ietf.org/html/rfc5424">RFC5424</a> frames. Both <a href="https://github.com/heroku/logplex">logplex</a> and <a href="https://github.com/heroku/log-iss">log-iss</a> understand this format. This trio of programs handles nearly all log delivery inside of <a href="http://heroku.com">Heroku</a>.</p>
+  <p>Log-shuttle batches logs, encoding the HTTP body in length prefixed <a href="http://tools.ietf.org/html/rfc5424">RFC5424</a> frames. Both <a href="https://github.com/heroku/logplex">logplex</a> and <a href="https://github.com/heroku/log-iss">log-iss</a> understand this format. This trio of programs handles nearly ~20 billion log lines a day at <a href="http://heroku.com">Heroku</a>.</p>
   <h2>Provides</h2>
   <ul>
     <li>HTTP(S) transport of logs</li>
