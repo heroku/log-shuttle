@@ -111,11 +111,10 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 					ErrLogger.Printf(RETRY_WITH_TYPE_FORMAT, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
 					if err.Err == io.EOF {
 						time.Sleep(time.Duration(attempts) * EOF_RETRY_SLEEP * time.Millisecond)
-						continue
 					} else {
 						time.Sleep(time.Duration(attempts) * OTHER_RETRY_SLEEP * time.Millisecond)
-						continue
 					}
+					continue
 				}
 			}
 			ErrLogger.Printf(RETRY_WITH_TYPE_FORMAT, false, msgCount, inboxLength, uuid, attempts, err, err)
