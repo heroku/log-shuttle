@@ -1,3 +1,7 @@
+### 0.9.5 2014-04-30 Edward Muller (edward@heroku.com)
+
+* Retry more erorrs, backoff a little on retries, but fast path io.EOF
+
 ### 0.9.4 2014-04-18 Edward Muller (edward@heroku.com)
 
 * Formalized the Formatter Interface, pretty much only an internal change
