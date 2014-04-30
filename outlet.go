@@ -14,7 +14,11 @@ import (
 )
 
 const (
-	RETRY_SLEEP = 100 // will be in ms
+	EOF_RETRY_SLEEP        = 100 // will be in ms
+	OTHER_RETRY_SLEEP      = 1000
+	DEPTH_WATERMARK        = 0.6
+	RETRY_FORMAT           = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q\n"
+	RETRY_WITH_TYPE_FORMAT = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
 )
 
 var (
@@ -37,21 +41,23 @@ func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- Named
 }
 
 type HttpOutlet struct {
-	inbox  <-chan Batch
-	stats  chan<- NamedValue
-	drops  *Counter
-	lost   *Counter
-	client *http.Client
-	config ShuttleConfig
+	inbox    <-chan Batch
+	stats    chan<- NamedValue
+	drops    *Counter
+	lost     *Counter
+	lostMark int // If len(inbox) > lostMark during error handling, don't retry
+	client   *http.Client
+	config   ShuttleConfig
 }
 
 func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *HttpOutlet {
 	return &HttpOutlet{
-		drops:  drops,
-		lost:   lost,
-		stats:  stats,
-		inbox:  inbox,
-		config: config,
+		drops:    drops,
+		lost:     lost,
+		lostMark: int(float64(config.BackBuff) * DEPTH_WATERMARK),
+		stats:    stats,
+		inbox:    inbox,
+		config:   config,
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 				ResponseHeaderTimeout: config.Timeout,
@@ -97,20 +103,26 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 		formatter := NewLogplexBatchFormatter(batch, edata, &h.config)
 		err := h.post(formatter, uuid)
 		if err != nil {
-			err, eok := err.(*url.Error)
-			if eok && err.Err == io.EOF && attempts < h.config.MaxAttempts {
-				time.Sleep(RETRY_SLEEP * time.Millisecond)
-				continue
-			} else {
-				ErrLogger.Printf("at=post request_id=%q attempts=%d error=%q\n", batch.UUID.String(), attempts, err)
-				h.lost.Add(batch.MsgCount())
-				return
+			inboxLength := len(h.inbox)
+			msgCount := batch.MsgCount()
+			err, ok := err.(*url.Error)
+			if ok {
+				if attempts < h.config.MaxAttempts && inboxLength < h.lostMark {
+					ErrLogger.Printf(RETRY_WITH_TYPE_FORMAT, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
+					if err.Err == io.EOF {
+						time.Sleep(time.Duration(attempts) * EOF_RETRY_SLEEP * time.Millisecond)
+						continue
+					} else {
+						time.Sleep(time.Duration(attempts) * OTHER_RETRY_SLEEP * time.Millisecond)
+						continue
+					}
+				}
 			}
-		} else {
-			return
+			ErrLogger.Printf(RETRY_WITH_TYPE_FORMAT, false, msgCount, inboxLength, uuid, attempts, err, err)
+			h.lost.Add(msgCount)
 		}
+		return
 	}
-	return
 }
 
 func (h *HttpOutlet) post(formatter Formatter, uuid string) error {
