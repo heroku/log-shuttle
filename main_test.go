@@ -78,7 +78,7 @@ func TestIntegration(t *testing.T) {
 
 	config.LogsURL = ts.URL
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -107,7 +107,7 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	reader.Read(NewTestInputWithHeaders())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -131,7 +131,7 @@ func TestDrops(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	stats.Drops.Add(1)
 	stats.Drops.Add(1)
@@ -166,7 +166,7 @@ func TestLost(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	stats.Lost.Add(1)
 	stats.Lost.Add(1)
@@ -201,7 +201,7 @@ func TestUserAgentHeader(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -225,7 +225,7 @@ func TestRequestId(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -244,7 +244,7 @@ func BenchmarkPipeline(b *testing.B) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

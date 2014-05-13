@@ -21,18 +21,25 @@ const (
 	RETRY_WITH_TYPE_FORMAT = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
 )
 
+type Outlet interface {
+	Outlet()
+	Formatter(Batch, []errData, *ShuttleConfig) Formatter
+}
+
+type OutletMaker func(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch)Outlet
+
 var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, mkOutlet OutletMaker) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewOutlet(config, drops, lost, stats, inbox)
+			outlet := mkOutlet(config, drops, lost, stats, inbox)
 			outlet.Outlet()
 		}()
 	}
@@ -50,7 +57,7 @@ type HttpOutlet struct {
 	config   ShuttleConfig
 }
 
-func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *HttpOutlet {
+func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) Outlet {
 	return &HttpOutlet{
 		drops:    drops,
 		lost:     lost,
@@ -79,6 +86,10 @@ func (h *HttpOutlet) Outlet() {
 	}
 }
 
+func (h *HttpOutlet) Formatter(batch Batch, edata []errData, config *ShuttleConfig) Formatter {
+	return NewLogplexBatchFormatter(batch, edata, config)
+}
+
 // Retry io.EOF errors h.config.MaxAttempts times
 func (h *HttpOutlet) retryPost(batch Batch) {
 	var dropData, lostData errData
@@ -100,7 +111,7 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 	uuid := batch.UUID.String()
 
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
-		formatter := NewLogplexBatchFormatter(batch, edata, &h.config)
+		formatter := h.Formatter(batch, edata, &h.config)
 		err := h.post(formatter, uuid)
 		if err != nil {
 			inboxLength := len(h.inbox)
