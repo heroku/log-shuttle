@@ -17,7 +17,7 @@ const (
 	VERSION = "0.9.4"
 )
 
-func MakeBasicBits(config ShuttleConfig, mkOutlet OutletMaker) (reader Reader, deliverableBatches chan Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
+func MakeBasicBits(config ShuttleConfig) (reader Reader, deliverableBatches chan Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
 	programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
 	programStats.Listen()
 	go EmitStats(programStats, config.StatsInterval, config.StatsSource)
@@ -25,7 +25,7 @@ func MakeBasicBits(config ShuttleConfig, mkOutlet OutletMaker) (reader Reader, d
 	deliverableBatches = make(chan Batch, config.BackBuff)
 	// Start outlets, then batches (reverse of Shutdown)
 	reader = NewReader(config.FrontBuff, programStats.Input)
-	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches, mkOutlet)
+	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches)
 	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, reader.Outbox, deliverableBatches)
 	return
 }
@@ -64,7 +64,7 @@ func main() {
 		}
 	}
 
-	reader, deliverableBatches, programStats, batchWaiter, outletWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverableBatches, programStats, batchWaiter, outletWaiter := MakeBasicBits(config)
 
 	// Blocks until closed
 	reader.Read(os.Stdin)

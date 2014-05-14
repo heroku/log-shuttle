@@ -1,7 +1,11 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
-	"GoVersion": "go1.2.1",
+	"GoVersion": "go1.2.2",
 	"Deps": [
+		{
+			"ImportPath": "github.com/bmizerany/lpx",
+			"Rev": "af85cf24c1567bcb5a2e4c21597cc049eab31f55"
+		},
 		{
 			"ImportPath": "github.com/bmizerany/perks/quantile",
 			"Rev": "da72989a59aaaecda7110926d3a6198ee4421c1f"

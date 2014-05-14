@@ -49,7 +49,7 @@ func TestOutletEOFRetry(t *testing.T) {
 	}()
 	drops := NewCounter(0)
 	lost := NewCounter(0)
-	outlet := NewHttpOutlet(config, drops, lost, schan, nil).(*HttpOutlet)
+	outlet := NewHttpOutlet(config, drops, lost, schan, nil)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -87,7 +87,7 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	}()
 	drops := NewCounter(0)
 	lost := NewCounter(0)
-	outlet := NewHttpOutlet(config, drops, lost, schan, nil).(*HttpOutlet)
+	outlet := NewHttpOutlet(config, drops, lost, schan, nil)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -107,5 +107,4 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	if !logMessageCheck.Match(logMessage) {
 		t.Errorf("logMessage is wrong: %q\n", logMessage)
 	}
-
 }

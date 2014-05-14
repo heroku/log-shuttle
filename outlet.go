@@ -19,27 +19,21 @@ const (
 	DEPTH_WATERMARK        = 0.6
 	RETRY_FORMAT           = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q\n"
 	RETRY_WITH_TYPE_FORMAT = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
+	RETRY_FORMATTER_FORMAT = "at=retryPost error=%q errtype=\"%T\"\n"
 )
-
-type Outlet interface {
-	Outlet()
-	Formatter(Batch, []errData, *ShuttleConfig) Formatter
-}
-
-type OutletMaker func(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch)Outlet
 
 var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, mkOutlet OutletMaker) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := mkOutlet(config, drops, lost, stats, inbox)
+			outlet := NewHttpOutlet(config, drops, lost, stats, inbox)
 			outlet.Outlet()
 		}()
 	}
@@ -57,7 +51,7 @@ type HttpOutlet struct {
 	config   ShuttleConfig
 }
 
-func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) Outlet {
+func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *HttpOutlet {
 	return &HttpOutlet{
 		drops:    drops,
 		lost:     lost,
@@ -78,23 +72,16 @@ func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- Name
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
 func (h *HttpOutlet) Outlet() {
-
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
-
 		h.retryPost(batch)
 	}
-}
-
-func (h *HttpOutlet) Formatter(batch Batch, edata []errData, config *ShuttleConfig) Formatter {
-	return NewLogplexBatchFormatter(batch, edata, config)
 }
 
 // Retry io.EOF errors h.config.MaxAttempts times
 func (h *HttpOutlet) retryPost(batch Batch) {
 	var dropData, lostData errData
-
-	edata := make([]errData, 0, 2)
+ 	edata := make([]errData, 0, 2)
 
 	dropData.count, dropData.since = h.drops.ReadAndReset()
 	if dropData.count > 0 {
@@ -111,8 +98,15 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 	uuid := batch.UUID.String()
 
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
-		formatter := h.Formatter(batch, edata, &h.config)
-		err := h.post(formatter, uuid)
+		formatter, err := h.getFormatter(batch, edata)
+		if err != nil {
+			// TODO: ripe for revisiting, since NamedValue's don't work well for counts
+			h.stats <- NewNamedValue("outlet.formatter.dropped", float64(1))
+			ErrLogger.Printf(RETRY_FORMATTER_FORMAT, err, err)
+			return
+    }
+
+		err = h.post(formatter, uuid)
 		if err != nil {
 			inboxLength := len(h.inbox)
 			msgCount := batch.MsgCount()
@@ -187,4 +181,16 @@ func (h *HttpOutlet) timeRequest(req *http.Request) (resp *http.Response, err er
 		h.stats <- NewNamedValue(name, time.Since(t).Seconds())
 	}(time.Now())
 	return h.client.Do(req)
+}
+
+func (h *HttpOutlet) getFormatter(batch Batch, eData []errData) (f Formatter, err error) {
+	switch h.config.OutputFormat {
+	case OUTPUT_FORMAT_LOGPLEX:
+		f, err = NewLogplexBatchFormatter(batch, eData, &h.config)
+	case OUTPUT_FORMAT_ELASTICSEARCH:
+		f, err = NewElasticSearchBatchFormatter(batch, eData, &h.config)
+	default:
+		panic("don't know how to get a formatter")
+	}
+	return
 }

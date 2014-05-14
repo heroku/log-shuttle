@@ -19,7 +19,13 @@ const (
 )
 
 const (
+	OUTPUT_FORMAT_LOGPLEX     = iota
+	OUTPUT_FORMAT_ELASTICSEARCH
+)
+
+const (
 	DEFAULT_INPUT_FORMAT   = INPUT_FORMAT_RAW
+	DEFAULT_OUTPUT_FORMAT  = OUTPUT_FORMAT_LOGPLEX
 	DEFAULT_FRONT_BUFF     = 1000
 	DEFAULT_BACK_BUFF      = 50
 	DEFAULT_STATS_BUFF     = 5000
@@ -52,6 +58,7 @@ type ShuttleConfig struct {
 	NumBatchers                         int
 	NumOutlets                          int
 	InputFormat                         int
+	OutputFormat                        int
 	MaxAttempts                         int
 	LogsURL                             string
 	Prival                              string
@@ -92,6 +99,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.DurationVar(&c.StatsInterval, "stats-interval", time.Duration(DEFAULT_STATS_INTERVAL), "How often to emit/reset stats.")
 	flag.IntVar(&c.MaxAttempts, "max-attempts", DEFAULT_MAX_ATTEMPTS, "Max number of retries.")
 	flag.IntVar(&c.InputFormat, "input-format", DEFAULT_INPUT_FORMAT, "0=raw (default), 1=rfc3164 (syslog(3))")
+	flag.IntVar(&c.OutputFormat, "output-format", DEFAULT_OUTPUT_FORMAT, "0=logplex (default), 1=elasticsearch")
 	flag.IntVar(&c.NumBatchers, "num-batchers", 2, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", 4, "The number of outlets to run.")
 	flag.DurationVar(&c.WaitDuration, "wait", time.Duration(DEFAULT_WAIT_DURATION), "Duration to wait to flush messages to logplex")
@@ -120,6 +128,12 @@ func (c *ShuttleConfig) ParseFlags() {
 		c.Appname,
 		c.Procid,
 		c.Msgid)
+
+	switch c.OutputFormat {
+	case OUTPUT_FORMAT_ELASTICSEARCH, OUTPUT_FORMAT_LOGPLEX:
+	default:
+		log.Fatalf("Unable to parse output-format flag")
+	}
 }
 
 func (c *ShuttleConfig) OutletURL() string {

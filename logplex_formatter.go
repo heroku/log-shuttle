@@ -22,7 +22,7 @@ type LogplexBatchFormatter struct {
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) *LogplexBatchFormatter {
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) (*LogplexBatchFormatter, error) {
 	bf := &LogplexBatchFormatter{
 		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
 		headers:    make(map[string]string),
@@ -43,17 +43,20 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) *
 	// Make all of the sub formatters
 	for cli := 0; cli < len(b.logLines); cli++ {
 		cl := b.logLines[cli]
+		var f Formatter
 		if cll := len(cl.line); !config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
-			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl), make([]errData, 0), config))
+			f, _ = NewLogplexBatchFormatter(splitLine(cl), make([]errData, 0), config)
+
 		} else {
-			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(cl, config))
+			f = NewLogplexLineFormatter(cl, config)
 		}
+		bf.formatters = append(bf.formatters, f)
 	}
 
 	// Take the msg count after the formatters are created so we have the right count
 	bf.headers["Logplex-Msg-Count"] = strconv.Itoa(bf.MsgCount())
 
-	return bf
+	return bf, nil
 }
 
 func (bf *LogplexBatchFormatter) Headers() map[string]string {
@@ -120,17 +123,9 @@ type LogplexLineFormatter struct {
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
-	var header string
-	if config.SkipHeaders {
-		header = fmt.Sprintf("%d ", len(ll.line))
-	} else {
-		header = fmt.Sprintf(config.syslogFrameHeaderFormat,
-			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
-			ll.when.UTC().Format(LOGPLEX_BATCH_TIME_FORMAT))
-	}
 	return &LogplexLineFormatter{
 		line:   ll.line,
-		header: header,
+		header: ll.Header(config),
 	}
 }
 

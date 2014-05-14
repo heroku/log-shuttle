@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -78,7 +79,7 @@ func TestIntegration(t *testing.T) {
 
 	config.LogsURL = ts.URL
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -96,7 +97,6 @@ func TestIntegration(t *testing.T) {
 	if afterDrops, _ := stats.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
-
 }
 
 func TestSkipHeadersIntegration(t *testing.T) {
@@ -106,8 +106,9 @@ func TestSkipHeadersIntegration(t *testing.T) {
 
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
+	defer func() { config.SkipHeaders = false }()
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInputWithHeaders())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -123,6 +124,34 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	}
 }
 
+func TestElasticSearchBatchIntegration(t *testing.T) {
+	var action ElasticSearchIndexAction
+	var document ElasticSearchDocument
+
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.OutputFormat = 1
+	defer func () { config.OutputFormat = 0 }()
+	config.LogsURL = ts.URL
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+
+	reader.Read(NewTestInput())
+	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+
+	// Attempt to Decode the output and compare against the original
+	decoder := json.NewDecoder(bytes.NewBuffer(th.Actual))
+	if err := decoder.Decode(&action); err != nil {
+		t.Fatalf("error while decoding action=%q\n", err)
+	}
+
+	if err := decoder.Decode(&document); err != nil {
+		t.Fatalf("error while decoding document=%q\n", err)
+	}
+}
+
+
 func TestDrops(t *testing.T) {
 	th := new(testHelper)
 	ts := httptest.NewServer(th)
@@ -131,7 +160,7 @@ func TestDrops(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	stats.Drops.Add(1)
 	stats.Drops.Add(1)
@@ -166,7 +195,7 @@ func TestLost(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	stats.Lost.Add(1)
 	stats.Lost.Add(1)
@@ -201,7 +230,7 @@ func TestUserAgentHeader(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -225,7 +254,7 @@ func TestRequestId(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	reader.Read(NewTestInput())
 	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
@@ -244,7 +273,7 @@ func BenchmarkPipeline(b *testing.B) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config, NewHttpOutlet)
+	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
