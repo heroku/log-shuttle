@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/syslog"
 	"os"
+	"runtime/pprof"
 	"sync"
 )
 
@@ -47,6 +48,15 @@ func main() {
 	if config.PrintVersion {
 		fmt.Println(VERSION)
 		os.Exit(0)
+	}
+
+	if config.CPUProfile != "" {
+		f, err := os.Create(config.CPUProfile)
+    if err != nil {
+      log.Fatal(err)
+    }
+    pprof.StartCPUProfile(f)
+    defer pprof.StopCPUProfile()
 	}
 
 	if !config.UseStdin() {

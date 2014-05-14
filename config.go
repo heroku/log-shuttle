@@ -75,6 +75,7 @@ type ShuttleConfig struct {
 	Verbose                             bool
 	LogToSyslog                         bool
 	WaitDuration                        time.Duration
+	CPUProfile                          string
 	Timeout                             time.Duration
 	StatsInterval                       time.Duration
 	lengthPrefixedSyslogFrameHeaderSize int
@@ -109,6 +110,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.IntVar(&c.StatsBuff, "stats-buff", DEFAULT_STATS_BUFF, "Number of stats to buffer.")
 	flag.DurationVar(&c.Timeout, "timeout", time.Duration(DEFAULT_TIMEOUT), "Duration to wait for a response from Logplex.")
 	flag.BoolVar(&c.LogToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
+	flag.StringVar(&c.CPUProfile, "cpu-profile", "", "Profile the CPU while running")
 	flag.Parse()
 
 	if c.MaxAttempts < 1 {
