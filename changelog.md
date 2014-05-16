@@ -1,3 +1,7 @@
+### 0.9.6 2014-05-16 Edward Muller (edward@heroku.com)
+
+* Restore lost.count and drops.count every metrics poll
+
 ### 0.9.5 2014-04-30 Edward Muller (edward@heroku.com)
 
 * Retry more erorrs, backoff a little on retries, but fast path io.EOF
