@@ -200,7 +200,9 @@ func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
 	snapshot := make(map[string]interface{})
 	// We don't need locks for these values
 	snapshot["alltime.drops.count"] = stats.Drops.AllTime()
+	snapshot["drops.count"], _ = stats.Drops.ReadAndReset()
 	snapshot["alltime.lost.count"] = stats.Lost.AllTime()
+	snapshot["lost.count"], _ = stats.Lost.ReadAndReset()
 
 	stats.Mutex.Lock()
 	defer stats.Mutex.Unlock()
