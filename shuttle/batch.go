@@ -1,4 +1,4 @@
-package main
+package shuttle
 
 import "github.com/nu7hatch/gouuid"
 
