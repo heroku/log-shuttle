@@ -7,10 +7,11 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
+	"github.com/heroku/log-shuttle/shuttle"
 )
 
 var (
-	config ShuttleConfig
+	config shuttle.ShuttleConfig
 )
 
 func init() {
