@@ -36,7 +36,7 @@ $ godep go build ./...
 ### Testing
 
 ```bash
-$ go test
+$ go test ./...
 ```
 
 ### Submitting Code

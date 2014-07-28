@@ -6,31 +6,23 @@ import (
 	"log/syslog"
 	"os"
 	"sync"
+	"github.com/heroku/log-shuttle/shuttle"
 )
 
-var (
-	Logger    = log.New(os.Stdout, "log-shuttle: ", log.LstdFlags)
-	ErrLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
-)
-
-const (
-	VERSION = "0.9.6"
-)
-
-func MakeBasicBits(config ShuttleConfig) (reader Reader, deliverableBatches chan Batch, programStats *ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
-	programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
+func MakeBasicBits(config shuttle.ShuttleConfig) (reader shuttle.Reader, deliverableBatches chan shuttle.Batch, programStats *shuttle.ProgramStats, bWaiter, oWaiter *sync.WaitGroup) {
+	programStats = shuttle.NewProgramStats(config.StatsAddr, config.StatsBuff)
 	programStats.Listen()
-	go EmitStats(programStats, config.StatsInterval, config.StatsSource)
+	go shuttle.EmitStats(programStats, config.StatsInterval, config.StatsSource)
 
-	deliverableBatches = make(chan Batch, config.BackBuff)
+	deliverableBatches = make(chan shuttle.Batch, config.BackBuff)
 	// Start outlets, then batches (reverse of Shutdown)
-	reader = NewReader(config.FrontBuff, programStats.Input)
-	oWaiter = StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches)
-	bWaiter = StartBatchers(config, programStats.Drops, programStats.Input, reader.Outbox, deliverableBatches)
+	reader = shuttle.NewReader(config.FrontBuff, programStats.Input)
+	oWaiter = shuttle.StartOutlets(config, programStats.Drops, programStats.Lost, programStats.Input, deliverableBatches)
+	bWaiter = shuttle.StartBatchers(config, programStats.Drops, programStats.Input, reader.Outbox, deliverableBatches)
 	return
 }
 
-func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBatches chan Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
+func Shutdown(deliverableLogs chan shuttle.LogLine, stats chan shuttle.NamedValue, deliverableBatches chan shuttle.Batch, bWaiter *sync.WaitGroup, oWaiter *sync.WaitGroup) {
 	close(deliverableLogs)    // Close the log line channel, all of the batchers will stop once they are done
 	bWaiter.Wait()            // Wait for them to be done
 	close(deliverableBatches) // Close the batch channel, all of the outlets will stop once they are done
@@ -39,26 +31,26 @@ func Shutdown(deliverableLogs chan LogLine, stats chan NamedValue, deliverableBa
 }
 
 func main() {
-	var config ShuttleConfig
+	var config shuttle.ShuttleConfig
 	var err error
 
 	config.ParseFlags()
 
 	if config.PrintVersion {
-		fmt.Println(VERSION)
+		fmt.Println(shuttle.VERSION)
 		os.Exit(0)
 	}
 
 	if !config.UseStdin() {
-		ErrLogger.Fatalln("No stdin detected.")
+		shuttle.ErrLogger.Fatalln("No stdin detected.")
 	}
 
 	if config.LogToSyslog {
-		Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
+		shuttle.Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
 		if err != nil {
 			log.Fatalf("Unable to setup syslog logger: %s\n", err)
 		}
-		ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
+		shuttle.ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
 		if err != nil {
 			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
 		}

@@ -1,10 +1,18 @@
-package main
+package shuttle
 
 import (
 	"sync"
 	"testing"
 	"time"
 )
+
+var (
+	config ShuttleConfig
+)
+
+func init() {
+	config.ParseFlags() //Do this once for the test. Defaults should always be good for the tests
+}
 
 func ProduceLogLines(count int, c chan<- LogLine) {
 	ll := LogLine{

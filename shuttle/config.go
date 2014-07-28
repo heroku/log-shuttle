@@ -1,4 +1,4 @@
-package main
+package shuttle
 
 import (
 	"flag"
@@ -107,19 +107,7 @@ func (c *ShuttleConfig) ParseFlags() {
 		log.Fatalf("-max-attempts must be >= 1")
 	}
 
-	// This is here to pre-comute this so other's don't have to later
-	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(LOGPLEX_BATCH_TIME_FORMAT) +
-		len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >
-
-	c.syslogFrameHeaderFormat = fmt.Sprintf("%s <%s>%s %s %s %s %s %s ",
-		"%d",
-		c.Prival,
-		c.Version,
-		"%s", // The time should be put here
-		c.Hostname,
-		c.Appname,
-		c.Procid,
-		c.Msgid)
+	c.ComputeHeader()
 }
 
 func (c *ShuttleConfig) OutletURL() string {
@@ -151,4 +139,20 @@ func (c *ShuttleConfig) OutletURL() string {
 
 func (c *ShuttleConfig) UseStdin() bool {
 	return !util.IsTerminal(os.Stdin)
+}
+
+func (c *ShuttleConfig) ComputeHeader() {
+	// This is here to pre-compute this so other's don't have to later
+	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(LOGPLEX_BATCH_TIME_FORMAT) +
+					len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >
+
+	c.syslogFrameHeaderFormat = fmt.Sprintf("%s <%s>%s %s %s %s %s %s ",
+		"%d",
+		c.Prival,
+		c.Version,
+		"%s", // The time should be put here
+		c.Hostname,
+		c.Appname,
+		c.Procid,
+		c.Msgid)
 }
