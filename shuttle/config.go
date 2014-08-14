@@ -103,6 +103,8 @@ func NewConfig () ShuttleConfig {
 	shuttleConfig.Timeout = time.Duration(DEFAULT_TIMEOUT)
 	shuttleConfig.LogToSyslog = false
 
+	shuttleConfig.ComputeHeader()
+
 	return shuttleConfig
 }
 
