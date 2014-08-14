@@ -8,13 +8,11 @@ import (
 	"github.com/heroku/log-shuttle/shuttle"
 )
 
-
-
 func main() {
-	var config shuttle.ShuttleConfig
-	var err error
-
+	config := shuttle.NewConfig()
 	config.ParseFlags()
+
+	var err error
 
 	if config.PrintVersion {
 		fmt.Println(shuttle.VERSION)
