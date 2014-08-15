@@ -29,6 +29,22 @@ const (
 	DEFAULT_MAX_ATTEMPTS   = 3
 	DEFAULT_STATS_INTERVAL = 0 * time.Second
 	DEFAULT_STATS_SOURCE   = ""
+	DEFAULT_PRINT_VERSION = false
+	DEFAULT_VERBOSE = false
+	DEFAULT_SKIP_HEADERS = false
+	DEFAULT_SKIP_VERIFY = false
+	DEFAULT_PRIVAL = "190"
+	DEFAULT_VERSION = "1"
+	DEFAULT_PROCID = "shuttle"
+	DEFAULT_APPNAME = "token"
+	DEFAULT_HOSTNAME = "shuttle"
+	DEFAULT_MSGID = "- -"
+	DEFAULT_LOGS_URL = ""
+	DEFAULT_NUM_BATCHERS = 2
+	DEFAULT_NUM_OUTLETS = 4
+	DEFAULT_BATCH_SIZE = 500
+	DEFAULT_LOG_TO_SYSLOG = false
+
 )
 
 const (
@@ -77,31 +93,31 @@ type ShuttleConfig struct {
 // Create a new config using the defaults.
 func NewConfig () ShuttleConfig {
 	var shuttleConfig ShuttleConfig
-	shuttleConfig.PrintVersion = false
-	shuttleConfig.Verbose = false
-	shuttleConfig.SkipHeaders = false
-	shuttleConfig.SkipVerify = false
-	shuttleConfig.Prival = "190"
-	shuttleConfig.Version = "1"
-	shuttleConfig.Procid = "shuttle"
-	shuttleConfig.Appname = "token"
-	shuttleConfig.Hostname = "shuttle"
-	shuttleConfig.Msgid = "- -"
-	shuttleConfig.LogsURL = ""
+	shuttleConfig.PrintVersion = DEFAULT_PRINT_VERSION
+	shuttleConfig.Verbose = DEFAULT_VERBOSE
+	shuttleConfig.SkipHeaders = DEFAULT_SKIP_HEADERS
+	shuttleConfig.SkipVerify = DEFAULT_SKIP_VERIFY
+	shuttleConfig.Prival = DEFAULT_PRIVAL
+	shuttleConfig.Version = DEFAULT_VERSION
+	shuttleConfig.Procid = DEFAULT_PROCID
+	shuttleConfig.Appname = DEFAULT_APPNAME
+	shuttleConfig.Hostname = DEFAULT_HOSTNAME
+	shuttleConfig.Msgid = DEFAULT_MSGID
+	shuttleConfig.LogsURL = DEFAULT_LOGS_URL
 	shuttleConfig.StatsAddr = DEFAULT_STATS_ADDR
 	shuttleConfig.StatsSource = DEFAULT_STATS_SOURCE
 	shuttleConfig.StatsInterval = time.Duration(DEFAULT_STATS_INTERVAL)
 	shuttleConfig.MaxAttempts = DEFAULT_MAX_ATTEMPTS
 	shuttleConfig.InputFormat = DEFAULT_INPUT_FORMAT
-	shuttleConfig.NumBatchers = 2
-	shuttleConfig.NumOutlets = 4
+	shuttleConfig.NumBatchers = DEFAULT_NUM_BATCHERS
+	shuttleConfig.NumOutlets = DEFAULT_NUM_OUTLETS
 	shuttleConfig.WaitDuration = time.Duration(DEFAULT_WAIT_DURATION)
-	shuttleConfig.BatchSize = 500
+	shuttleConfig.BatchSize = DEFAULT_BATCH_SIZE
 	shuttleConfig.FrontBuff = DEFAULT_FRONT_BUFF
 	shuttleConfig.BackBuff = DEFAULT_BACK_BUFF
 	shuttleConfig.StatsBuff = DEFAULT_STATS_BUFF
 	shuttleConfig.Timeout = time.Duration(DEFAULT_TIMEOUT)
-	shuttleConfig.LogToSyslog = false
+	shuttleConfig.LogToSyslog = DEFAULT_LOG_TO_SYSLOG
 
 	shuttleConfig.ComputeHeader()
 

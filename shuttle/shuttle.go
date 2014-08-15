@@ -6,6 +6,7 @@ import (
 )
 
 type Shuttle struct{
+	config ShuttleConfig
 	Reader Reader
 	deliverableBatches chan Batch
 	programStats *ProgramStats
@@ -14,17 +15,21 @@ type Shuttle struct{
 
 func NewShuttle(config ShuttleConfig) (*Shuttle) {
 	s := &Shuttle{}
-	s.programStats = NewProgramStats(config.StatsAddr, config.StatsBuff)
-	s.programStats.Listen()
-	go EmitStats(s.programStats, config.StatsInterval, config.StatsSource)
-
-	s.deliverableBatches = make(chan Batch, config.BackBuff)
-	// Start outlets, then batches (reverse of Shutdown)
-	s.Reader = NewReader(config.FrontBuff, s.programStats.Input)
-	s.oWaiter = StartOutlets(config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches)
-	s.bWaiter = StartBatchers(config, s.programStats.Drops, s.programStats.Input, s.Reader.Outbox, s.deliverableBatches)
-
+	s.config = config;
+	s.Launch()
 	return s;
+}
+
+func (s *Shuttle) Launch(){
+	s.programStats = NewProgramStats(s.config.StatsAddr, s.config.StatsBuff)
+	s.programStats.Listen()
+	go EmitStats(s.programStats, s.config.StatsInterval, s.config.StatsSource)
+
+	s.deliverableBatches = make(chan Batch, s.config.BackBuff)
+	// Start outlets, then batches (reverse of Shutdown)
+	s.Reader = NewReader(s.config.FrontBuff, s.programStats.Input)
+	s.oWaiter = StartOutlets(s.config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches)
+	s.bWaiter = StartBatchers(s.config, s.programStats.Drops, s.programStats.Input, s.Reader.Outbox, s.deliverableBatches)
 }
 
 

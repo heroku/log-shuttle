@@ -34,11 +34,11 @@ func main() {
 		}
 	}
 
-	shut := shuttle.NewShuttle(config)
+	s := shuttle.NewShuttle(config)
 
 	// Blocks until closed
-	shut.Reader.Read(os.Stdin)
+	s.Reader.Read(os.Stdin)
 
 	// Shutdown everything else.
-	shut.Shutdown()
+	s.Shutdown()
 }
