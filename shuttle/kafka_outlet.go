@@ -1,6 +1,7 @@
 package shuttle
 
 import "github.com/Shopify/sarama"
+import "strings"
 
 type KafkaOutlet struct {
 	inbox    <-chan Batch
@@ -22,7 +23,7 @@ func NewKafkaOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- Nam
 		panic(err)
 	}
 
-	kafkaClient, err := sarama.NewClient(config.ProducerId, []string{"localhost:9092"}, sarama.NewClientConfig())
+	kafkaClient, err := sarama.NewClient(config.ProducerId, strings.Split(config.Brokers, ","), sarama.NewClientConfig())
 
 	if err != nil {
 		panic(err)
