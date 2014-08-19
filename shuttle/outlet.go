@@ -32,8 +32,13 @@ func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- Named
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewOutlet(config, drops, lost, stats, inbox)
-			outlet.Outlet()
+			if config.Destination == "Logplex" {
+				outlet := NewOutlet(config, drops, lost, stats, inbox)
+				outlet.Outlet()
+			} else {
+				outlet := NewKafkaOutlet(config, drops, lost, stats, inbox)
+				outlet.Outlet()
+			}
 		}()
 	}
 

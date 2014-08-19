@@ -29,6 +29,7 @@ const (
 	DEFAULT_MAX_ATTEMPTS   = 3
 	DEFAULT_STATS_INTERVAL = 0 * time.Second
 	DEFAULT_STATS_SOURCE   = ""
+	DEFAULT_DESTINATION    = "Logplex"
 )
 
 const (
@@ -62,6 +63,8 @@ type ShuttleConfig struct {
 	Msgid                               string
 	StatsAddr                           string
 	StatsSource                         string
+	Destination                         string
+	ProducerId                          string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
@@ -89,6 +92,8 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.LogsURL, "logs-url", "", "The receiver of the log data.")
 	flag.StringVar(&c.StatsAddr, "stats-addr", DEFAULT_STATS_ADDR, "Where to expose stats.")
 	flag.StringVar(&c.StatsSource, "stats-source", DEFAULT_STATS_SOURCE, "When emitting stats, add source=<stats-source> to the stats.")
+	flag.StringVar(&c.Destination, "dest", DEFAULT_DESTINATION, "Where we are shipping the log entries (Kafka, Logplex).")
+	flag.StringVar(&c.ProducerId, "producerId", "", "The Kafka producer id.")
 	flag.DurationVar(&c.StatsInterval, "stats-interval", time.Duration(DEFAULT_STATS_INTERVAL), "How often to emit/reset stats.")
 	flag.IntVar(&c.MaxAttempts, "max-attempts", DEFAULT_MAX_ATTEMPTS, "Max number of retries.")
 	flag.IntVar(&c.InputFormat, "input-format", DEFAULT_INPUT_FORMAT, "0=raw (default), 1=rfc3164 (syslog(3))")
@@ -144,7 +149,7 @@ func (c *ShuttleConfig) UseStdin() bool {
 func (c *ShuttleConfig) ComputeHeader() {
 	// This is here to pre-compute this so other's don't have to later
 	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(LOGPLEX_BATCH_TIME_FORMAT) +
-					len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >
+		len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >
 
 	c.syslogFrameHeaderFormat = fmt.Sprintf("%s <%s>%s %s %s %s %s %s ",
 		"%d",

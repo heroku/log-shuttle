@@ -3,6 +3,15 @@
 	"GoVersion": "go1.3",
 	"Deps": [
 		{
+			"ImportPath": "code.google.com/p/snappy-go/snappy",
+			"Comment": "null-15",
+			"Rev": "12e4b4183793ac4b061921e7980845e750679fd0"
+		},
+		{
+			"ImportPath": "github.com/Shopify/sarama",
+			"Rev": "bd290c8c9ff50c457c51387412037059a9c701f4"
+		},
+		{
 			"ImportPath": "github.com/bmizerany/perks/quantile",
 			"Rev": "6cb9d9d729303ee2628580d9aec5db968da3a607"
 		},
