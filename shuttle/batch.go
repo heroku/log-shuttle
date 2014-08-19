@@ -29,3 +29,8 @@ func (b *Batch) Add(ll LogLine) {
 func (b *Batch) MsgCount() int {
 	return len(b.logLines)
 }
+
+func (b *Batch) Encode() (message []byte, err error) {
+
+	return
+}

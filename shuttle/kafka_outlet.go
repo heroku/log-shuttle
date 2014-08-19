@@ -1,6 +1,7 @@
 package shuttle
 
 import "github.com/Shopify/sarama"
+
 import "strings"
 
 type KafkaOutlet struct {
@@ -9,11 +10,12 @@ type KafkaOutlet struct {
 	drops    *Counter
 	lost     *Counter
 	lostMark int
+	client   *sarama.Client
 	producer *sarama.Producer
 	config   ShuttleConfig
 }
 
-func NewKafkaOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *KafkaOutlet {
+func NewKafkaOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) Outlet {
 	producerConfig := sarama.NewProducerConfig()
 	producerConfig.Timeout = config.Timeout
 	producerConfig.Partitioner = new(sarama.RoundRobinPartitioner)
@@ -42,6 +44,7 @@ func NewKafkaOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- Nam
 		stats:    stats,
 		inbox:    inbox,
 		config:   config,
+		client:   kafkaClient,
 		producer: producer,
 	}
 }
@@ -52,10 +55,15 @@ func (ka *KafkaOutlet) Outlet() {
 
 		ka.publish(batch)
 	}
+
+	ka.producer.Close()
+	ka.client.Close()
 }
 
 func (ka *KafkaOutlet) publish(batch Batch) {
-
-	// TODO: Handle dropped messages
-
+	for _, ll := range batch.logLines {
+		if err := ka.producer.QueueMessage(ka.config.Topic, nil, LogLineEncoder(ll)); err != nil {
+			panic(err)
+		}
+	}
 }

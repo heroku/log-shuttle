@@ -25,20 +25,24 @@ var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
+type Outlet interface {
+	Outlet()
+}
+
 func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
+			var outlet Outlet
 			defer outletWaiter.Done()
 			if config.Destination == "Logplex" {
-				outlet := NewOutlet(config, drops, lost, stats, inbox)
-				outlet.Outlet()
+				outlet = NewHttpOutlet(config, drops, lost, stats, inbox)
 			} else {
-				outlet := NewKafkaOutlet(config, drops, lost, stats, inbox)
-				outlet.Outlet()
+				outlet = NewKafkaOutlet(config, drops, lost, stats, inbox)
 			}
+			outlet.Outlet()
 		}()
 	}
 
@@ -55,7 +59,7 @@ type HttpOutlet struct {
 	config   ShuttleConfig
 }
 
-func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *HttpOutlet {
+func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) Outlet {
 	return &HttpOutlet{
 		drops:    drops,
 		lost:     lost,

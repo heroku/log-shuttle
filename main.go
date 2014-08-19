@@ -6,6 +6,7 @@ import (
 	"log/syslog"
 	"os"
 	"sync"
+
 	"github.com/heroku/log-shuttle/shuttle"
 )
 

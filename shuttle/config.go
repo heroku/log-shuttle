@@ -31,6 +31,7 @@ const (
 	DEFAULT_STATS_SOURCE   = ""
 	DEFAULT_DESTINATION    = "Logplex"
 	DEFAULT_BROKERS        = "localhost:9092"
+	DEFAULT_TOPIC          = "log-shuttle"
 )
 
 const (
@@ -67,6 +68,7 @@ type ShuttleConfig struct {
 	Destination                         string
 	ProducerId                          string
 	Brokers                             string
+	Topic                               string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
@@ -97,6 +99,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.Destination, "dest", DEFAULT_DESTINATION, "Where we are shipping the log entries (Kafka, Logplex).")
 	flag.StringVar(&c.ProducerId, "producerId", "", "The Kafka producer id.")
 	flag.StringVar(&c.Brokers, "brokers", DEFAULT_BROKERS, "The Kafka brokers to connect to.")
+	flag.StringVar(&c.Topic, "topic", DEFAULT_TOPIC, "The topic to send the messages go.")
 	flag.DurationVar(&c.StatsInterval, "stats-interval", time.Duration(DEFAULT_STATS_INTERVAL), "How often to emit/reset stats.")
 	flag.IntVar(&c.MaxAttempts, "max-attempts", DEFAULT_MAX_ATTEMPTS, "Max number of retries.")
 	flag.IntVar(&c.InputFormat, "input-format", DEFAULT_INPUT_FORMAT, "0=raw (default), 1=rfc3164 (syslog(3))")
