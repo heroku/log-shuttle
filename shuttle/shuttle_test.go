@@ -1,4 +1,4 @@
-package main
+package shuttle
 
 import (
 	"bytes"
@@ -7,15 +7,14 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
-	"github.com/heroku/log-shuttle/shuttle"
 )
 
 var (
-	config shuttle.ShuttleConfig
+	config ShuttleConfig
 )
 
 func init() {
-	config.ParseFlags() //Do this once for the test. Defaults should always be good for the tests
+	config = NewConfig() //Do this once for the test. Defaults should always be good for the tests
 }
 
 type testInput struct {
@@ -79,10 +78,11 @@ func TestIntegration(t *testing.T) {
 
 	config.LogsURL = ts.URL
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
 
-	reader.Read(NewTestInput())
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Reader.Read(NewTestInput())
+	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
 	pat2 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Test Line 2`)
@@ -94,7 +94,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
 
-	if afterDrops, _ := stats.Drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops, _ := shut.programStats.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 
@@ -108,10 +108,11 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = true
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
 
-	reader.Read(NewTestInputWithHeaders())
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Reader.Read(NewTestInputWithHeaders())
+	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
 	pat2 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] message 2`)
@@ -132,12 +133,14 @@ func TestDrops(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
+	stats := shut.programStats
 
 	stats.Drops.Add(1)
 	stats.Drops.Add(1)
-	reader.Read(NewTestInput())
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Reader.Read(NewTestInput())
+	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+\n`)
 	if !pat1.Match(th.Actual) {
@@ -167,12 +170,14 @@ func TestLost(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
+	stats := shut.programStats
 
 	stats.Lost.Add(1)
 	stats.Lost.Add(1)
-	reader.Read(NewTestInput())
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Reader.Read(NewTestInput())
+	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`135 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L13: 2 messages lost since [0-9T:\+\-\.]+\n`)
 	if !pat1.Match(th.Actual) {
@@ -202,10 +207,11 @@ func TestUserAgentHeader(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
 
-	reader.Read(NewTestInput())
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Reader.Read(NewTestInput())
+	shut.Shutdown()
 
 	uaHeader, ok := th.Headers["User-Agent"]
 	if !ok {
@@ -226,10 +232,11 @@ func TestRequestId(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
 
-	reader.Read(NewTestInput())
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Reader.Read(NewTestInput())
+	shut.Shutdown()
 
 	_, ok := th.Headers["X-Request-Id"]
 	if !ok {
@@ -245,7 +252,8 @@ func BenchmarkPipeline(b *testing.B) {
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
 
-	reader, deliverables, stats, bWaiter, oWaiter := MakeBasicBits(config)
+	shut := NewShuttle(config)
+	shut.Launch()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -253,7 +261,7 @@ func BenchmarkPipeline(b *testing.B) {
 		ti := NewLongerTestInput()
 		b.SetBytes(int64(ti.Len()))
 		b.StartTimer()
-		reader.Read(ti)
+		shut.Reader.Read(ti)
 	}
-	Shutdown(reader.Outbox, stats.Input, deliverables, bWaiter, oWaiter)
+	shut.Shutdown()
 }
