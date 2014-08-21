@@ -16,7 +16,6 @@ type Shuttle struct{
 func NewShuttle(config ShuttleConfig) (*Shuttle) {
 	s := &Shuttle{}
 	s.config = config;
-	s.Launch()
 	return s;
 }
 

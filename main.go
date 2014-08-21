@@ -35,6 +35,7 @@ func main() {
 	}
 
 	s := shuttle.NewShuttle(config)
+	s.Launch()
 
 	// Blocks until closed
 	s.Reader.Read(os.Stdin)

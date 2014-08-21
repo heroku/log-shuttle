@@ -79,6 +79,7 @@ func TestIntegration(t *testing.T) {
 	config.LogsURL = ts.URL
 
 	shut := NewShuttle(config)
+	shut.Launch()
 
 	shut.Reader.Read(NewTestInput())
 	shut.Shutdown()
@@ -108,6 +109,7 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	config.SkipHeaders = true
 
 	shut := NewShuttle(config)
+	shut.Launch()
 
 	shut.Reader.Read(NewTestInputWithHeaders())
 	shut.Shutdown()
@@ -132,6 +134,7 @@ func TestDrops(t *testing.T) {
 	config.SkipHeaders = false
 
 	shut := NewShuttle(config)
+	shut.Launch()
 	stats := shut.programStats
 
 	stats.Drops.Add(1)
@@ -168,6 +171,7 @@ func TestLost(t *testing.T) {
 	config.SkipHeaders = false
 
 	shut := NewShuttle(config)
+	shut.Launch()
 	stats := shut.programStats
 
 	stats.Lost.Add(1)
@@ -204,6 +208,7 @@ func TestUserAgentHeader(t *testing.T) {
 	config.SkipHeaders = false
 
 	shut := NewShuttle(config)
+	shut.Launch()
 
 	shut.Reader.Read(NewTestInput())
 	shut.Shutdown()
@@ -228,6 +233,7 @@ func TestRequestId(t *testing.T) {
 	config.SkipHeaders = false
 
 	shut := NewShuttle(config)
+	shut.Launch()
 
 	shut.Reader.Read(NewTestInput())
 	shut.Shutdown()
@@ -247,6 +253,7 @@ func BenchmarkPipeline(b *testing.B) {
 	config.SkipHeaders = false
 
 	shut := NewShuttle(config)
+	shut.Launch()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
