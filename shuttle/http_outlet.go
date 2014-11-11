@@ -25,14 +25,14 @@ var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *sync.WaitGroup {
+func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewOutlet(config, drops, lost, stats, inbox)
+			outlet := NewHttpOutlet(config, drops, lost, stats, inbox, ff)
 			outlet.Outlet()
 		}()
 	}
@@ -41,23 +41,25 @@ func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- Named
 }
 
 type HttpOutlet struct {
-	inbox    <-chan Batch
-	stats    chan<- NamedValue
-	drops    *Counter
-	lost     *Counter
-	lostMark int // If len(inbox) > lostMark during error handling, don't retry
-	client   *http.Client
-	config   ShuttleConfig
+	inbox            <-chan Batch
+	stats            chan<- NamedValue
+	drops            *Counter
+	lost             *Counter
+	lostMark         int // If len(inbox) > lostMark during error handling, don't retry
+	client           *http.Client
+	config           ShuttleConfig
+	newFormatterFunc NewFormatterFunc
 }
 
-func NewOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch) *HttpOutlet {
+func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HttpOutlet {
 	return &HttpOutlet{
-		drops:    drops,
-		lost:     lost,
-		lostMark: int(float64(config.BackBuff) * DEPTH_WATERMARK),
-		stats:    stats,
-		inbox:    inbox,
-		config:   config,
+		drops:            drops,
+		lost:             lost,
+		lostMark:         int(float64(config.BackBuff) * DEPTH_WATERMARK),
+		stats:            stats,
+		inbox:            inbox,
+		config:           config,
+		newFormatterFunc: ff,
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 				ResponseHeaderTimeout: config.Timeout,
@@ -100,7 +102,7 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 	uuid := batch.UUID.String()
 
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
-		formatter := NewLogplexBatchFormatter(batch, edata, &h.config)
+		formatter := h.newFormatterFunc(batch, edata, &h.config)
 		err := h.post(formatter, uuid)
 		if err != nil {
 			inboxLength := len(h.inbox)
