@@ -8,13 +8,12 @@ import (
 )
 
 const (
-	LOGPLEX_MAX_LENGTH        = 10000                              // It's actually 10240, but leave enough space for headers
 	LOGPLEX_BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00" // The format of the timestamp
 )
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
-// them as necessary to LOGPLEX_MAX_LENGTH
+// them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
 	curFormatter int
 	formatters   []Formatter
@@ -22,7 +21,7 @@ type LogplexBatchFormatter struct {
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) *LogplexBatchFormatter {
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) Formatter {
 	bf := &LogplexBatchFormatter{
 		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
 		headers:    make(map[string]string),
@@ -43,8 +42,8 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) *
 	// Make all of the sub formatters
 	for cli := 0; cli < len(b.logLines); cli++ {
 		cl := b.logLines[cli]
-		if cll := len(cl.line); !config.SkipHeaders && cll > LOGPLEX_MAX_LENGTH {
-			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl), make([]errData, 0), config))
+		if cll := len(cl.line); !config.SkipHeaders && cll > config.MaxLineLength {
+			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl, config.MaxLineLength), make([]errData, 0), config))
 		} else {
 			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(cl, config))
 		}
@@ -69,12 +68,12 @@ func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 	return
 }
 
-//Splits the line into a batch of loglines of LOGPLEX_MAX_LENGTH length
-func splitLine(ll LogLine) Batch {
+//Splits the line into a batch of loglines of max(mll) lengths
+func splitLine(ll LogLine, mll int) Batch {
 	l := ll.Length()
-	batch := NewBatch(int(l/LOGPLEX_MAX_LENGTH) + 1)
-	for i := 0; i < l; i += LOGPLEX_MAX_LENGTH {
-		t := i + LOGPLEX_MAX_LENGTH
+	batch := NewBatch(int(l/mll) + 1)
+	for i := 0; i < l; i += mll {
+		t := i + mll
 		if t > l {
 			t = l
 		}
