@@ -26,9 +26,12 @@ Fork the repo, hack, submit PRs.
 
 ```bash
 $ go version
-go version go1.2.1 darwin/amd64
+go version go1.3.3 darwin/amd64
+$ cd $GOPATH
+$ mkdir -p src/github.com/heroku
+$ cd src/github.com/heroku
 $ git clone https://github.com/heroku/log-shuttle.git
-# go get github.com/tools/godep
+# go get -u github.com/tools/godep
 $ cd log-shuttle
 $ godep go build ./...
 ```
@@ -36,7 +39,7 @@ $ godep go build ./...
 ### Testing
 
 ```bash
-$ go test ./...
+$ godep go test ./...
 ```
 
 ### Submitting Code
