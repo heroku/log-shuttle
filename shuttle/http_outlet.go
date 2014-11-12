@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
-	"sync"
 	"time"
 )
 
@@ -24,21 +23,6 @@ const (
 var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
-
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
-	outletWaiter := new(sync.WaitGroup)
-
-	for i := 0; i < config.NumOutlets; i++ {
-		outletWaiter.Add(1)
-		go func() {
-			defer outletWaiter.Done()
-			outlet := NewHttpOutlet(config, drops, lost, stats, inbox, ff)
-			outlet.Outlet()
-		}()
-	}
-
-	return outletWaiter
-}
 
 type HttpOutlet struct {
 	inbox            <-chan Batch

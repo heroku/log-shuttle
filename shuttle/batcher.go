@@ -1,23 +1,8 @@
 package shuttle
 
 import (
-	"sync"
 	"time"
 )
-
-func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
-	batchWaiter := new(sync.WaitGroup)
-	for i := 0; i < config.NumBatchers; i++ {
-		batchWaiter.Add(1)
-		go func() {
-			defer batchWaiter.Done()
-			batcher := NewBatcher(config.BatchSize, config.WaitDuration, drops, stats, inLogs, outBatches)
-			batcher.Batch()
-		}()
-	}
-
-	return batchWaiter
-}
 
 type Batcher struct {
 	inLogs     <-chan LogLine    // Where I get the log lines to batch from
