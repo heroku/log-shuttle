@@ -80,7 +80,7 @@ func (r *Reader) ReadLine() (line []byte, err error) {
 	// Fills buffer if no \n or \r found and no error yet,
 	// and then rescans for first \n or \r.
 	fill := func() {
-		if (r.idx < 0 || r.idx == r.n - 1) && r.err == nil {
+		if (r.idx < 0 || r.idx == r.n-1) && r.err == nil {
 			if r.p > 0 {
 				// make room
 				if r.p < r.n {

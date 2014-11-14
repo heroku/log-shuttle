@@ -32,10 +32,10 @@ type HttpOutlet struct {
 	lostMark         int // If len(inbox) > lostMark during error handling, don't retry
 	client           *http.Client
 	config           ShuttleConfig
-	newFormatterFunc NewFormatterFunc
+	newFormatterFunc NewHttpFormatterFunc
 }
 
-func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HttpOutlet {
+func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewHttpFormatterFunc) *HttpOutlet {
 	return &HttpOutlet{
 		drops:            drops,
 		lost:             lost,
@@ -110,22 +110,14 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 	}
 }
 
-func (h *HttpOutlet) post(formatter Formatter, uuid string) error {
-
-	req, err := http.NewRequest("POST", h.config.OutletURL(), formatter)
+func (h *HttpOutlet) post(formatter HttpFormatter, uuid string) error {
+	req, err := formatter.Request(h.config.OutletURL())
 	if err != nil {
 		return err
 	}
 
-	if cl := formatter.ContentLength(); cl > 0 {
-		req.ContentLength = cl
-	}
 	req.Header.Add("X-Request-Id", uuid)
 	req.Header.Add("User-Agent", userAgent)
-
-	for k, v := range formatter.Headers() {
-		req.Header.Add(k, v)
-	}
 
 	resp, err := h.timeRequest(req)
 	if err != nil {

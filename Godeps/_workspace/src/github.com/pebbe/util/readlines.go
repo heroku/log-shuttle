@@ -66,6 +66,7 @@ type LinesReader struct {
 	needClose bool
 	interrupt chan bool
 }
+
 // Either plain text file, gzip'ed text file with name ending in .gz, or bzip2'ed text file with name ending in .bz2
 func NewLinesReaderFromFile(filename string) (r *LinesReader, err error) {
 	return NewLinesReaderSizeFromFile(filename, 0)

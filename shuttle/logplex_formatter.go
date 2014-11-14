@@ -3,6 +3,7 @@ package shuttle
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -16,14 +17,14 @@ const (
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
 	curFormatter int
-	formatters   []Formatter
+	formatters   []HttpFormatter
 	headers      map[string]string
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) Formatter {
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFormatter {
 	bf := &LogplexBatchFormatter{
-		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
+		formatters: make([]HttpFormatter, 0, b.MsgCount()+len(eData)),
 		headers:    make(map[string]string),
 	}
 	bf.headers["Content-Type"] = "application/logplex-1"
@@ -55,8 +56,20 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) F
 	return bf
 }
 
-func (bf *LogplexBatchFormatter) Headers() map[string]string {
-	return bf.headers
+func (bf *LogplexBatchFormatter) Request(url string) (*http.Request, error) {
+	req, err := http.NewRequest("POST", url, bf)
+	if err != nil {
+		return nil, err
+	}
+
+	req.ContentLength = bf.contentLength()
+
+	for k, v := range bf.headers {
+		req.Header.Add(k, v)
+	}
+
+	return req, nil
+
 }
 
 // The msgcount of the wrapped batch. We itterate over the sub forwarders to
@@ -82,9 +95,14 @@ func splitLine(ll LogLine, mll int) Batch {
 	return batch
 }
 
-func (bf *LogplexBatchFormatter) ContentLength() (length int64) {
+func (bf *LogplexBatchFormatter) contentLength() (length int64) {
 	for _, f := range bf.formatters {
-		length += f.ContentLength()
+		switch v := f.(type) {
+		case *LogplexBatchFormatter:
+			length += v.contentLength()
+		case *LogplexLineFormatter:
+			length += v.contentLength()
+		}
 	}
 	return
 }
@@ -133,7 +151,7 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 	}
 }
 
-func (llf *LogplexLineFormatter) ContentLength() (lenth int64) {
+func (llf *LogplexLineFormatter) contentLength() (lenth int64) {
 	return int64(len(llf.header) + len(llf.line))
 }
 
@@ -141,8 +159,8 @@ func (llf *LogplexLineFormatter) MsgCount() int {
 	return 1
 }
 
-func (llf *LogplexLineFormatter) Headers() map[string]string {
-	return make(map[string]string)
+func (llf *LogplexLineFormatter) Request(url string) (*http.Request, error) {
+	return http.NewRequest("POST", url, llf)
 }
 
 // Implements the io.Reader interface

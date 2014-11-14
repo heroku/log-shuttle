@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/heroku/log-shuttle/shuttle"
 	"log"
 	"log/syslog"
 	"os"
-	"github.com/heroku/log-shuttle/shuttle"
 )
 
 func main() {

@@ -53,9 +53,9 @@ func Open(filename string) (rc *ReadCloser, err error) {
 	}
 
 	r := &ReadCloser{
-		fp:      fp,
-		r:       fp,
-		isOpen:  true,
+		fp:     fp,
+		r:      fp,
+		isOpen: true,
 	}
 	runtime.SetFinalizer(r, (*ReadCloser).Close)
 	return r, nil
