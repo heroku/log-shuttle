@@ -3,6 +3,10 @@
 	"GoVersion": "go1.3.3",
 	"Deps": [
 		{
+			"ImportPath": "github.com/bmizerany/aws4",
+			"Rev": "5fb2e72396263668edd9a2956052e402cf6c104a"
+		},
+		{
 			"ImportPath": "github.com/bmizerany/perks/quantile",
 			"Rev": "6cb9d9d729303ee2628580d9aec5db968da3a607"
 		},

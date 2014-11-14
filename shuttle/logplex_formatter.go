@@ -21,7 +21,7 @@ type LogplexBatchFormatter struct {
 	headers      map[string]string
 }
 
-// Returns a new LogplexBatchFormatter wrapping the provided batch
+// Returns a new LogplexBatchFormatter wrapping the provided batch as a HttpFormatter
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFormatter {
 	bf := &LogplexBatchFormatter{
 		formatters: make([]HttpFormatter, 0, b.MsgCount()+len(eData)),
@@ -41,12 +41,11 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) H
 	}
 
 	// Make all of the sub formatters
-	for cli := 0; cli < len(b.logLines); cli++ {
-		cl := b.logLines[cli]
-		if cll := len(cl.line); !config.SkipHeaders && cll > config.MaxLineLength {
-			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl, config.MaxLineLength), make([]errData, 0), config))
+	for _, l := range b.logLines {
+		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
+			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config))
 		} else {
-			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(cl, config))
+			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(l, config))
 		}
 	}
 

@@ -19,32 +19,33 @@ const (
 )
 
 const (
-	DEFAULT_MAX_LINE_LENGTH = 10000 // Logplex max is 10000 bytes, so default to that
-	DEFAULT_INPUT_FORMAT    = INPUT_FORMAT_RAW
-	DEFAULT_FRONT_BUFF      = 1000
-	DEFAULT_BACK_BUFF       = 50
-	DEFAULT_STATS_BUFF      = 5000
-	DEFAULT_STATS_ADDR      = ""
-	DEFAULT_TIMEOUT         = 5 * time.Second
-	DEFAULT_WAIT_DURATION   = 250 * time.Millisecond
-	DEFAULT_MAX_ATTEMPTS    = 3
-	DEFAULT_STATS_INTERVAL  = 0 * time.Second
-	DEFAULT_STATS_SOURCE    = ""
-	DEFAULT_PRINT_VERSION   = false
-	DEFAULT_VERBOSE         = false
-	DEFAULT_SKIP_HEADERS    = false
-	DEFAULT_SKIP_VERIFY     = false
-	DEFAULT_PRIVAL          = "190"
-	DEFAULT_VERSION         = "1"
-	DEFAULT_PROCID          = "shuttle"
-	DEFAULT_APPNAME         = "token"
-	DEFAULT_HOSTNAME        = "shuttle"
-	DEFAULT_MSGID           = "- -"
-	DEFAULT_LOGS_URL        = ""
-	DEFAULT_NUM_BATCHERS    = 2
-	DEFAULT_NUM_OUTLETS     = 4
-	DEFAULT_BATCH_SIZE      = 500
-	DEFAULT_LOG_TO_SYSLOG   = false
+	DEFAULT_MAX_LINE_LENGTH     = 10000 // Logplex max is 10000 bytes, so default to that
+	DEFAULT_INPUT_FORMAT        = INPUT_FORMAT_RAW
+	DEFAULT_FRONT_BUFF          = 1000
+	DEFAULT_BACK_BUFF           = 50
+	DEFAULT_STATS_BUFF          = 5000
+	DEFAULT_STATS_ADDR          = ""
+	DEFAULT_TIMEOUT             = 5 * time.Second
+	DEFAULT_WAIT_DURATION       = 250 * time.Millisecond
+	DEFAULT_MAX_ATTEMPTS        = 3
+	DEFAULT_STATS_INTERVAL      = 0 * time.Second
+	DEFAULT_STATS_SOURCE        = ""
+	DEFAULT_PRINT_VERSION       = false
+	DEFAULT_VERBOSE             = false
+	DEFAULT_SKIP_HEADERS        = false
+	DEFAULT_SKIP_VERIFY         = false
+	DEFAULT_PRIVAL              = "190"
+	DEFAULT_VERSION             = "1"
+	DEFAULT_PROCID              = "shuttle"
+	DEFAULT_APPNAME             = "token"
+	DEFAULT_HOSTNAME            = "shuttle"
+	DEFAULT_MSGID               = "- -"
+	DEFAULT_LOGS_URL            = ""
+	DEFAULT_NUM_BATCHERS        = 2
+	DEFAULT_NUM_OUTLETS         = 4
+	DEFAULT_BATCH_SIZE          = 500
+	DEFAULT_LOG_TO_SYSLOG       = false
+	DEFAULT_KINESIS_STREAM_NAME = "log-shuttle"
 )
 
 const (
@@ -79,6 +80,10 @@ type ShuttleConfig struct {
 	Msgid                               string
 	StatsAddr                           string
 	StatsSource                         string
+	KinesisStreamName                   string
+	AwsAccessKey                        string
+	AwsSecretKey                        string
+	AwsHost                             string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
@@ -94,32 +99,33 @@ type ShuttleConfig struct {
 // Create a new config using the defaults.
 func NewConfig() ShuttleConfig {
 	shuttleConfig := ShuttleConfig{
-		MaxLineLength: DEFAULT_MAX_LINE_LENGTH,
-		PrintVersion:  DEFAULT_PRINT_VERSION,
-		Verbose:       DEFAULT_VERBOSE,
-		SkipHeaders:   DEFAULT_SKIP_HEADERS,
-		SkipVerify:    DEFAULT_SKIP_VERIFY,
-		Prival:        DEFAULT_PRIVAL,
-		Version:       DEFAULT_VERSION,
-		Procid:        DEFAULT_PROCID,
-		Appname:       DEFAULT_APPNAME,
-		Hostname:      DEFAULT_HOSTNAME,
-		Msgid:         DEFAULT_MSGID,
-		LogsURL:       DEFAULT_LOGS_URL,
-		StatsAddr:     DEFAULT_STATS_ADDR,
-		StatsSource:   DEFAULT_STATS_SOURCE,
-		StatsInterval: time.Duration(DEFAULT_STATS_INTERVAL),
-		MaxAttempts:   DEFAULT_MAX_ATTEMPTS,
-		InputFormat:   DEFAULT_INPUT_FORMAT,
-		NumBatchers:   DEFAULT_NUM_BATCHERS,
-		NumOutlets:    DEFAULT_NUM_OUTLETS,
-		WaitDuration:  time.Duration(DEFAULT_WAIT_DURATION),
-		BatchSize:     DEFAULT_BATCH_SIZE,
-		FrontBuff:     DEFAULT_FRONT_BUFF,
-		BackBuff:      DEFAULT_BACK_BUFF,
-		StatsBuff:     DEFAULT_STATS_BUFF,
-		Timeout:       time.Duration(DEFAULT_TIMEOUT),
-		LogToSyslog:   DEFAULT_LOG_TO_SYSLOG,
+		MaxLineLength:     DEFAULT_MAX_LINE_LENGTH,
+		PrintVersion:      DEFAULT_PRINT_VERSION,
+		Verbose:           DEFAULT_VERBOSE,
+		SkipHeaders:       DEFAULT_SKIP_HEADERS,
+		SkipVerify:        DEFAULT_SKIP_VERIFY,
+		Prival:            DEFAULT_PRIVAL,
+		Version:           DEFAULT_VERSION,
+		Procid:            DEFAULT_PROCID,
+		Appname:           DEFAULT_APPNAME,
+		Hostname:          DEFAULT_HOSTNAME,
+		Msgid:             DEFAULT_MSGID,
+		LogsURL:           DEFAULT_LOGS_URL,
+		StatsAddr:         DEFAULT_STATS_ADDR,
+		StatsSource:       DEFAULT_STATS_SOURCE,
+		StatsInterval:     time.Duration(DEFAULT_STATS_INTERVAL),
+		MaxAttempts:       DEFAULT_MAX_ATTEMPTS,
+		InputFormat:       DEFAULT_INPUT_FORMAT,
+		NumBatchers:       DEFAULT_NUM_BATCHERS,
+		NumOutlets:        DEFAULT_NUM_OUTLETS,
+		WaitDuration:      time.Duration(DEFAULT_WAIT_DURATION),
+		BatchSize:         DEFAULT_BATCH_SIZE,
+		FrontBuff:         DEFAULT_FRONT_BUFF,
+		BackBuff:          DEFAULT_BACK_BUFF,
+		StatsBuff:         DEFAULT_STATS_BUFF,
+		Timeout:           time.Duration(DEFAULT_TIMEOUT),
+		LogToSyslog:       DEFAULT_LOG_TO_SYSLOG,
+		KinesisStreamName: DEFAULT_KINESIS_STREAM_NAME,
 	}
 
 	shuttleConfig.ComputeHeader()
@@ -146,6 +152,10 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsAddr, "stats-addr", c.StatsAddr, "Where to expose stats.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
+	flag.StringVar(&c.KinesisStreamName, "kinesis-stream-name", c.KinesisStreamName, "Kinesis stream name to send logs into.")
+	flag.StringVar(&c.AwsAccessKey, "aws-access-key", "", "AWS Access Key to use for AWS operations.")
+	flag.StringVar(&c.AwsSecretKey, "aws-secret-key", "", "AWS Secret Key to use for AWS operations.")
+	flag.StringVar(&c.AwsHost, "aws-host", "kinesis.us-east-1.amazonaws.com", "See http://docs.aws.amazon.com/general/latest/gr/rande.html")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
