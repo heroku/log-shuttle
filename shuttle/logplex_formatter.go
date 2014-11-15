@@ -17,42 +17,48 @@ const (
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
 	curFormatter int
-	formatters   []MsgCountReader
-	headers      map[string]string
+	formatters   []io.Reader
+	headers      http.Header
 	stringURL    string
+	msgCount     int
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch as a HttpFormatter
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFormatter {
 	bf := &LogplexBatchFormatter{
-		formatters: make([]MsgCountReader, 0, b.MsgCount()+len(eData)),
-		headers:    make(map[string]string),
+		formatters: make([]io.Reader, 0, b.MsgCount()+len(eData)),
+		headers:    make(http.Header),
 		stringURL:  config.OutletURL(),
 	}
-	bf.headers["Content-Type"] = "application/logplex-1"
+
+	bf.headers.Add("Content-Type", "application/logplex-1")
 
 	//Process any errData that we were passed first so it's at the top of the batch
 	for _, edata := range eData {
 		bf.formatters = append(bf.formatters, NewLogplexErrorFormatter(edata, *config))
 		switch edata.eType {
 		case errDrop:
-			bf.headers["Logshuttle-Drops"] = strconv.Itoa(edata.count)
+			bf.headers.Add("Logshuttle-Drops", strconv.Itoa(edata.count))
 		case errLost:
-			bf.headers["Logshuttle-Lost"] = strconv.Itoa(edata.count)
-		}
-	}
-	// Make all of the sub formatters
-	for _, l := range b.logLines {
-		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
-			lbf := NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config)
-			bf.formatters = append(bf.formatters, MsgCountReader(lbf))
-		} else {
-			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(l, config))
+			bf.headers.Add("Logshuttle-Lost", strconv.Itoa(edata.count))
 		}
 	}
 
+	var r MsgCountReader
+
+	// Make all of the sub formatters
+	for _, l := range b.logLines {
+		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
+			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config)
+		} else {
+			r = NewLogplexLineFormatter(l, config)
+		}
+		bf.formatters = append(bf.formatters, r)
+		bf.msgCount += MsgCounter(r).MsgCount()
+	}
+
 	// Take the msg count after the formatters are created so we have the right count
-	bf.headers["Logplex-Msg-Count"] = strconv.Itoa(bf.MsgCount())
+	bf.headers.Add("Logplex-Msg-Count", strconv.Itoa(bf.msgCount))
 
 	return bf
 }
@@ -64,10 +70,7 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 	}
 
 	req.ContentLength = bf.contentLength()
-
-	for k, v := range bf.headers {
-		req.Header.Add(k, v)
-	}
+	req.Header = bf.headers
 
 	return req, nil
 
@@ -76,10 +79,7 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 // The msgcount of the wrapped batch. We itterate over the sub forwarders to
 // determine final msgcount
 func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
-	for _, f := range bf.formatters {
-		msgCount += f.MsgCount()
-	}
-	return
+	return bf.msgCount
 }
 
 //Splits the line into a batch of loglines of max(mll) lengths
