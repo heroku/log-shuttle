@@ -56,9 +56,8 @@ func (batcher Batcher) fillBatch() (bool, Batch) {
 	batch := NewBatch(batcher.batchSize) // Make a batch
 	timeout := new(time.Timer)           // Gives us a nil channel and no timeout to start with
 	chanOpen := true                     // Assume the channel is open
-	count := 0
 
-	for {
+	for count := 0; count < batcher.batchSize; count++ {
 		select {
 		case <-timeout.C:
 			return !chanOpen, batch
@@ -76,11 +75,7 @@ func (batcher Batcher) fillBatch() (bool, Batch) {
 			}
 
 			batch.Add(line)
-			count += 1
-
-			if count >= batcher.batchSize {
-				return !chanOpen, batch
-			}
 		}
 	}
+	return !chanOpen, batch
 }

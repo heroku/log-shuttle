@@ -11,8 +11,16 @@ import (
 // Formatters implement io.Reader, which outlets can use to read the formatted
 // batch
 type HttpFormatter interface {
-	Request(string) (*http.Request, error)
+	Request() (*http.Request, error)
+	MsgCountReader
+}
+
+type MsgCounter interface {
 	MsgCount() int
+}
+
+type MsgCountReader interface {
+	MsgCounter
 	io.Reader
 }
 

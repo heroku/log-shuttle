@@ -111,7 +111,7 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 }
 
 func (h *HttpOutlet) post(formatter HttpFormatter, uuid string) error {
-	req, err := formatter.Request(h.config.LogsURL)
+	req, err := formatter.Request()
 	if err != nil {
 		return err
 	}

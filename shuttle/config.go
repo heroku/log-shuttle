@@ -46,11 +46,19 @@ const (
 	DEFAULT_BATCH_SIZE          = 500
 	DEFAULT_LOG_TO_SYSLOG       = false
 	DEFAULT_KINESIS_STREAM_NAME = "log-shuttle"
+	DEFAULT_FORMATTER           = "logplex"
 )
 
 const (
 	errDrop errType = iota
 	errLost
+)
+
+var (
+	Formatters = map[string]NewHttpFormatterFunc{
+		"logplex": NewLogplexBatchFormatter,
+		"kinesis": NewKinesisFormatter,
+	}
 )
 
 type errType int
@@ -83,7 +91,6 @@ type ShuttleConfig struct {
 	KinesisStreamName                   string
 	AwsAccessKey                        string
 	AwsSecretKey                        string
-	AwsHost                             string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
@@ -94,6 +101,7 @@ type ShuttleConfig struct {
 	StatsInterval                       time.Duration
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
+	formatter                           string
 }
 
 // Create a new config using the defaults.
@@ -126,6 +134,7 @@ func NewConfig() ShuttleConfig {
 		Timeout:           time.Duration(DEFAULT_TIMEOUT),
 		LogToSyslog:       DEFAULT_LOG_TO_SYSLOG,
 		KinesisStreamName: DEFAULT_KINESIS_STREAM_NAME,
+		formatter:         DEFAULT_FORMATTER,
 	}
 
 	shuttleConfig.ComputeHeader()
@@ -155,7 +164,7 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.StringVar(&c.KinesisStreamName, "kinesis-stream-name", c.KinesisStreamName, "Kinesis stream name to send logs into.")
 	flag.StringVar(&c.AwsAccessKey, "aws-access-key", "", "AWS Access Key to use for AWS operations.")
 	flag.StringVar(&c.AwsSecretKey, "aws-secret-key", "", "AWS Secret Key to use for AWS operations.")
-	flag.StringVar(&c.AwsHost, "aws-host", "kinesis.us-east-1.amazonaws.com", "See http://docs.aws.amazon.com/general/latest/gr/rande.html")
+	flag.StringVar(&c.formatter, "formatter", c.formatter, "Formatter to use: logplex or kinesis.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
@@ -174,7 +183,11 @@ func (c *ShuttleConfig) ParseFlags() {
 	flag.Parse()
 
 	if c.MaxAttempts < 1 {
-		log.Fatalf("-max-attempts must be >= 1")
+		log.Fatalln("-max-attempts must be >= 1")
+	}
+
+	if _, ok := Formatters[c.formatter]; !ok {
+		log.Fatalf("unknown -formatter %s\n", c.formatter)
 	}
 
 	c.ComputeHeader()

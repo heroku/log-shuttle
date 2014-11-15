@@ -7,6 +7,7 @@ import (
 	"github.com/bmizerany/aws4"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 type KinesisFormatter struct {
@@ -15,11 +16,15 @@ type KinesisFormatter struct {
 	footer     *bytes.Reader
 	rdr        io.Reader
 	keys       *aws4.Keys
-	host       string
+	url        *url.URL
 }
 
 func NewKinesisFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFormatter {
-	fmt.Println("Kinesis")
+	u, err := url.Parse(config.OutletURL())
+	if err != nil {
+		ErrLogger.Println("Unable to Parse url: " + err.Error())
+	}
+	u.User = nil // Ensure there is no auth info
 	kf := &KinesisFormatter{
 		header:     bytes.NewBuffer(make([]byte, 0, 500)),
 		formatters: make([]io.Reader, 0, b.MsgCount()+len(eData)),
@@ -28,7 +33,7 @@ func NewKinesisFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFo
 			AccessKey: config.AwsAccessKey,
 			SecretKey: config.AwsSecretKey,
 		},
-		host: config.AwsHost,
+		url: u,
 	}
 	kf.header.WriteString("{")
 	kf.header.WriteString(fmt.Sprintf("\"StreamName\":\"%s\",", config.KinesisStreamName))
@@ -46,8 +51,8 @@ func NewKinesisFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFo
 	return kf
 }
 
-func (kf *KinesisFormatter) Request(url string) (*http.Request, error) {
-	req, err := http.NewRequest("POST", url, kf)
+func (kf *KinesisFormatter) Request() (*http.Request, error) {
+	req, err := http.NewRequest("POST", kf.url.String(), kf)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +62,7 @@ func (kf *KinesisFormatter) Request(url string) (*http.Request, error) {
 
 	req.Header.Add("Content-Type", "application/x-amz-json-1.1")
 	req.Header.Add("X-Amz-Target", "Kinesis_20131202.PutRecord")
-	req.Host = kf.host
+	req.Host = kf.url.Host
 
 	err = aws4.Sign(kf.keys, req)
 	if err != nil {

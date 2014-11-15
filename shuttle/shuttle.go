@@ -13,9 +13,7 @@ type Shuttle struct {
 }
 
 func NewShuttle(config ShuttleConfig) *Shuttle {
-	s := &Shuttle{}
-	s.config = config
-	return s
+	return &Shuttle{config: config}
 }
 
 func (s *Shuttle) Launch() {
@@ -26,8 +24,7 @@ func (s *Shuttle) Launch() {
 	s.deliverableBatches = make(chan Batch, s.config.BackBuff)
 	// Start outlets, then batches (reverse of Shutdown)
 	s.Reader = NewReader(s.config.FrontBuff, s.programStats.Input)
-	//s.oWaiter = StartOutlets(s.config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches, NewLogplexBatchFormatter)
-	s.oWaiter = StartOutlets(s.config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches, NewKinesisFormatter)
+	s.oWaiter = StartOutlets(s.config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches, Formatters[s.config.formatter])
 	s.bWaiter = StartBatchers(s.config, s.programStats.Drops, s.programStats.Input, s.Reader.Outbox, s.deliverableBatches)
 }
 

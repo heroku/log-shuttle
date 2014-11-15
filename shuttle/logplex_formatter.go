@@ -17,15 +17,17 @@ const (
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
 	curFormatter int
-	formatters   []HttpFormatter
+	formatters   []MsgCountReader
 	headers      map[string]string
+	stringURL    string
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch as a HttpFormatter
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) HttpFormatter {
 	bf := &LogplexBatchFormatter{
-		formatters: make([]HttpFormatter, 0, b.MsgCount()+len(eData)),
+		formatters: make([]MsgCountReader, 0, b.MsgCount()+len(eData)),
 		headers:    make(map[string]string),
+		stringURL:  config.OutletURL(),
 	}
 	bf.headers["Content-Type"] = "application/logplex-1"
 
@@ -39,11 +41,11 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) H
 			bf.headers["Logshuttle-Lost"] = strconv.Itoa(edata.count)
 		}
 	}
-
 	// Make all of the sub formatters
 	for _, l := range b.logLines {
 		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
-			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config))
+			lbf := NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config)
+			bf.formatters = append(bf.formatters, MsgCountReader(lbf))
 		} else {
 			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(l, config))
 		}
@@ -55,8 +57,8 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) H
 	return bf
 }
 
-func (bf *LogplexBatchFormatter) Request(url string) (*http.Request, error) {
-	req, err := http.NewRequest("POST", url, bf)
+func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
+	req, err := http.NewRequest("POST", bf.stringURL, bf)
 	if err != nil {
 		return nil, err
 	}
@@ -132,6 +134,7 @@ type LogplexLineFormatter struct {
 	headerPos, msgPos int    // Positions in the the parts of the log lines
 	line              []byte // the raw line bytes
 	header            string // the precomputed, length prefixed syslog frame header
+	stringURL         string
 }
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
@@ -145,8 +148,9 @@ func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineForm
 			ll.when.UTC().Format(LOGPLEX_BATCH_TIME_FORMAT))
 	}
 	return &LogplexLineFormatter{
-		line:   ll.line,
-		header: header,
+		line:      ll.line,
+		header:    header,
+		stringURL: "",
 	}
 }
 
@@ -156,10 +160,6 @@ func (llf *LogplexLineFormatter) contentLength() (lenth int64) {
 
 func (llf *LogplexLineFormatter) MsgCount() int {
 	return 1
-}
-
-func (llf *LogplexLineFormatter) Request(url string) (*http.Request, error) {
-	return http.NewRequest("POST", url, llf)
 }
 
 // Implements the io.Reader interface
