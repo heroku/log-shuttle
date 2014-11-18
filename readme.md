@@ -44,7 +44,7 @@ $ godep go test ./...
 
 ### Submitting Code
 
-* Open an issue on [Github](https://github.com/heroku/log-shuttle/issues?state=open).
+* Open an issue on [GitHub](https://github.com/heroku/log-shuttle/issues?state=open).
 * Keep changes in a feature branch
 * Submit PR
 
