@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	LOGPLEX_BATCH_TIME_FORMAT = "2006-01-02T15:04:05.000000+00:00" // The format of the timestamp
+	// LogplexBatchTimeFormat is the format of timestamps as expected by Logplex
+	LogplexBatchTimeFormat = "2006-01-02T15:04:05.000000+00:00"
 )
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
@@ -20,7 +21,7 @@ type LogplexBatchFormatter struct {
 	headers      map[string]string
 }
 
-// Returns a new LogplexBatchFormatter wrapping the provided batch
+// NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) Formatter {
 	bf := &LogplexBatchFormatter{
 		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
@@ -55,12 +56,13 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) Formatte
 	return bf
 }
 
+// Headers returns a map[string]string of the headers to use for the request
 func (bf *LogplexBatchFormatter) Headers() map[string]string {
 	return bf.headers
 }
 
-// The msgcount of the wrapped batch. We itterate over the sub forwarders to
-// determine final msgcount
+// MsgCount of the wrapped batch.
+// We itterate over the sub forwarders to determine final msgcount
 func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
 	for _, f := range bf.formatters {
 		msgCount += f.MsgCount()
@@ -82,6 +84,7 @@ func splitLine(ll LogLine, mll int) Batch {
 	return batch
 }
 
+// ContentLength of the batch as formatted by the Formatter
 func (bf *LogplexBatchFormatter) ContentLength() (length int64) {
 	for _, f := range bf.formatters {
 		length += f.ContentLength()
@@ -102,7 +105,7 @@ func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
 		// and move to the next log line
 		if err == io.EOF && bf.curFormatter < (len(bf.formatters)-1) {
 			err = nil
-			bf.curFormatter += 1
+			bf.curFormatter++
 		}
 	}
 
@@ -117,7 +120,7 @@ type LogplexLineFormatter struct {
 	header            string // the precomputed, length prefixed syslog frame header
 }
 
-// Returns a new LogplexLineFormatter wrapping the provided LogLine
+// NewLogplexLineFormatter returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	var header string
 	if config.SkipHeaders {
@@ -125,7 +128,7 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	} else {
 		header = fmt.Sprintf(config.syslogFrameHeaderFormat,
 			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
-			ll.when.UTC().Format(LOGPLEX_BATCH_TIME_FORMAT))
+			ll.when.UTC().Format(LogplexBatchTimeFormat))
 	}
 	return &LogplexLineFormatter{
 		line:   ll.line,
@@ -133,14 +136,19 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	}
 }
 
+// ContentLength of the line, as formatted by this formatter
 func (llf *LogplexLineFormatter) ContentLength() (lenth int64) {
 	return int64(len(llf.header) + len(llf.line))
 }
 
+// MsgCount is always 1
+// TODO(freeformz): Fix this interface
 func (llf *LogplexLineFormatter) MsgCount() int {
 	return 1
 }
 
+// Headers will alwasy be empty
+// TODO(freeformz): Fix this interfce
 func (llf *LogplexLineFormatter) Headers() map[string]string {
 	return make(map[string]string)
 }
@@ -165,6 +173,8 @@ func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	return
 }
 
+// NewLogplexErrorFormatter returns a LogplexLineFormatter for the error data.
+// These can be used to inject error data into the log stream
 func NewLogplexErrorFormatter(err errData, config Config) *LogplexLineFormatter {
 	var what, code string
 
@@ -179,13 +189,13 @@ func NewLogplexErrorFormatter(err errData, config Config) *LogplexLineFormatter 
 
 	msg := fmt.Sprintf("<172>%s %s heroku %s log-shuttle %s Error %s: %d messages %s since %s\n",
 		config.Version,
-		time.Now().UTC().Format(LOGPLEX_BATCH_TIME_FORMAT),
+		time.Now().UTC().Format(LogplexBatchTimeFormat),
 		config.Appname,
 		config.Msgid,
 		code,
 		err.count,
 		what,
-		err.since.UTC().Format(LOGPLEX_BATCH_TIME_FORMAT))
+		err.since.UTC().Format(LogplexBatchTimeFormat))
 	return &LogplexLineFormatter{
 		line:   []byte(msg),
 		header: fmt.Sprintf("%d ", len(msg)),
