@@ -55,7 +55,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 	// Process the logLine sub-batching them as necessary
 	for _, l := range b.logLines {
 		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
-			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config)
+			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), nil, config)
 		} else {
 			r = NewLogplexLineFormatter(l, config)
 		}
