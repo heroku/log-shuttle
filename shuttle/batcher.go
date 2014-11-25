@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+// Batcher coalesces logs coming via inLogs into batches, which are sent out
+// via outBatches
 type Batcher struct {
 	inLogs     <-chan LogLine    // Where I get the log lines to batch from
 	outBatches chan<- Batch      // Where I send completed batches to
@@ -13,6 +15,7 @@ type Batcher struct {
 	batchSize  int               // The size of the batches
 }
 
+// NewBatcher created an empty Batcher from the provided channels / variables
 func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) Batcher {
 	return Batcher{
 		inLogs:     inLogs,
@@ -24,7 +27,9 @@ func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan
 	}
 }
 
-// Loops getting an empty batch and filling it.
+// Batch loops getting an empty batch and filling it. Filled batcches are sent
+// via the outBatches channel. If outBatches is full, then the batch is dropped
+// and the drops counters is incremented by the number of messages dropped.
 func (batcher Batcher) Batch() {
 
 	for {
@@ -76,7 +81,7 @@ func (batcher Batcher) fillBatch() (bool, Batch) {
 			}
 
 			batch.Add(line)
-			count += 1
+			count++
 
 			if count >= batcher.batchSize {
 				return !chanOpen, batch
