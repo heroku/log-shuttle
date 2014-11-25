@@ -15,6 +15,7 @@ var (
 
 func init() {
 	config = NewConfig() //Do this once for the test. Defaults should always be good for the tests
+	config.LogsURL = "http://"
 }
 
 type TestInput struct {

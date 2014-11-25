@@ -2,20 +2,26 @@ package shuttle
 
 import (
 	"io"
+	"net/http"
 )
 
-// Formatter is the interface type that outlets use
-// Outlets have final say over the outlets content length,
-// message count and any additional headers.
-// Formatters implement io.Reader, which outlets can use to read the formatted
-// batch
-type Formatter interface {
-	ContentLength() int64
+// SubFormatter describes the interface the sub formatters needs to support.
+// MsgCount returns the count of messages once formatted.
+// CountentLength returns the byte count of the formatted messages.
+type SubFormatter interface {
 	MsgCount() int
-	Headers() map[string]string
+	ContentLength() int64
 	io.Reader
 }
 
-// NewFormatterFunc defines the function type for defining creating and
+// HTTPFormatter is the interface that http outlets use to format a HTTP
+// request.
+// Request() returns a *http.Request ready to be handled by an outlet
+type HTTPFormatter interface {
+	Request() (*http.Request, error)
+	SubFormatter
+}
+
+// NewHTTPFormatterFunc defines the function type for defining creating and
 // returning a new Formatter
-type NewFormatterFunc func(b Batch, eData []errData, config *Config) Formatter
+type NewHTTPFormatterFunc func(b Batch, eData []errData, config *Config) HTTPFormatter

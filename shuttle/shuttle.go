@@ -36,7 +36,7 @@ func (s *Shuttle) Launch() {
 // startOutlet launches config.NumOutlets number of outlets and returns a
 // waitgroup you can wait on.  When inbox is closed the outlets will finish up
 // their output and exit.  Per activity stats are sent via the `stats` channel
-func startOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
+func startOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewHTTPFormatterFunc) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
