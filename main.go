@@ -39,7 +39,7 @@ func main() {
 	s.Launch()
 
 	// Blocks until closed
-	s.Reader.Read(os.Stdin)
+	s.Read(os.Stdin)
 
 	// Shutdown everything else.
 	s.Shutdown()

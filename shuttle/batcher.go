@@ -2,28 +2,34 @@ package shuttle
 
 import (
 	"time"
+
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 // Batcher coalesces logs coming via inLogs into batches, which are sent out
 // via outBatches
 type Batcher struct {
-	inLogs     <-chan LogLine    // Where I get the log lines to batch from
-	outBatches chan<- Batch      // Where I send completed batches to
-	stats      chan<- NamedValue // Where to send measurements
-	drops      *Counter          // The drops counter
-	timeout    time.Duration     // How long once we have a log line before we need to flush the batch
-	batchSize  int               // The size of the batches
+	inLogs     <-chan LogLine // Where I get the log lines to batch from
+	outBatches chan<- Batch   // Where I send completed batches to
+	timeout    time.Duration  // How long once we have a log line before we need to flush the batch
+	batchSize  int            // The size of the batches
+	batchMsgCountMetric,
+	batchMsgDroppedMetric metrics.Counter
+	batchFillTimeMetric metrics.Timer
+	drops               *Counter
 }
 
 // NewBatcher created an empty Batcher from the provided channels / variables
-func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) Batcher {
+func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, mRegistry metrics.Registry, inLogs <-chan LogLine, outBatches chan<- Batch) Batcher {
 	return Batcher{
-		inLogs:     inLogs,
-		drops:      drops,
-		stats:      stats,
-		outBatches: outBatches,
-		timeout:    timeout,
-		batchSize:  batchSize,
+		inLogs:                inLogs,
+		outBatches:            outBatches,
+		timeout:               timeout,
+		batchSize:             batchSize,
+		batchMsgCountMetric:   metrics.GetOrRegisterCounter("batch.msg.count", mRegistry),
+		batchMsgDroppedMetric: metrics.GetOrRegisterCounter("batch.msg.dropped", mRegistry),
+		batchFillTimeMetric:   metrics.GetOrRegisterTimer("batch.fill.time", mRegistry),
+		drops:                 drops,
 	}
 }
 
@@ -39,10 +45,10 @@ func (batcher Batcher) Batch() {
 			select {
 			case batcher.outBatches <- batch:
 				// submitted into the delivery channel, just record some stats
-				batcher.stats <- NewNamedValue("batch.msg.count", float64(msgCount))
+				batcher.batchMsgCountMetric.Inc(int64(msgCount))
 			default:
 				//Unable to deliver into the delivery channel, increment drops
-				batcher.stats <- NewNamedValue("batch.msg.dropped", float64(msgCount))
+				batcher.batchMsgDroppedMetric.Inc(int64(msgCount))
 				batcher.drops.Add(msgCount)
 			}
 		}
@@ -75,7 +81,7 @@ func (batcher Batcher) fillBatch() (bool, Batch) {
 
 			// We have a line now, so set a timeout
 			if timeout.C == nil {
-				defer func(t time.Time) { batcher.stats <- NewNamedValue("batch.fill.time", time.Since(t).Seconds()) }(time.Now())
+				defer func(t time.Time) { batcher.batchFillTimeMetric.UpdateSince(t) }(time.Now())
 				timeout = time.NewTimer(batcher.timeout)
 				defer timeout.Stop() // ensure timer is stopped when done
 			}

@@ -32,13 +32,9 @@ const (
 	DefaultInputFormat   = InputFormatRaw
 	DefaultFrontBuff     = 1000
 	DefaultBackBuff      = 50
-	DefaultStatsBuff     = 5000
-	DefaultStatsAddr     = ""
 	DefaultTimeout       = 5 * time.Second
 	DefaultWaitDuration  = 250 * time.Millisecond
 	DefaultMaxAttempts   = 3
-	DefaultStatsInterval = 0 * time.Second
-	DefaultStatsSource   = ""
 	DefaultPrintVersion  = false
 	DefaultVerbose       = false
 	DefaultSkipHeaders   = false
@@ -74,7 +70,6 @@ type Config struct {
 	MaxLineLength                       int
 	BackBuff                            int
 	FrontBuff                           int
-	StatsBuff                           int
 	BatchSize                           int
 	NumBatchers                         int
 	NumOutlets                          int
@@ -87,8 +82,6 @@ type Config struct {
 	Hostname                            string
 	Appname                             string
 	Msgid                               string
-	StatsAddr                           string
-	StatsSource                         string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
@@ -96,7 +89,6 @@ type Config struct {
 	LogToSyslog                         bool
 	WaitDuration                        time.Duration
 	Timeout                             time.Duration
-	StatsInterval                       time.Duration
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
 }
@@ -116,9 +108,6 @@ func NewConfig() Config {
 		Hostname:      DefaultHostname,
 		Msgid:         DefaultMsgID,
 		LogsURL:       DefaultLogsURL,
-		StatsAddr:     DefaultStatsAddr,
-		StatsSource:   DefaultStatsSource,
-		StatsInterval: time.Duration(DefaultStatsInterval),
 		MaxAttempts:   DefaultMaxAttempts,
 		InputFormat:   DefaultInputFormat,
 		NumBatchers:   DefaultNumBatchers,
@@ -127,7 +116,6 @@ func NewConfig() Config {
 		BatchSize:     DefaultBatchSize,
 		FrontBuff:     DefaultFrontBuff,
 		BackBuff:      DefaultBackBuff,
-		StatsBuff:     DefaultStatsBuff,
 		Timeout:       time.Duration(DefaultTimeout),
 		LogToSyslog:   DefaultLogToSyslog,
 	}
@@ -154,10 +142,7 @@ func (c *Config) ParseFlags() {
 	flag.StringVar(&c.Hostname, "hostname", c.Hostname, "The hostname field for the syslog header.")
 	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
-	flag.StringVar(&c.StatsAddr, "stats-addr", c.StatsAddr, "Where to expose stats.")
-	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
 
-	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
 	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
 
@@ -168,7 +153,6 @@ func (c *Config) ParseFlags() {
 	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
 	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input chanel.")
 	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
-	flag.IntVar(&c.StatsBuff, "stats-buff", c.StatsBuff, "Number of stats to buffer.")
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 
 	flag.Parse()

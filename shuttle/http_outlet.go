@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"runtime"
 	"time"
+
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -29,30 +31,34 @@ var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", Version, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
-// HTTPOutlet handles delivery of batches to HTTPendpoints by creating
+// HTTPOutlet handles delivery of batches to HTTP endpoints by creating
 // formatters for the request. HTTPOutlets handle retries, response parsing and
 // lost counters
 type HTTPOutlet struct {
-	inbox            <-chan Batch
-	stats            chan<- NamedValue
-	drops            *Counter
-	lost             *Counter
-	lostMark         int // If len(inbox) > lostMark during error handling, don't retry
-	client           *http.Client
-	config           Config
-	newFormatterFunc NewHTTPFormatterFunc
+	inbox             <-chan Batch
+	drops             *Counter
+	lost              *Counter
+	lostMark          int // If len(inbox) > lostMark during error handling, don't retry
+	client            *http.Client
+	config            Config
+	newFormatterFunc  NewHTTPFormatterFunc
+	inboxLengthMetric metrics.Gauge
+	outletPostTimeSuccessMetric,
+	outletPostTimeFailureMetric metrics.Timer
 }
 
 // NewHTTPOutlet returns a properly constructed HTTPOutlet
-func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewHTTPFormatterFunc) *HTTPOutlet {
+func NewHTTPOutlet(config Config, drops, lost *Counter, mRegistry metrics.Registry, inbox <-chan Batch, ff NewHTTPFormatterFunc) *HTTPOutlet {
 	return &HTTPOutlet{
-		drops:            drops,
-		lost:             lost,
-		lostMark:         int(float64(config.BackBuff) * DepthHighWatermark),
-		stats:            stats,
-		inbox:            inbox,
-		config:           config,
-		newFormatterFunc: ff,
+		drops:                       drops,
+		lost:                        lost,
+		lostMark:                    int(float64(config.BackBuff) * DepthHighWatermark),
+		inbox:                       inbox,
+		config:                      config,
+		newFormatterFunc:            ff,
+		inboxLengthMetric:           metrics.GetOrRegisterGauge("outlet.inbox.length", mRegistry),
+		outletPostTimeSuccessMetric: metrics.GetOrRegisterTimer("outlet.post.time.success", mRegistry),
+		outletPostTimeFailureMetric: metrics.GetOrRegisterTimer("outlet.post.time.failure", mRegistry),
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 				ResponseHeaderTimeout: config.Timeout,
@@ -68,7 +74,7 @@ func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue,
 func (h *HTTPOutlet) Outlet() {
 
 	for batch := range h.inbox {
-		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
+		h.inboxLengthMetric.Update(int64(len(h.inbox)))
 
 		h.retryPost(batch)
 	}
@@ -160,13 +166,11 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter, uuid string) error {
 
 func (h *HTTPOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {
 	defer func(t time.Time) {
-		name := "outlet.post.time"
 		if err != nil {
-			name += ".failure"
+			h.outletPostTimeFailureMetric.UpdateSince(t)
 		} else {
-			name += ".success"
+			h.outletPostTimeSuccessMetric.UpdateSince(t)
 		}
-		h.stats <- NewNamedValue(name, time.Since(t).Seconds())
 	}(time.Now())
 	return h.client.Do(req)
 }

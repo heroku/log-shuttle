@@ -95,7 +95,7 @@ func TestIntegration(t *testing.T) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
 
-	if afterDrops, _ := shut.programStats.Drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops, _ := shut.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 
@@ -136,10 +136,9 @@ func TestDrops(t *testing.T) {
 
 	shut := NewShuttle(config)
 	shut.Launch()
-	stats := shut.programStats
 
-	stats.Drops.Add(1)
-	stats.Drops.Add(1)
+	shut.Drops.Add(1)
+	shut.Drops.Add(1)
 	shut.Reader.Read(NewTestInput())
 	shut.Shutdown()
 
@@ -158,7 +157,7 @@ func TestDrops(t *testing.T) {
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
-	if afterDrops, _ := stats.Drops.ReadAndReset(); afterDrops != 0 {
+	if afterDrops, _ := shut.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
 }
@@ -173,10 +172,9 @@ func TestLost(t *testing.T) {
 
 	shut := NewShuttle(config)
 	shut.Launch()
-	stats := shut.programStats
 
-	stats.Lost.Add(1)
-	stats.Lost.Add(1)
+	shut.Lost.Add(1)
+	shut.Lost.Add(1)
 	shut.Reader.Read(NewTestInput())
 	shut.Shutdown()
 
@@ -195,7 +193,7 @@ func TestLost(t *testing.T) {
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
-	if afterLost, _ := stats.Lost.ReadAndReset(); afterLost != 0 {
+	if afterLost, _ := shut.Lost.ReadAndReset(); afterLost != 0 {
 		t.Fatalf("afterLost=%d\n", afterLost)
 	}
 }

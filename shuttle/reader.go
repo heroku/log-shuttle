@@ -4,20 +4,22 @@ import (
 	"bufio"
 	"io"
 	"time"
+
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 // Reader performs the reading of lines from an io.ReadCloser, encapsulating
-// lines into a LogLine and emitting them on Outbox
+// lines into a LogLine and emitting them on outbox
 type Reader struct {
-	Outbox chan LogLine
-	stats  chan<- NamedValue
+	outbox          chan<- LogLine
+	delayTimeMetric metrics.Timer
 }
 
-// NewReader constructs a new reader with it's own Outbox.
-func NewReader(frontBuff int, stats chan<- NamedValue) Reader {
+// NewReader constructs a new reader that will use the provided outbox.
+func NewReader(outbox chan<- LogLine, mRegistry metrics.Registry) Reader {
 	return Reader{
-		Outbox: make(chan LogLine, frontBuff),
-		stats:  stats,
+		outbox:          outbox,
+		delayTimeMetric: metrics.GetOrRegisterTimer("reader.line.delay.time", mRegistry),
 	}
 }
 
@@ -37,8 +39,8 @@ func (rdr Reader) Read(input io.ReadCloser) error {
 
 		logLine := LogLine{line, currentLogTime}
 
-		rdr.Outbox <- logLine
-		rdr.stats <- NewNamedValue("reader.line.delay.time", currentLogTime.Sub(lastLogTime).Seconds())
+		rdr.outbox <- logLine
+		rdr.delayTimeMetric.Update(currentLogTime.Sub(lastLogTime))
 		lastLogTime = currentLogTime
 	}
 }

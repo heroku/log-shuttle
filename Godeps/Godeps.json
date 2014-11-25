@@ -1,15 +1,10 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
 	"GoVersion": "go1.3.3",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
-		{
-			"ImportPath": "github.com/bmizerany/perks/quantile",
-			"Rev": "6cb9d9d729303ee2628580d9aec5db968da3a607"
-		},
-		{
-			"ImportPath": "github.com/heroku/slog",
-			"Rev": "7fea2d3038fa544293ba03f260cdc51d6674a20c"
-		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
 			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
@@ -17,6 +12,10 @@
 		{
 			"ImportPath": "github.com/pebbe/util",
 			"Rev": "55c63b3b022c13ed2081abd3277e425ac731ba68"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/go-metrics",
+			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
 		}
 	]
 }
