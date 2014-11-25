@@ -6,11 +6,14 @@ import (
 	"time"
 )
 
+// Reader performs the reading of lines from an io.ReadCloser, encapsulating
+// lines into a LogLine and emitting them on Outbox
 type Reader struct {
 	Outbox chan LogLine
 	stats  chan<- NamedValue
 }
 
+// NewReader constructs a new reader with it's own Outbox.
 func NewReader(frontBuff int, stats chan<- NamedValue) Reader {
 	return Reader{
 		Outbox: make(chan LogLine, frontBuff),
