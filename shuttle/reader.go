@@ -41,5 +41,4 @@ func (rdr Reader) Read(input io.ReadCloser) error {
 		rdr.stats <- NewNamedValue("reader.line.delay.time", currentLogTime.Sub(lastLogTime).Seconds())
 		lastLogTime = currentLogTime
 	}
-	return nil
 }
