@@ -29,8 +29,8 @@ func (s *Shuttle) Launch() {
 	s.deliverableBatches = make(chan Batch, s.config.BackBuff)
 	// Start outlets, then batches (reverse of Shutdown)
 	s.Reader = NewReader(s.config.FrontBuff, s.programStats.Input)
-	s.oWaiter = StartOutlets(s.config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches, NewLogplexBatchFormatter)
-	s.bWaiter = StartBatchers(s.config, s.programStats.Drops, s.programStats.Input, s.Reader.Outbox, s.deliverableBatches)
+	s.oWaiter = startOutlets(s.config, s.programStats.Drops, s.programStats.Lost, s.programStats.Input, s.deliverableBatches, NewLogplexBatchFormatter)
+	s.bWaiter = startBatchers(s.config, s.programStats.Drops, s.programStats.Input, s.Reader.Outbox, s.deliverableBatches)
 }
 
 // startOutlet launches config.NumOutlets number of outlets and returns a
@@ -51,10 +51,10 @@ func startOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, 
 	return outletWaiter
 }
 
-// StartBatchers starts config.NumBatchers number of batchers and returns a WaitGroup that you wan wait on.
+// startBatchers starts config.NumBatchers number of batchers and returns a WaitGroup that you wan wait on.
 // When inLogs is closed the batchers will finsih up and exit.
 // Per batcher stats are sent via the `stats` channel.
-func StartBatchers(config Config, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
+func startBatchers(config Config, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
 	batchWaiter := new(sync.WaitGroup)
 	for i := 0; i < config.NumBatchers; i++ {
 		batchWaiter.Add(1)

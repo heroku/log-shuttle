@@ -17,12 +17,12 @@ func init() {
 	config = NewConfig() //Do this once for the test. Defaults should always be good for the tests
 }
 
-type testInput struct {
+type TestInput struct {
 	*bytes.Reader
 }
 
-func NewLongerTestInput() *testInput {
-	return &testInput{bytes.NewReader([]byte(`Lebowski ipsum what in God's holy name are you blathering about?
+func NewLongerTestInput() *TestInput {
+	return &TestInput{bytes.NewReader([]byte(`Lebowski ipsum what in God's holy name are you blathering about?
 Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.
 They're nihilists.
 Pellentesque ac lectus quis elit blandit fringilla a ut turpis praesent.
@@ -35,15 +35,15 @@ Yeah man, it really tied the room together.
 Ac lorem aliquam placerat.`))}
 }
 
-func NewTestInput() *testInput {
-	return &testInput{bytes.NewReader([]byte("Hello World\nTest Line 2\n"))}
+func NewTestInput() *TestInput {
+	return &TestInput{bytes.NewReader([]byte("Hello World\nTest Line 2\n"))}
 }
 
-func NewTestInputWithHeaders() *testInput {
-	return &testInput{bytes.NewReader([]byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] message 2\n"))}
+func NewTestInputWithHeaders() *TestInput {
+	return &TestInput{bytes.NewReader([]byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] message 2\n"))}
 }
 
-func (i *testInput) Close() error {
+func (i *TestInput) Close() error {
 	return nil
 }
 
