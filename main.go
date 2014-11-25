@@ -16,7 +16,7 @@ func main() {
 	var err error
 
 	if config.PrintVersion {
-		fmt.Println(shuttle.VERSION)
+		fmt.Println(shuttle.Version)
 		os.Exit(0)
 	}
 

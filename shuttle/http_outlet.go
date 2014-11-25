@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
+	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", Version, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
 // HTTPOutlet handles delivery of batches to HTTPendpoints by creating
