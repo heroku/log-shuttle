@@ -16,4 +16,6 @@ type Formatter interface {
 	io.Reader
 }
 
+// NewFormatterFunc defines the function type for defining creating and
+// returning a new Formatter
 type NewFormatterFunc func(b Batch, eData []errData, config *Config) Formatter
