@@ -13,32 +13,36 @@ import (
 	"github.com/heroku/slog"
 )
 
-func Exists(path string) bool {
+func exists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
 }
 
 func cleanUpSocket(path string) error {
-	if Exists(path) {
+	if exists(path) {
 		return os.Remove(path)
 	}
 	return nil
 }
 
+// NamedValue is used to represent the tuple (name, value)
 type NamedValue struct {
 	name  string
 	value float64
 }
 
+// NewNamedValue returns a NamedValue for the given name and value
 func NewNamedValue(name string, value float64) NamedValue {
 	return NamedValue{name: name, value: value}
 }
 
+// Snapshotter is the interface that wraps the Snapshot method.
+// Snapshotters are used to return a map of named values at a given time
 type Snapshotter interface {
 	Snapshot(bool) map[string]interface{}
 }
 
-// Emits Values via the standard logger at a given interval
+// EmitStats emits values via the standard logger at a given interval
 func EmitStats(snapper Snapshotter, interval time.Duration, source string) {
 	if interval > 0 {
 		ticker := time.Tick(interval)
@@ -52,6 +56,7 @@ func EmitStats(snapper Snapshotter, interval time.Duration, source string) {
 	}
 }
 
+// ProgramStats hold the current state of all stats for the program
 type ProgramStats struct {
 	Lost, Drops      *Counter
 	stats            map[string]*quantile.Stream
@@ -62,9 +67,9 @@ type ProgramStats struct {
 	sync.Mutex
 }
 
-// Returns a new ProgramStats instance aggregating stats from the input channel
-// You will need to Listen() seperately if you need / want to export stats
-// polling
+// NewProgramStats returns a new ProgramStats instance aggregating stats from
+// the input channel.  You will need to Listen() seperately if you need / want
+// to export stats polling
 func NewProgramStats(listen string, buffer int) *ProgramStats {
 	var network, address string
 	if len(listen) == 0 {
@@ -129,7 +134,7 @@ func (stats *ProgramStats) cleanup(listener net.Listener) {
 	}
 
 	if stats.network == "unix" {
-		if Exists(stats.address) {
+		if exists(stats.address) {
 			err := os.Remove(stats.address)
 			if err != nil {
 				ErrLogger.Printf("Unable to remove socket (%s): %s\n", stats.address, err)
@@ -194,8 +199,8 @@ func (stats *ProgramStats) handleConnection(conn net.Conn) {
 	}
 }
 
-// Produces a point in time snapshot of the quantiles/other stats
-// If reset is true, then call Reset() on each of the quantiles
+// Snapshot produces a point in time snapshot of the quantiles/other stats If
+// reset is true, then call Reset() on each of the quantiles
 func (stats *ProgramStats) Snapshot(reset bool) map[string]interface{} {
 	snapshot := make(map[string]interface{})
 	// We don't need locks for these values
