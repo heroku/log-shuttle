@@ -11,13 +11,13 @@ import (
 const (
 	// LogplexBatchTimeFormat is the format of timestamps as expected by Logplex
 	LogplexBatchTimeFormat = "2006-01-02T15:04:05.000000+00:00"
+	LogplexContentType     = "application/logplex-1"
 )
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
-	curFormatter  int
 	headers       http.Header
 	stringURL     string
 	msgCount      int
@@ -32,7 +32,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		stringURL: config.OutletURL(),
 	}
 
-	bf.headers.Add("Content-Type", "application/logplex-1")
+	bf.headers.Add("Content-Type", LogplexContentType)
 
 	var r SubFormatter
 	readers := make([]io.Reader, 0, b.MsgCount()+len(eData))
@@ -67,7 +67,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 	// Take the msg count after the formatters are created so we have the right count
 	bf.headers.Add("Logplex-Msg-Count", strconv.Itoa(bf.MsgCount()))
 
-	// Dispatch reading the body to an io.MultiReader
+	// Dispatch reading of the body to an io.MultiReader
 	bf.Reader = io.MultiReader(readers...)
 
 	return bf
