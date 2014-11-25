@@ -33,7 +33,7 @@ func BenchmarkBatcher(b *testing.B) {
 			defer wg.Done()
 			batcher.Batch()
 		}()
-		ProduceLogLines(TEST_PRODUCER_LINES, logs)
+		ProduceLogLines(TestProducerLines, logs)
 		close(logs)
 		wg.Wait()
 	}

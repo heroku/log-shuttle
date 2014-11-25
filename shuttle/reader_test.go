@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	TEST_PRODUCER_LINES = 100000
+	TestProducerLines = 100000
 )
 
 var (
@@ -30,11 +30,10 @@ func NewInputProducer(c int) *InputProducer {
 func (llp *InputProducer) Read(p []byte) (n int, err error) {
 	if llp.Curr > llp.Total {
 		return 0, io.EOF
-	} else {
-		llp.Curr += 1
-		llp.TotalBytes += len(llp.Data)
-		return copy(p, llp.Data), nil
 	}
+	llp.Curr++
+	llp.TotalBytes += len(llp.Data)
+	return copy(p, llp.Data), nil
 }
 
 func (llp InputProducer) Close() error {
@@ -72,7 +71,7 @@ func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
 		rdr := NewReader(frontBuffSize, stats)
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
 		testConsumer.Consume(rdr.Outbox, stats)
-		llp := NewInputProducer(TEST_PRODUCER_LINES)
+		llp := NewInputProducer(TestProducerLines)
 		b.StartTimer()
 		rdr.Read(llp)
 		b.SetBytes(int64(llp.TotalBytes))
