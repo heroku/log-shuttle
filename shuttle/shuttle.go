@@ -4,6 +4,7 @@ import (
 	"sync"
 )
 
+// Shuttle is the main entry point into the library
 type Shuttle struct {
 	config             Config
 	Reader             Reader
@@ -12,12 +13,14 @@ type Shuttle struct {
 	bWaiter, oWaiter   *sync.WaitGroup
 }
 
+// NewShuttle returns a properly constructed Shuttle with a given config
 func NewShuttle(config Config) *Shuttle {
 	s := &Shuttle{}
 	s.config = config
 	return s
 }
 
+// Launch a shuttle by spawing it's outlet's, batchers and stats interface
 func (s *Shuttle) Launch() {
 	s.programStats = NewProgramStats(s.config.StatsAddr, s.config.StatsBuff)
 	s.programStats.Listen()
@@ -30,10 +33,10 @@ func (s *Shuttle) Launch() {
 	s.bWaiter = StartBatchers(s.config, s.programStats.Drops, s.programStats.Input, s.Reader.Outbox, s.deliverableBatches)
 }
 
-// Starts config.NumOutlets number of outlets and returns a waitgroup you can wait on.
-// When inbox is closed the outlets will finish up their output and exit.
-// Per activity stats are sent via the `stats` channel
-func StartOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
+// startOutlet launches config.NumOutlets number of outlets and returns a
+// waitgroup you can wait on.  When inbox is closed the outlets will finish up
+// their output and exit.  Per activity stats are sent via the `stats` channel
+func startOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
@@ -48,7 +51,7 @@ func StartOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, 
 	return outletWaiter
 }
 
-// Starts config.NumBatchers number of batchers and returns a WaitGroup that you wan wait on.
+// StartBatchers starts config.NumBatchers number of batchers and returns a WaitGroup that you wan wait on.
 // When inLogs is closed the batchers will finsih up and exit.
 // Per batcher stats are sent via the `stats` channel.
 func StartBatchers(config Config, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
@@ -65,6 +68,8 @@ func StartBatchers(config Config, drops *Counter, stats chan<- NamedValue, inLog
 	return batchWaiter
 }
 
+// Shutdown gracefully terminates the shuttle instance, ensuring that anything
+// read is batched and delivered
 func (s *Shuttle) Shutdown() {
 	deliverableLogs := s.Reader.Outbox
 	stats := s.programStats.Input
