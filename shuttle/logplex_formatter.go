@@ -18,26 +18,26 @@ const (
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
 	curFormatter  int
-	formatters    []SubFormatter
 	headers       http.Header
 	stringURL     string
 	msgCount      int
 	contentLength int64
+	io.Reader
 }
 
 // NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
 	bf := &LogplexBatchFormatter{
-		formatters: make([]SubFormatter, 0, b.MsgCount()+len(eData)),
-		headers:    make(http.Header),
-		stringURL:  config.OutletURL(),
+		headers:   make(http.Header),
+		stringURL: config.OutletURL(),
 	}
 
 	bf.headers.Add("Content-Type", "application/logplex-1")
 
-	//Process any errData that we were passed first so it's at the top of the batch
 	var r SubFormatter
+	readers := make([]io.Reader, 0, b.MsgCount()+len(eData))
 
+	// Process any errData that we were passed first so it's at the top of the batch
 	for _, edata := range eData {
 		switch edata.eType {
 		case errDrop:
@@ -47,24 +47,28 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		}
 
 		r = NewLogplexErrorFormatter(edata, *config)
-		bf.formatters = append(bf.formatters, r)
+		readers = append(readers, io.Reader(r))
 		bf.msgCount += r.MsgCount()
 		bf.contentLength += r.ContentLength()
 	}
 
+	// Process the logLine sub-batching them as necessary
 	for _, l := range b.logLines {
 		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
 			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), make([]errData, 0), config)
 		} else {
 			r = NewLogplexLineFormatter(l, config)
 		}
-		bf.formatters = append(bf.formatters, r)
+		readers = append(readers, io.Reader(r))
 		bf.msgCount += r.MsgCount()
 		bf.contentLength += r.ContentLength()
 	}
 
 	// Take the msg count after the formatters are created so we have the right count
 	bf.headers.Add("Logplex-Msg-Count", strconv.Itoa(bf.MsgCount()))
+
+	// Dispatch reading the body to an io.MultiReader
+	bf.Reader = io.MultiReader(readers...)
 
 	return bf
 }
@@ -105,26 +109,6 @@ func splitLine(ll LogLine, mll int) Batch {
 // ContentLength of the batch as formatted by the Formatter
 func (bf *LogplexBatchFormatter) ContentLength() int64 {
 	return bf.contentLength
-}
-
-// Implements the io.Reader interface
-func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
-	var copied int
-
-	for n < len(p) && err == nil {
-		copied, err = bf.formatters[bf.curFormatter].Read(p[n:])
-		n += copied
-
-		// if we're not at the last formatter and the err is io.EOF
-		// then we're not done reading, so ditch the current formatter
-		// and move to the next log line
-		if err == io.EOF && bf.curFormatter < (len(bf.formatters)-1) {
-			err = nil
-			bf.curFormatter++
-		}
-	}
-
-	return
 }
 
 // LogplexLineFormatter formats individual loglines into length prefixed
