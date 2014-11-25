@@ -40,7 +40,7 @@ func StartOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, 
 		outletWaiter.Add(1)
 		go func() {
 			defer outletWaiter.Done()
-			outlet := NewHttpOutlet(config, drops, lost, stats, inbox, ff)
+			outlet := NewHTTPOutlet(config, drops, lost, stats, inbox, ff)
 			outlet.Outlet()
 		}()
 	}

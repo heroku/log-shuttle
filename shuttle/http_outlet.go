@@ -13,18 +13,26 @@ import (
 )
 
 const (
-	EOF_RETRY_SLEEP        = 100 // will be in ms
-	OTHER_RETRY_SLEEP      = 1000
-	DEPTH_WATERMARK        = 0.6
-	RETRY_FORMAT           = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q\n"
-	RETRY_WITH_TYPE_FORMAT = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
+	// EOFRetrySleep is the amount of time to sleep between retries caused by an io.EOF, in ms.
+	EOFRetrySleep = 100
+	// OtherRetrySleep is the tIme to sleep between retries for any other error, in ms.
+	OtherRetrySleep = 1000
+	// DepthHighWatermark is the high watermark, beyond which the outlet looses batches instead of retrying.
+	DepthHighWatermark = 0.6
+	// RetryFormat is the format string for retries
+	RetryFormat = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q\n"
+	// RetryWithTypeFormat if the format string for retries that also have a type
+	RetryWithTypeFormat = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
 )
 
 var (
 	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", VERSION, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
 )
 
-type HttpOutlet struct {
+// HTTPOutlet handles delivery of batches to HTTPendpoints by creating
+// formatters for the request. HTTPOutlets handle retries, response parsing and
+// lost counters
+type HTTPOutlet struct {
 	inbox            <-chan Batch
 	stats            chan<- NamedValue
 	drops            *Counter
@@ -35,11 +43,12 @@ type HttpOutlet struct {
 	newFormatterFunc NewFormatterFunc
 }
 
-func NewHttpOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HttpOutlet {
-	return &HttpOutlet{
+// NewHTTPOutlet returns a properly constructed HTTPOutlet
+func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HTTPOutlet {
+	return &HTTPOutlet{
 		drops:            drops,
 		lost:             lost,
-		lostMark:         int(float64(config.BackBuff) * DEPTH_WATERMARK),
+		lostMark:         int(float64(config.BackBuff) * DepthHighWatermark),
 		stats:            stats,
 		inbox:            inbox,
 		config:           config,
@@ -56,7 +65,7 @@ func NewHttpOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue,
 }
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
-func (h *HttpOutlet) Outlet() {
+func (h *HTTPOutlet) Outlet() {
 
 	for batch := range h.inbox {
 		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
@@ -66,7 +75,7 @@ func (h *HttpOutlet) Outlet() {
 }
 
 // Retry io.EOF errors h.config.MaxAttempts times
-func (h *HttpOutlet) retryPost(batch Batch) {
+func (h *HTTPOutlet) retryPost(batch Batch) {
 	var dropData, lostData errData
 
 	edata := make([]errData, 0, 2)
@@ -94,23 +103,23 @@ func (h *HttpOutlet) retryPost(batch Batch) {
 			err, ok := err.(*url.Error)
 			if ok {
 				if attempts < h.config.MaxAttempts && inboxLength < h.lostMark {
-					ErrLogger.Printf(RETRY_WITH_TYPE_FORMAT, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
+					ErrLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
 					if err.Err == io.EOF {
-						time.Sleep(time.Duration(attempts) * EOF_RETRY_SLEEP * time.Millisecond)
+						time.Sleep(time.Duration(attempts) * EOFRetrySleep * time.Millisecond)
 					} else {
-						time.Sleep(time.Duration(attempts) * OTHER_RETRY_SLEEP * time.Millisecond)
+						time.Sleep(time.Duration(attempts) * OtherRetrySleep * time.Millisecond)
 					}
 					continue
 				}
 			}
-			ErrLogger.Printf(RETRY_WITH_TYPE_FORMAT, false, msgCount, inboxLength, uuid, attempts, err, err)
+			ErrLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, uuid, attempts, err, err)
 			h.lost.Add(msgCount)
 		}
 		return
 	}
 }
 
-func (h *HttpOutlet) post(formatter Formatter, uuid string) error {
+func (h *HTTPOutlet) post(formatter Formatter, uuid string) error {
 
 	req, err := http.NewRequest("POST", h.config.OutletURL(), formatter)
 	if err != nil {
@@ -151,7 +160,7 @@ func (h *HttpOutlet) post(formatter Formatter, uuid string) error {
 	return nil
 }
 
-func (h *HttpOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {
+func (h *HTTPOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {
 	defer func(t time.Time) {
 		name := "outlet.post.time"
 		if err != nil {

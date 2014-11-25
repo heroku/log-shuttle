@@ -49,7 +49,7 @@ func TestOutletEOFRetry(t *testing.T) {
 	}()
 	drops := NewCounter(0)
 	lost := NewCounter(0)
-	outlet := NewHttpOutlet(config, drops, lost, schan, nil, NewLogplexBatchFormatter)
+	outlet := NewHTTPOutlet(config, drops, lost, schan, nil, NewLogplexBatchFormatter)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -87,7 +87,7 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	}()
 	drops := NewCounter(0)
 	lost := NewCounter(0)
-	outlet := NewHttpOutlet(config, drops, lost, schan, nil, NewLogplexBatchFormatter)
+	outlet := NewHTTPOutlet(config, drops, lost, schan, nil, NewLogplexBatchFormatter)
 
 	batch := NewBatch(config.BatchSize)
 
