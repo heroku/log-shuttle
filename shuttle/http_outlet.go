@@ -31,11 +31,11 @@ type HttpOutlet struct {
 	lost             *Counter
 	lostMark         int // If len(inbox) > lostMark during error handling, don't retry
 	client           *http.Client
-	config           ShuttleConfig
+	config           Config
 	newFormatterFunc NewFormatterFunc
 }
 
-func NewHttpOutlet(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HttpOutlet {
+func NewHttpOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HttpOutlet {
 	return &HttpOutlet{
 		drops:            drops,
 		lost:             lost,

@@ -103,5 +103,5 @@ func BenchmarkReaderWithFrontBuffEqual10000(b *testing.B) {
 }
 
 func BenchmarkReaderWithDefaultFrontBuff(b *testing.B) {
-	doBasicReaderBenchmark(b, DEFAULT_FRONT_BUFF)
+	doBasicReaderBenchmark(b, DefaultFrontBuff)
 }

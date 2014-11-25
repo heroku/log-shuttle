@@ -11,40 +11,44 @@ import (
 	"github.com/pebbe/util"
 )
 
-var LogplexUrl = os.Getenv("LOGPLEX_URL")
+// This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
+var LogplexURL = os.Getenv("LOGPLEX_URL")
 
+// Input format constants.
+// TODO: ensure these are really used properly
 const (
-	INPUT_FORMAT_RAW     = iota
-	INPUT_FORMAT_RFC3164 = iota
+	InputFormatRaw = iota
+	InputFormatRFC3164
 )
 
+// Default option values
 const (
-	DEFAULT_MAX_LINE_LENGTH = 10000 // Logplex max is 10000 bytes, so default to that
-	DEFAULT_INPUT_FORMAT    = INPUT_FORMAT_RAW
-	DEFAULT_FRONT_BUFF      = 1000
-	DEFAULT_BACK_BUFF       = 50
-	DEFAULT_STATS_BUFF      = 5000
-	DEFAULT_STATS_ADDR      = ""
-	DEFAULT_TIMEOUT         = 5 * time.Second
-	DEFAULT_WAIT_DURATION   = 250 * time.Millisecond
-	DEFAULT_MAX_ATTEMPTS    = 3
-	DEFAULT_STATS_INTERVAL  = 0 * time.Second
-	DEFAULT_STATS_SOURCE    = ""
-	DEFAULT_PRINT_VERSION   = false
-	DEFAULT_VERBOSE         = false
-	DEFAULT_SKIP_HEADERS    = false
-	DEFAULT_SKIP_VERIFY     = false
-	DEFAULT_PRIVAL          = "190"
-	DEFAULT_VERSION         = "1"
-	DEFAULT_PROCID          = "shuttle"
-	DEFAULT_APPNAME         = "token"
-	DEFAULT_HOSTNAME        = "shuttle"
-	DEFAULT_MSGID           = "- -"
-	DEFAULT_LOGS_URL        = ""
-	DEFAULT_NUM_BATCHERS    = 2
-	DEFAULT_NUM_OUTLETS     = 4
-	DEFAULT_BATCH_SIZE      = 500
-	DEFAULT_LOG_TO_SYSLOG   = false
+	DefaultMaxLineLength = 10000 // Logplex max is 10000 bytes, so default to that
+	DefaultInputFormat   = InputFormatRaw
+	DefaultFrontBuff     = 1000
+	DefaultBackBuff      = 50
+	DefaultStatsBuff     = 5000
+	DefaultStatsAddr     = ""
+	DefaultTimeout       = 5 * time.Second
+	DefaultWaitDuration  = 250 * time.Millisecond
+	DefaultMaxAttempts   = 3
+	DefaultStatsInterval = 0 * time.Second
+	DefaultStatsSource   = ""
+	DefaultPrintVersion  = false
+	DefaultVerbose       = false
+	DefaultSkipHeaders   = false
+	DefaultSkipVerify    = false
+	DefaultPriVal        = "190"
+	DefaultVersion       = "1"
+	DefaultProcID        = "shuttle"
+	DefaultAppName       = "token"
+	DefaultHostname      = "shuttle"
+	DefaultMsgID         = "- -"
+	DefaultLogsURL       = ""
+	DefaultNumBatchers   = 2
+	DefaultNumOutlets    = 4
+	DefaultBatchSize     = 500
+	DefaultLogToSyslog   = false
 )
 
 const (
@@ -60,7 +64,8 @@ type errData struct {
 	eType errType
 }
 
-type ShuttleConfig struct {
+// Config holds the various config options for a shuttle
+type Config struct {
 	MaxLineLength                       int
 	BackBuff                            int
 	FrontBuff                           int
@@ -91,35 +96,35 @@ type ShuttleConfig struct {
 	syslogFrameHeaderFormat             string
 }
 
-// Create a new config using the defaults.
-func NewConfig() ShuttleConfig {
-	shuttleConfig := ShuttleConfig{
-		MaxLineLength: DEFAULT_MAX_LINE_LENGTH,
-		PrintVersion:  DEFAULT_PRINT_VERSION,
-		Verbose:       DEFAULT_VERBOSE,
-		SkipHeaders:   DEFAULT_SKIP_HEADERS,
-		SkipVerify:    DEFAULT_SKIP_VERIFY,
-		Prival:        DEFAULT_PRIVAL,
-		Version:       DEFAULT_VERSION,
-		Procid:        DEFAULT_PROCID,
-		Appname:       DEFAULT_APPNAME,
-		Hostname:      DEFAULT_HOSTNAME,
-		Msgid:         DEFAULT_MSGID,
-		LogsURL:       DEFAULT_LOGS_URL,
-		StatsAddr:     DEFAULT_STATS_ADDR,
-		StatsSource:   DEFAULT_STATS_SOURCE,
-		StatsInterval: time.Duration(DEFAULT_STATS_INTERVAL),
-		MaxAttempts:   DEFAULT_MAX_ATTEMPTS,
-		InputFormat:   DEFAULT_INPUT_FORMAT,
-		NumBatchers:   DEFAULT_NUM_BATCHERS,
-		NumOutlets:    DEFAULT_NUM_OUTLETS,
-		WaitDuration:  time.Duration(DEFAULT_WAIT_DURATION),
-		BatchSize:     DEFAULT_BATCH_SIZE,
-		FrontBuff:     DEFAULT_FRONT_BUFF,
-		BackBuff:      DEFAULT_BACK_BUFF,
-		StatsBuff:     DEFAULT_STATS_BUFF,
-		Timeout:       time.Duration(DEFAULT_TIMEOUT),
-		LogToSyslog:   DEFAULT_LOG_TO_SYSLOG,
+// NewConfig returns a newly created Config, filled in with defaults
+func NewConfig() Config {
+	shuttleConfig := Config{
+		MaxLineLength: DefaultMaxLineLength,
+		PrintVersion:  DefaultPrintVersion,
+		Verbose:       DefaultVerbose,
+		SkipHeaders:   DefaultSkipHeaders,
+		SkipVerify:    DefaultSkipVerify,
+		Prival:        DefaultPriVal,
+		Version:       DefaultVersion,
+		Procid:        DefaultProcID,
+		Appname:       DefaultAppName,
+		Hostname:      DefaultHostname,
+		Msgid:         DefaultMsgID,
+		LogsURL:       DefaultLogsURL,
+		StatsAddr:     DefaultStatsAddr,
+		StatsSource:   DefaultStatsSource,
+		StatsInterval: time.Duration(DefaultStatsInterval),
+		MaxAttempts:   DefaultMaxAttempts,
+		InputFormat:   DefaultInputFormat,
+		NumBatchers:   DefaultNumBatchers,
+		NumOutlets:    DefaultNumOutlets,
+		WaitDuration:  time.Duration(DefaultWaitDuration),
+		BatchSize:     DefaultBatchSize,
+		FrontBuff:     DefaultFrontBuff,
+		BackBuff:      DefaultBackBuff,
+		StatsBuff:     DefaultStatsBuff,
+		Timeout:       time.Duration(DefaultTimeout),
+		LogToSyslog:   DefaultLogToSyslog,
 	}
 
 	shuttleConfig.ComputeHeader()
@@ -127,9 +132,9 @@ func NewConfig() ShuttleConfig {
 	return shuttleConfig
 }
 
-// Overrides the properties of the given config using the provided command-line flags.
-// Any option not overridden by a flag will be untouched.
-func (c *ShuttleConfig) ParseFlags() {
+// ParseFlags overrides the properties of the given config using the provided
+// command-line flags.  Any option not overridden by a flag will be untouched.
+func (c *Config) ParseFlags() {
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
@@ -170,38 +175,43 @@ func (c *ShuttleConfig) ParseFlags() {
 	c.ComputeHeader()
 }
 
-func (c *ShuttleConfig) OutletURL() string {
+// OutletURL returns the string representation of the log url including basic
+// auth encoded into the url.
+func (c *Config) OutletURL() string {
 	var err error
-	var oUrl *url.URL
+	var oURL *url.URL
 
 	if len(c.LogsURL) > 0 {
-		oUrl, err = url.Parse(c.LogsURL)
+		oURL, err = url.Parse(c.LogsURL)
 		if err != nil {
 			log.Fatalf("Unable to parse logs-url")
 		}
 	}
-	if len(LogplexUrl) > 0 {
-		oUrl, err = url.Parse(LogplexUrl)
+	if len(LogplexURL) > 0 {
+		oURL, err = url.Parse(LogplexURL)
 		if err != nil {
 			log.Fatalf("Unable to parse $LOGPLEX_URL")
 		}
 	}
 
-	if oUrl == nil {
+	if oURL == nil {
 		log.Fatalf("Must set -logs-url or $LOGPLEX_URL.")
 	}
 
-	if oUrl.User == nil {
-		oUrl.User = url.UserPassword("token", c.Appname)
+	if oURL.User == nil {
+		oURL.User = url.UserPassword("token", c.Appname)
 	}
-	return oUrl.String()
+	return oURL.String()
 }
 
-func (c *ShuttleConfig) UseStdin() bool {
+// UseStdin determines if we're using the terminal's stdin or not
+func (c *Config) UseStdin() bool {
 	return !util.IsTerminal(os.Stdin)
 }
 
-func (c *ShuttleConfig) ComputeHeader() {
+// ComputeHeader computes the syslogFrameHeaderFormat once so we don't have to
+// do that for every formatter itteration
+func (c *Config) ComputeHeader() {
 	// This is here to pre-compute this so other's don't have to later
 	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(LOGPLEX_BATCH_TIME_FORMAT) +
 		len(c.Hostname) + len(c.Appname) + len(c.Procid) + len(c.Msgid) + 8 // spaces, < & >

@@ -16,4 +16,4 @@ type Formatter interface {
 	io.Reader
 }
 
-type NewFormatterFunc func(b Batch, eData []errData, config *ShuttleConfig) Formatter
+type NewFormatterFunc func(b Batch, eData []errData, config *Config) Formatter

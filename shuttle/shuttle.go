@@ -5,14 +5,14 @@ import (
 )
 
 type Shuttle struct {
-	config             ShuttleConfig
+	config             Config
 	Reader             Reader
 	deliverableBatches chan Batch
 	programStats       *ProgramStats
 	bWaiter, oWaiter   *sync.WaitGroup
 }
 
-func NewShuttle(config ShuttleConfig) *Shuttle {
+func NewShuttle(config Config) *Shuttle {
 	s := &Shuttle{}
 	s.config = config
 	return s
@@ -33,7 +33,7 @@ func (s *Shuttle) Launch() {
 // Starts config.NumOutlets number of outlets and returns a waitgroup you can wait on.
 // When inbox is closed the outlets will finish up their output and exit.
 // Per activity stats are sent via the `stats` channel
-func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
+func StartOutlets(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *sync.WaitGroup {
 	outletWaiter := new(sync.WaitGroup)
 
 	for i := 0; i < config.NumOutlets; i++ {
@@ -51,7 +51,7 @@ func StartOutlets(config ShuttleConfig, drops, lost *Counter, stats chan<- Named
 // Starts config.NumBatchers number of batchers and returns a WaitGroup that you wan wait on.
 // When inLogs is closed the batchers will finsih up and exit.
 // Per batcher stats are sent via the `stats` channel.
-func StartBatchers(config ShuttleConfig, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
+func StartBatchers(config Config, drops *Counter, stats chan<- NamedValue, inLogs <-chan LogLine, outBatches chan<- Batch) *sync.WaitGroup {
 	batchWaiter := new(sync.WaitGroup)
 	for i := 0; i < config.NumBatchers; i++ {
 		batchWaiter.Add(1)

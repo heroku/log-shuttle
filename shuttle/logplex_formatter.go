@@ -21,7 +21,7 @@ type LogplexBatchFormatter struct {
 }
 
 // Returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, eData []errData, config *ShuttleConfig) Formatter {
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) Formatter {
 	bf := &LogplexBatchFormatter{
 		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
 		headers:    make(map[string]string),
@@ -118,7 +118,7 @@ type LogplexLineFormatter struct {
 }
 
 // Returns a new LogplexLineFormatter wrapping the provided LogLine
-func NewLogplexLineFormatter(ll LogLine, config *ShuttleConfig) *LogplexLineFormatter {
+func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	var header string
 	if config.SkipHeaders {
 		header = fmt.Sprintf("%d ", len(ll.line))
@@ -165,7 +165,7 @@ func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	return
 }
 
-func NewLogplexErrorFormatter(err errData, config ShuttleConfig) *LogplexLineFormatter {
+func NewLogplexErrorFormatter(err errData, config Config) *LogplexLineFormatter {
 	var what, code string
 
 	switch err.eType {

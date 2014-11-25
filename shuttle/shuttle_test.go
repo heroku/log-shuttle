@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	config ShuttleConfig
+	config Config
 )
 
 func init() {
