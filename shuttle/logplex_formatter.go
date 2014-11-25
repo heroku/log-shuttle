@@ -47,7 +47,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		}
 
 		r = NewLogplexErrorFormatter(edata, *config)
-		readers = append(readers, io.Reader(r))
+		readers = append(readers, r)
 		bf.msgCount += r.MsgCount()
 		bf.contentLength += r.ContentLength()
 	}
@@ -59,7 +59,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		} else {
 			r = NewLogplexLineFormatter(l, config)
 		}
-		readers = append(readers, io.Reader(r))
+		readers = append(readers, r)
 		bf.msgCount += r.MsgCount()
 		bf.contentLength += r.ContentLength()
 	}
