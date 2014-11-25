@@ -123,11 +123,16 @@ type LogplexLineFormatter struct {
 func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	var header string
 	if config.SkipHeaders {
-		header = fmt.Sprintf("%d ", len(ll.line))
+		header = strconv.Itoa(len(ll.line)) + " "
 	} else {
-		header = fmt.Sprintf(config.syslogFrameHeaderFormat,
-			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
-			ll.when.UTC().Format(LogplexBatchTimeFormat))
+		//fmt.Sprintf induces an extra allocation
+		header = strconv.Itoa(len(ll.line)+config.lengthPrefixedSyslogFrameHeaderSize) + " " +
+			"<" + config.Prival + ">" + config.Version + " " +
+			ll.when.UTC().Format(LogplexBatchTimeFormat) + " " +
+			config.Hostname + " " +
+			config.Appname + " " +
+			config.Procid + " " +
+			config.Msgid + " "
 	}
 	return &LogplexLineFormatter{
 		line:   ll.line,
