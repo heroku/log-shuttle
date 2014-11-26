@@ -40,11 +40,11 @@ type HTTPOutlet struct {
 	lostMark         int // If len(inbox) > lostMark during error handling, don't retry
 	client           *http.Client
 	config           Config
-	newFormatterFunc NewFormatterFunc
+	newFormatterFunc NewHTTPFormatterFunc
 }
 
 // NewHTTPOutlet returns a properly constructed HTTPOutlet
-func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewFormatterFunc) *HTTPOutlet {
+func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewHTTPFormatterFunc) *HTTPOutlet {
 	return &HTTPOutlet{
 		drops:            drops,
 		lost:             lost,
@@ -119,24 +119,23 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 	}
 }
 
-func (h *HTTPOutlet) post(formatter Formatter, uuid string) error {
-
-	req, err := http.NewRequest("POST", h.config.OutletURL(), formatter)
+func (h *HTTPOutlet) post(formatter HTTPFormatter, uuid string) error {
+	req, err := formatter.Request()
 	if err != nil {
 		return err
 	}
 
-	if cl := formatter.ContentLength(); cl > 0 {
-		req.ContentLength = cl
-	}
 	req.Header.Add("X-Request-Id", uuid)
 	req.Header.Add("User-Agent", userAgent)
 
-	for k, v := range formatter.Headers() {
-		req.Header.Add(k, v)
-	}
-
 	resp, err := h.timeRequest(req)
+	// There is a way we can have an err and a resp that is not nil, so always
+	// close the Body if we have a resp
+	defer func() {
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}()
 	if err != nil {
 		return err
 	}
@@ -156,7 +155,6 @@ func (h *HTTPOutlet) post(formatter Formatter, uuid string) error {
 		}
 	}
 
-	resp.Body.Close()
 	return nil
 }
 

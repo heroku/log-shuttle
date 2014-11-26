@@ -3,6 +3,7 @@ package shuttle
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -10,64 +11,85 @@ import (
 const (
 	// LogplexBatchTimeFormat is the format of timestamps as expected by Logplex
 	LogplexBatchTimeFormat = "2006-01-02T15:04:05.000000+00:00"
+	LogplexContentType     = "application/logplex-1"
 )
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
-	curFormatter int
-	formatters   []Formatter
-	headers      map[string]string
+	headers       http.Header
+	stringURL     string
+	msgCount      int
+	contentLength int64
+	io.Reader
 }
 
 // NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) Formatter {
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
 	bf := &LogplexBatchFormatter{
-		formatters: make([]Formatter, 0, b.MsgCount()+len(eData)),
-		headers:    make(map[string]string),
+		headers:   make(http.Header),
+		stringURL: config.OutletURL(),
 	}
-	bf.headers["Content-Type"] = "application/logplex-1"
 
-	//Process any errData that we were passed first so it's at the top of the batch
+	bf.headers.Add("Content-Type", LogplexContentType)
+
+	var r SubFormatter
+	readers := make([]io.Reader, 0, b.MsgCount()+len(eData))
+
+	// Process any errData that we were passed first so it's at the top of the batch
 	for _, edata := range eData {
-		bf.formatters = append(bf.formatters, NewLogplexErrorFormatter(edata, *config))
 		switch edata.eType {
 		case errDrop:
-			bf.headers["Logshuttle-Drops"] = strconv.Itoa(edata.count)
+			bf.headers.Add("Logshuttle-Drops", strconv.Itoa(edata.count))
 		case errLost:
-			bf.headers["Logshuttle-Lost"] = strconv.Itoa(edata.count)
+			bf.headers.Add("Logshuttle-Lost", strconv.Itoa(edata.count))
 		}
+
+		r = NewLogplexErrorFormatter(edata, *config)
+		readers = append(readers, r)
+		bf.msgCount += r.MsgCount()
+		bf.contentLength += r.ContentLength()
 	}
 
-	// Make all of the sub formatters
-	for cli := 0; cli < len(b.logLines); cli++ {
-		cl := b.logLines[cli]
-		if cll := len(cl.line); !config.SkipHeaders && cll > config.MaxLineLength {
-			bf.formatters = append(bf.formatters, NewLogplexBatchFormatter(splitLine(cl, config.MaxLineLength), make([]errData, 0), config))
+	// Process the logLine sub-batching them as necessary
+	for _, l := range b.logLines {
+		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
+			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), nil, config)
 		} else {
-			bf.formatters = append(bf.formatters, NewLogplexLineFormatter(cl, config))
+			r = NewLogplexLineFormatter(l, config)
 		}
+		readers = append(readers, r)
+		bf.msgCount += r.MsgCount()
+		bf.contentLength += r.ContentLength()
 	}
 
 	// Take the msg count after the formatters are created so we have the right count
-	bf.headers["Logplex-Msg-Count"] = strconv.Itoa(bf.MsgCount())
+	bf.headers.Add("Logplex-Msg-Count", strconv.Itoa(bf.MsgCount()))
+
+	// Dispatch reading of the body to an io.MultiReader
+	bf.Reader = io.MultiReader(readers...)
 
 	return bf
 }
 
-// Headers returns a map[string]string of the headers to use for the request
-func (bf *LogplexBatchFormatter) Headers() map[string]string {
-	return bf.headers
+// Request returns a properly constructed *http.Request, complete with headers
+// and ContentLength set.
+func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
+	req, err := http.NewRequest("POST", bf.stringURL, bf)
+	if err != nil {
+		return nil, err
+	}
+
+	req.ContentLength = bf.ContentLength()
+	req.Header = bf.headers
+
+	return req, nil
 }
 
 // MsgCount of the wrapped batch.
-// We itterate over the sub forwarders to determine final msgcount
-func (bf *LogplexBatchFormatter) MsgCount() (msgCount int) {
-	for _, f := range bf.formatters {
-		msgCount += f.MsgCount()
-	}
-	return
+func (bf *LogplexBatchFormatter) MsgCount() int {
+	return bf.msgCount
 }
 
 //Splits the line into a batch of loglines of max(mll) lengths
@@ -85,31 +107,8 @@ func splitLine(ll LogLine, mll int) Batch {
 }
 
 // ContentLength of the batch as formatted by the Formatter
-func (bf *LogplexBatchFormatter) ContentLength() (length int64) {
-	for _, f := range bf.formatters {
-		length += f.ContentLength()
-	}
-	return
-}
-
-// Implements the io.Reader interface
-func (bf *LogplexBatchFormatter) Read(p []byte) (n int, err error) {
-	var copied int
-
-	for n < len(p) && err == nil {
-		copied, err = bf.formatters[bf.curFormatter].Read(p[n:])
-		n += copied
-
-		// if we're not at the last formatter and the err is io.EOF
-		// then we're not done reading, so ditch the current formatter
-		// and move to the next log line
-		if err == io.EOF && bf.curFormatter < (len(bf.formatters)-1) {
-			err = nil
-			bf.curFormatter++
-		}
-	}
-
-	return
+func (bf *LogplexBatchFormatter) ContentLength() int64 {
+	return bf.contentLength
 }
 
 // LogplexLineFormatter formats individual loglines into length prefixed
@@ -124,11 +123,16 @@ type LogplexLineFormatter struct {
 func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	var header string
 	if config.SkipHeaders {
-		header = fmt.Sprintf("%d ", len(ll.line))
+		header = strconv.Itoa(len(ll.line)) + " "
 	} else {
-		header = fmt.Sprintf(config.syslogFrameHeaderFormat,
-			config.lengthPrefixedSyslogFrameHeaderSize+len(ll.line),
-			ll.when.UTC().Format(LogplexBatchTimeFormat))
+		//fmt.Sprintf induces an extra allocation
+		header = strconv.Itoa(len(ll.line)+config.lengthPrefixedSyslogFrameHeaderSize) + " " +
+			"<" + config.Prival + ">" + config.Version + " " +
+			ll.when.UTC().Format(LogplexBatchTimeFormat) + " " +
+			config.Hostname + " " +
+			config.Appname + " " +
+			config.Procid + " " +
+			config.Msgid + " "
 	}
 	return &LogplexLineFormatter{
 		line:   ll.line,
@@ -137,20 +141,13 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 }
 
 // ContentLength of the line, as formatted by this formatter
-func (llf *LogplexLineFormatter) ContentLength() (lenth int64) {
+func (llf *LogplexLineFormatter) ContentLength() int64 {
 	return int64(len(llf.header) + len(llf.line))
 }
 
-// MsgCount is always 1
-// TODO(freeformz): Fix this interface
+// MsgCount is always 1 for a Line
 func (llf *LogplexLineFormatter) MsgCount() int {
 	return 1
-}
-
-// Headers will alwasy be empty
-// TODO(freeformz): Fix this interfce
-func (llf *LogplexLineFormatter) Headers() map[string]string {
-	return make(map[string]string)
 }
 
 // Implements the io.Reader interface
