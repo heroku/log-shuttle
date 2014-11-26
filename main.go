@@ -1,17 +1,88 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"log/syslog"
+	"net/url"
 	"os"
 
 	"github.com/heroku/log-shuttle/shuttle"
 )
 
+// This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
+var (
+	LogplexURL = os.Getenv("LOGPLEX_URL")
+	LogsURL    = os.Getenv("LOGS_URL")
+)
+
+// ParseFlags overrides the properties of the given config using the provided
+// command-line flags.  Any option not overridden by a flag will be untouched.
+func ParseFlags(c *shuttle.Config) {
+	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
+	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
+	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
+	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
+	flag.BoolVar(&c.LogToSyslog, "log-to-syslog", c.LogToSyslog, "Log to syslog instead of stderr")
+
+	flag.StringVar(&c.Prival, "prival", c.Prival, "The primary value of the rfc5424 header.")
+	flag.StringVar(&c.Version, "syslog-version", c.Version, "The version of syslog.")
+	flag.StringVar(&c.Procid, "procid", c.Procid, "The procid field for the syslog header.")
+	flag.StringVar(&c.Appname, "appname", c.Appname, "The app-name field for the syslog header.")
+	flag.StringVar(&c.Appname, "logplex-token", c.Appname, "Secret logplex token.")
+	flag.StringVar(&c.Hostname, "hostname", c.Hostname, "The hostname field for the syslog header.")
+	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
+	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
+
+	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
+	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
+
+	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
+	flag.IntVar(&c.InputFormat, "input-format", c.InputFormat, "0=raw (default), 1=rfc3164 (syslog(3))")
+	flag.IntVar(&c.NumBatchers, "num-batchers", c.NumBatchers, "The number of batchers to run.")
+	flag.IntVar(&c.NumOutlets, "num-outlets", c.NumOutlets, "The number of outlets to run.")
+	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
+	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input chanel.")
+	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
+	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
+
+	flag.Parse()
+
+	if LogsURL != "" {
+		if c.LogsURL != "" {
+			log.Fatal("$LOGS_URL is set and -logs-url passed, use only one, not both.")
+		}
+		c.LogsURL = LogsURL
+	}
+
+	if LogplexURL != "" {
+		if c.LogsURL != "" {
+			log.Fatal("$LOGPLEX_URL and $LOGS_URL or -logs-url used. Use only one.")
+		}
+		log.Printf("$LOGPLEX_URL is deprecated, use $LOGS_URL or -logs-url instead")
+		c.LogsURL = LogplexURL
+	}
+
+	oURL, err := url.Parse(c.LogsURL)
+
+	if err != nil {
+		log.Fatalf("Unable to parse $LOGS_URL, $LOGPLEX_URL or -logs-url properly: %s\n", c.LogsURL)
+	}
+
+	if oURL.User == nil {
+		oURL.User = url.UserPassword("token", c.Appname)
+		c.LogsURL = oURL.String()
+	}
+
+	if c.MaxAttempts < 1 {
+		log.Fatalf("-max-attempts must be >= 1")
+	}
+}
+
 func main() {
 	config := shuttle.NewConfig()
-	config.ParseFlags()
+	ParseFlags(&config)
 
 	var err error
 

@@ -1,7 +1,6 @@
 package shuttle
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -10,9 +9,6 @@ import (
 
 	"github.com/pebbe/util"
 )
-
-// This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
-var LogplexURL = os.Getenv("LOGPLEX_URL")
 
 const (
 	// Version is the current version of the program / library
@@ -125,45 +121,6 @@ func NewConfig() Config {
 	return shuttleConfig
 }
 
-// ParseFlags overrides the properties of the given config using the provided
-// command-line flags.  Any option not overridden by a flag will be untouched.
-func (c *Config) ParseFlags() {
-	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
-	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
-	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
-	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
-	flag.BoolVar(&c.LogToSyslog, "log-to-syslog", c.LogToSyslog, "Log to syslog instead of stderr")
-
-	flag.StringVar(&c.Prival, "prival", c.Prival, "The primary value of the rfc5424 header.")
-	flag.StringVar(&c.Version, "syslog-version", c.Version, "The version of syslog.")
-	flag.StringVar(&c.Procid, "procid", c.Procid, "The procid field for the syslog header.")
-	flag.StringVar(&c.Appname, "appname", c.Appname, "The app-name field for the syslog header.")
-	flag.StringVar(&c.Appname, "logplex-token", c.Appname, "Secret logplex token.")
-	flag.StringVar(&c.Hostname, "hostname", c.Hostname, "The hostname field for the syslog header.")
-	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
-	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
-
-	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
-	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
-
-	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
-	flag.IntVar(&c.InputFormat, "input-format", c.InputFormat, "0=raw (default), 1=rfc3164 (syslog(3))")
-	flag.IntVar(&c.NumBatchers, "num-batchers", c.NumBatchers, "The number of batchers to run.")
-	flag.IntVar(&c.NumOutlets, "num-outlets", c.NumOutlets, "The number of outlets to run.")
-	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
-	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input chanel.")
-	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
-	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
-
-	flag.Parse()
-
-	if c.MaxAttempts < 1 {
-		log.Fatalf("-max-attempts must be >= 1")
-	}
-
-	c.ComputeHeader()
-}
-
 // OutletURL returns the string representation of the log url including basic
 // auth encoded into the url.
 func (c *Config) OutletURL() string {
@@ -176,17 +133,6 @@ func (c *Config) OutletURL() string {
 			log.Fatalf("Unable to parse logs-url")
 		}
 	}
-	if len(LogplexURL) > 0 {
-		oURL, err = url.Parse(LogplexURL)
-		if err != nil {
-			log.Fatalf("Unable to parse $LOGPLEX_URL")
-		}
-	}
-
-	if oURL == nil {
-		log.Fatalf("Must set -logs-url or $LOGPLEX_URL.")
-	}
-
 	if oURL.User == nil {
 		oURL.User = url.UserPassword("token", c.Appname)
 	}
