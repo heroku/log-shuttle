@@ -15,9 +15,7 @@ type Shuttle struct {
 
 // NewShuttle returns a properly constructed Shuttle with a given config
 func NewShuttle(config Config) *Shuttle {
-	s := &Shuttle{}
-	s.config = config
-	return s
+	return &Shuttle{config: config}
 }
 
 // Launch a shuttle by spawing it's outlet's, batchers and stats interface
