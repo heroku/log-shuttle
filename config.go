@@ -14,9 +14,8 @@ import (
 // This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
 var LogplexURL = os.Getenv("LOGPLEX_URL")
 
-const (
-	// Version is the current version of the program / library
-	Version = "0.9.6"
+var (
+	Version = "" // Version is the current version of the program / library, use the linker to set
 )
 
 // Input format constants.
