@@ -5,7 +5,7 @@ before_install:
 - go get github.com/tools/godep
 - export PATH=$HOME/gopath/bin:$PATH
 script:
-- godep go test -v -ldflags "-X github.com/heroku/log-shuttle.Version 0.0.1" ./...
+- godep go test -v ./...
 notifications:
   hipchat:
     rooms:
