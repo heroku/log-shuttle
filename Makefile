@@ -1,7 +1,7 @@
 #!/usr/bin/env make -f
 
 gdta := $(shell git describe --tags --always 2>/dev/null || false)
-ldflags := -ldflags "-X github.com/heroku/log-shuttle.Version $(gdta)"
+ldflags := -ldflags "-X main.version $(gdta)"
 tempdir := $(mktemp -d -u tmp.XXXXXXXXXX)
 
 deb: controldir := $(tempdir)/DEBIAN
