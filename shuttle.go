@@ -2,6 +2,8 @@ package shuttle
 
 import (
 	"sync"
+
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 // Shuttle is the main entry point into the library
@@ -9,13 +11,17 @@ type Shuttle struct {
 	config             Config
 	Reader             Reader
 	deliverableBatches chan Batch
+	MetricsRegistry    metrics.Registry
 	programStats       *ProgramStats
 	bWaiter, oWaiter   *sync.WaitGroup
 }
 
 // NewShuttle returns a properly constructed Shuttle with a given config
 func NewShuttle(config Config) *Shuttle {
-	return &Shuttle{config: config}
+	return &Shuttle{
+		config:          config,
+		MetricsRegistry: metrics.NewRegistry(),
+	}
 }
 
 // Launch a shuttle by spawing it's outlet's, batchers and stats interface
