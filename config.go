@@ -8,10 +8,6 @@ import (
 	"github.com/pebbe/util"
 )
 
-var (
-	Version = "" // Version is the current version of the program / library, use the linker to set
-)
-
 // Input format constants.
 // TODO: ensure these are really used properly
 const (
