@@ -47,7 +47,7 @@ const (
 	DefaultNumOutlets    = 4
 	DefaultBatchSize     = 500
 	DefaultLogToSyslog   = false
-	DefaultId            = ""
+	DefaultID            = ""
 )
 
 const (
@@ -93,7 +93,7 @@ type Config struct {
 	StatsInterval                       time.Duration
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
-	Id                                  string
+	ID                                  string
 }
 
 // NewConfig returns a newly created Config, filled in with defaults
@@ -125,7 +125,7 @@ func NewConfig() Config {
 		StatsBuff:     DefaultStatsBuff,
 		Timeout:       time.Duration(DefaultTimeout),
 		LogToSyslog:   DefaultLogToSyslog,
-		Id:            DefaultId,
+		ID:            DefaultID,
 	}
 
 	shuttleConfig.ComputeHeader()

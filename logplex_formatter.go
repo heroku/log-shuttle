@@ -11,7 +11,8 @@ import (
 const (
 	// LogplexBatchTimeFormat is the format of timestamps as expected by Logplex
 	LogplexBatchTimeFormat = "2006-01-02T15:04:05.000000+00:00"
-	LogplexContentType     = "application/logplex-1"
+	// LogplexContentType is the content type logplex expects
+	LogplexContentType = "application/logplex-1"
 )
 
 // LogplexBatchFormatter implements on io.Reader that returns Logplex formatted

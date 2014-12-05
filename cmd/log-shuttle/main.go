@@ -91,7 +91,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	config.Id = version
+	config.ID = version
 
 	if !config.UseStdin() {
 		shuttle.ErrLogger.Fatalln("No stdin detected.")

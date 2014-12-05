@@ -50,7 +50,7 @@ func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue,
 		inbox:            inbox,
 		config:           config,
 		newFormatterFunc: ff,
-		userAgent:        fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", config.Id, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler),
+		userAgent:        fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", config.ID, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler),
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 				ResponseHeaderTimeout: config.Timeout,

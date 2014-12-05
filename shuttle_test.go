@@ -207,7 +207,7 @@ func TestUserAgentHeader(t *testing.T) {
 
 	config.LogsURL = ts.URL
 	config.SkipHeaders = false
-	config.Id = "0.1-abcde"
+	config.ID = "0.1-abcde"
 
 	shut := NewShuttle(config)
 	shut.Launch()
