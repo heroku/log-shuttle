@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"runtime"
 	"time"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -30,7 +32,6 @@ const (
 // lost counters
 type HTTPOutlet struct {
 	inbox            <-chan Batch
-	stats            chan<- NamedValue
 	drops            *Counter
 	lost             *Counter
 	lostMark         int // If len(inbox) > lostMark during error handling, don't retry
@@ -38,15 +39,19 @@ type HTTPOutlet struct {
 	config           Config
 	newFormatterFunc NewHTTPFormatterFunc
 	userAgent        string
+
+	// Various stats that we'll collect, see NewHTTPOutlet for names
+	inboxLengthGauge metrics.Gauge // The number of outstanding batches, reported every time after we read a batch from the channel.
+	postSuccessTimer metrics.Timer // The timing data for successful posts
+	postFailureTimer metrics.Timer // The timing data for failed posts
 }
 
 // NewHTTPOutlet returns a properly constructed HTTPOutlet
-func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue, inbox <-chan Batch, ff NewHTTPFormatterFunc) *HTTPOutlet {
+func NewHTTPOutlet(config Config, drops, lost *Counter, m metrics.Registry, inbox <-chan Batch, ff NewHTTPFormatterFunc) *HTTPOutlet {
 	return &HTTPOutlet{
 		drops:            drops,
 		lost:             lost,
 		lostMark:         int(float64(config.BackBuff) * DepthHighWatermark),
-		stats:            stats,
 		inbox:            inbox,
 		config:           config,
 		newFormatterFunc: ff,
@@ -59,6 +64,9 @@ func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue,
 				},
 			},
 		},
+		inboxLengthGauge: metrics.GetOrRegisterGauge("outlet.inbox.length", m),
+		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success.time", m),
+		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure.time", m),
 	}
 }
 
@@ -66,7 +74,7 @@ func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue,
 func (h *HTTPOutlet) Outlet() {
 
 	for batch := range h.inbox {
-		h.stats <- NewNamedValue("outlet.inbox.length", float64(len(h.inbox)))
+		h.inboxLengthGauge.Update(int64(len(h.inbox)))
 
 		h.retryPost(batch)
 	}
@@ -158,13 +166,11 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter, uuid string) error {
 
 func (h *HTTPOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {
 	defer func(t time.Time) {
-		name := "outlet.post.time"
 		if err != nil {
-			name += ".failure"
+			h.postFailureTimer.UpdateSince(t)
 		} else {
-			name += ".success"
+			h.postSuccessTimer.UpdateSince(t)
 		}
-		h.stats <- NewNamedValue(name, time.Since(t).Seconds())
 	}(time.Now())
 	return h.client.Do(req)
 }
