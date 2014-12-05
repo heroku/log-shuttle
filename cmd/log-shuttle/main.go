@@ -6,7 +6,7 @@ import (
 	"log/syslog"
 	"os"
 
-	"github.com/heroku/log-shuttle/shuttle"
+	"github.com/heroku/log-shuttle"
 )
 
 func main() {
