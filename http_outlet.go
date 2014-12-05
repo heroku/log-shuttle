@@ -25,10 +25,6 @@ const (
 	RetryWithTypeFormat = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
 )
 
-var (
-	userAgent = fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", Version, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler)
-)
-
 // HTTPOutlet handles delivery of batches to HTTPendpoints by creating
 // formatters for the request. HTTPOutlets handle retries, response parsing and
 // lost counters
@@ -41,6 +37,7 @@ type HTTPOutlet struct {
 	client           *http.Client
 	config           Config
 	newFormatterFunc NewHTTPFormatterFunc
+	userAgent        string
 }
 
 // NewHTTPOutlet returns a properly constructed HTTPOutlet
@@ -53,6 +50,7 @@ func NewHTTPOutlet(config Config, drops, lost *Counter, stats chan<- NamedValue,
 		inbox:            inbox,
 		config:           config,
 		newFormatterFunc: ff,
+		userAgent:        fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", config.Id, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler),
 		client: &http.Client{
 			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
 				ResponseHeaderTimeout: config.Timeout,
@@ -126,7 +124,7 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter, uuid string) error {
 	}
 
 	req.Header.Add("X-Request-Id", uuid)
-	req.Header.Add("User-Agent", userAgent)
+	req.Header.Add("User-Agent", h.userAgent)
 
 	resp, err := h.timeRequest(req)
 	// There is a way we can have an err and a resp that is not nil, so always

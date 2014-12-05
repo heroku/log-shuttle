@@ -51,7 +51,7 @@ $ godep go test ./...
 
 ```bash
 > heroku create -r build -b https://github.com/heroku/heroku-buildpack-go.git log-shuttle-build
-> heroku config:set GO_GIT_DESCRIBE_SYMBOL="github.com/heroku/log-shuttle.Version"
+> heroku config:set GO_GIT_DESCRIBE_SYMBOL="main.version"
 > git push build master
 > heroku open -r build
 ```

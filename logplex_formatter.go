@@ -29,7 +29,7 @@ type LogplexBatchFormatter struct {
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
 	bf := &LogplexBatchFormatter{
 		headers:   make(http.Header),
-		stringURL: config.OutletURL(),
+		stringURL: config.LogsURL,
 	}
 
 	bf.headers.Add("Content-Type", LogplexContentType)

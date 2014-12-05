@@ -1,6 +1,9 @@
 #!/usr/bin/env make -f
 
-deb: tempdir := $(shell mktemp -d tmp.XXXXXXXXXX)
+gdta := $(shell git describe --tags --always 2>/dev/null || false)
+ldflags := -ldflags "-X main.version $(gdta)"
+tempdir := $(mktemp -d -u tmp.XXXXXXXXXX)
+
 deb: controldir := $(tempdir)/DEBIAN
 deb: controlfile := $(controldir)/control
 deb: installpath := $(tempdir)/usr/bin
@@ -21,7 +24,7 @@ deb: bin/log-shuttle
 # This is largely here so you can do `make build` outside of a heroku build slug and basically get the same thing
 bin/log-shuttle:
 	go get -u github.com/tools/godep
-	godep go install -a -ldflags "-X github.com/heroku/log-shuttle.Version $(shell git describe --tags --always)" ./...
+	godep go install -a $(ldflags) ./...
 	mkdir bin
 	cp $$GOPATH/bin/log-shuttle bin
 
@@ -30,3 +33,4 @@ clean:
 	rm -f log-shuttle*.deb
 
 build: bin/log-shuttle
+
