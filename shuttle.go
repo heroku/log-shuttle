@@ -81,9 +81,9 @@ func (s *Shuttle) startBatchers() {
 	}
 }
 
-// Shutdown gracefully terminates the shuttle instance, ensuring that anything
+// Land gracefully terminates the shuttle instance, ensuring that anything
 // read is batched and delivered
-func (s *Shuttle) Shutdown() {
+func (s *Shuttle) Land() {
 	close(s.LogLines) // Close the log line channel, all of the batchers will stop once they are done
 	s.bWaiter.Wait()  // Wait for them to be done
 	close(s.Batches)  // Close the batch channel, all of the outlets will stop once they are done

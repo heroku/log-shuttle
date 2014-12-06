@@ -135,5 +135,5 @@ func main() {
 	s.ReadLogLines(os.Stdin)
 
 	// Shutdown the shuttle.
-	s.Shutdown()
+	s.Land()
 }

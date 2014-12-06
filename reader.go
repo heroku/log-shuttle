@@ -19,12 +19,11 @@ type LogLineReader struct {
 func NewLogLineReader(o chan<- LogLine, m metrics.Registry) LogLineReader {
 	return LogLineReader{
 		outbox:      o,
-		lineCounter: metrics.GetOrRegisterCounter("reader.line.count", m),
+		lineCounter: metrics.GetOrRegisterCounter("line.count", m),
 	}
 }
 
-// ReadLogLines reads lines from the ReadCloser, increments it's counter and
-// queues them up for batching
+// ReadLogLines reads lines from the ReadCloser
 func (rdr LogLineReader) ReadLogLines(input io.ReadCloser) error {
 	rdrIo := bufio.NewReader(input)
 
@@ -37,9 +36,12 @@ func (rdr LogLineReader) ReadLogLines(input io.ReadCloser) error {
 			return err
 		}
 
-		logLine := LogLine{line, currentLogTime}
-
-		rdr.outbox <- logLine
-		rdr.lineCounter.Inc(1)
+		rdr.Enqueue(LogLine{line, currentLogTime})
 	}
+}
+
+// Enqueue a single log line and increment the line counters
+func (rdr LogLineReader) Enqueue(ll LogLine) {
+	rdr.outbox <- ll
+	rdr.lineCounter.Inc(1)
 }
