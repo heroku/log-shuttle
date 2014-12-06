@@ -33,7 +33,6 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.Hostname, "hostname", c.Hostname, "The hostname field for the syslog header.")
 	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
-	flag.StringVar(&c.StatsAddr, "stats-addr", c.StatsAddr, "Where to expose stats.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
@@ -47,7 +46,6 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
 	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input chanel.")
 	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
-	flag.IntVar(&c.StatsBuff, "stats-buff", c.StatsBuff, "Number of stats to buffer.")
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 
 	flag.Parse()
@@ -110,6 +108,8 @@ func main() {
 
 	s := shuttle.NewShuttle(config)
 	s.Launch()
+
+	go shuttle.LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, shuttle.Logger)
 
 	// Blocks until closed
 	s.Reader.Read(os.Stdin)
