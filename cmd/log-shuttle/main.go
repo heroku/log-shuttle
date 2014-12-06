@@ -12,11 +12,12 @@ import (
 	"github.com/pebbe/util"
 )
 
-var (
-	// This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
-	LogplexURL = os.Getenv("LOGPLEX_URL")
+// LogplexURL is the url of the logplex cluster (or work alike) to connect
+// to, defaults to the $LOGPLEX_URL environment variable
+var LogplexURL = os.Getenv("LOGPLEX_URL")
 
-	// Default loggers to stdout and stderr
+// Default loggers to stdout and stderr
+var (
 	Logger    = log.New(os.Stdout, "log-shuttle: ", log.LstdFlags)
 	ErrLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
 
