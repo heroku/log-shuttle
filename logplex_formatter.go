@@ -42,9 +42,9 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 	for _, edata := range eData {
 		switch edata.eType {
 		case errDrop:
-			bf.headers.Add("Logplex-Drops", strconv.Itoa(edata.count))
+			bf.headers.Add("Logplex-Drop-Count", strconv.Itoa(edata.count))
 		case errLost:
-			bf.headers.Add("Logplex-Lost", strconv.Itoa(edata.count))
+			bf.headers.Add("Logplex-Lost-Count", strconv.Itoa(edata.count))
 		}
 
 		r = NewLogplexErrorFormatter(edata, *config)

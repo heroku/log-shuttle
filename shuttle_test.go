@@ -147,13 +147,13 @@ func TestDrops(t *testing.T) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
 
-	dropHeader, ok := th.Headers["Logplex-Drops"]
+	dropHeader, ok := th.Headers["Logplex-Drop-Count"]
 	if !ok {
-		t.Fatalf("Header Logplex-Drops not found in response")
+		t.Fatalf("Header Logplex-Drop-Count not found in response")
 	}
 
 	if dropHeader[0] != "2" {
-		t.Fatalf("Logplex-Drops=%s\n", dropHeader[0])
+		t.Fatalf("Logplex-Drop-Count=%s\n", dropHeader[0])
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
@@ -183,13 +183,13 @@ func TestLost(t *testing.T) {
 		t.Fatalf("actual=%s\n", string(th.Actual))
 	}
 
-	lostHeader, ok := th.Headers["Logplex-Lost"]
+	lostHeader, ok := th.Headers["Logplex-Lost-Count"]
 	if !ok {
-		t.Fatalf("Header Logplex-Lost not found in response")
+		t.Fatalf("Header Logplex-Lost-Count not found in response")
 	}
 
 	if lostHeader[0] != "2" {
-		t.Fatalf("Logplex-Lost=%s\n", lostHeader[0])
+		t.Fatalf("Logplex-Lost-Count=%s\n", lostHeader[0])
 	}
 
 	//Should be 0 because it was reset during delivery to the testHelper
