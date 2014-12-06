@@ -9,8 +9,6 @@ import (
 	"regexp"
 	"testing"
 	"time"
-
-	"github.com/rcrowley/go-metrics"
 )
 
 type testEOFHelper struct {
@@ -44,9 +42,8 @@ func TestOutletEOFRetry(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipVerify = true
 
-	drops := NewCounter(0)
-	lost := NewCounter(0)
-	outlet := NewHTTPOutlet(config, drops, lost, metrics.NewRegistry(), nil, NewLogplexBatchFormatter)
+	s := NewShuttle(config)
+	outlet := NewHTTPOutlet(s)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -57,8 +54,8 @@ func TestOutletEOFRetry(t *testing.T) {
 		t.Errorf("th.called != 2, == %q\n", th.called)
 	}
 
-	if lost.Read() != 0 {
-		t.Errorf("lost != 0, == %q\n", lost.Read())
+	if lost := s.Lost.Read(); lost != 0 {
+		t.Errorf("lost != 0, == %q\n", lost)
 	}
 
 	pat := regexp.MustCompile(logLineText)
@@ -75,11 +72,10 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipVerify = true
 	logCapture := new(bytes.Buffer)
-	ErrLogger = log.New(logCapture, "", 0)
+	s := NewShuttle(config)
+	s.ErrLogger = log.New(logCapture, "", 0)
 
-	drops := NewCounter(0)
-	lost := NewCounter(0)
-	outlet := NewHTTPOutlet(config, drops, lost, metrics.NewRegistry(), nil, NewLogplexBatchFormatter)
+	outlet := NewHTTPOutlet(s)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -90,8 +86,8 @@ func TestOutletEOFRetryMax(t *testing.T) {
 		t.Errorf("th.called != %q, == %q\n", config.MaxAttempts, th.called)
 	}
 
-	if lost.Read() != 1 {
-		t.Errorf("lost != 1, == %q\n", lost.Read())
+	if lost := s.Lost.Read(); lost != 1 {
+		t.Errorf("lost != 1, == %q\n", lost)
 	}
 
 	logMessageCheck := regexp.MustCompile(`EOF`)

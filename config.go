@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -37,7 +38,6 @@ const (
 	DefaultNumBatchers   = 2
 	DefaultNumOutlets    = 4
 	DefaultBatchSize     = 500
-	DefaultLogToSyslog   = false
 	DefaultID            = ""
 )
 
@@ -76,13 +76,15 @@ type Config struct {
 	SkipVerify                          bool
 	PrintVersion                        bool
 	Verbose                             bool
-	LogToSyslog                         bool
 	WaitDuration                        time.Duration
 	Timeout                             time.Duration
 	StatsInterval                       time.Duration
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
 	ID                                  string
+	// Loggers
+	Logger    *log.Logger
+	ErrLogger *log.Logger
 }
 
 // NewConfig returns a newly created Config, filled in with defaults
@@ -111,8 +113,9 @@ func NewConfig() Config {
 		FrontBuff:     DefaultFrontBuff,
 		BackBuff:      DefaultBackBuff,
 		Timeout:       time.Duration(DefaultTimeout),
-		LogToSyslog:   DefaultLogToSyslog,
 		ID:            DefaultID,
+		Logger:        discardLogger,
+		ErrLogger:     discardLogger,
 	}
 
 	shuttleConfig.ComputeHeader()

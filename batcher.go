@@ -21,17 +21,17 @@ type Batcher struct {
 	fillTime        metrics.Timer
 }
 
-// NewBatcher created an empty Batcher from the provided channels / variables
-func NewBatcher(batchSize int, timeout time.Duration, drops *Counter, m metrics.Registry, inLogs <-chan LogLine, outBatches chan<- Batch) Batcher {
+// NewBatcher created an empty Batcher for the provided shuttle
+func NewBatcher(s *Shuttle) Batcher {
 	return Batcher{
-		inLogs:          inLogs,
-		drops:           drops,
-		outBatches:      outBatches,
-		timeout:         timeout,
-		batchSize:       batchSize,
-		msgBatchedCount: metrics.GetOrRegisterCounter("batch.msg.count", m),
-		msgDroppedCount: metrics.GetOrRegisterCounter("batch.msg.dropped", m),
-		fillTime:        metrics.GetOrRegisterTimer("batch.fill.time", m),
+		inLogs:          s.LogLines,
+		drops:           s.Drops,
+		outBatches:      s.Batches,
+		timeout:         s.config.WaitDuration,
+		batchSize:       s.config.BatchSize,
+		msgBatchedCount: metrics.GetOrRegisterCounter("batch.msg.count", s.MetricsRegistry),
+		msgDroppedCount: metrics.GetOrRegisterCounter("batch.msg.dropped", s.MetricsRegistry),
+		fillTime:        metrics.GetOrRegisterTimer("batch.fill.time", s.MetricsRegistry),
 	}
 }
 

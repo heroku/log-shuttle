@@ -12,8 +12,16 @@ import (
 	"github.com/pebbe/util"
 )
 
-// This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
-var LogplexURL = os.Getenv("LOGPLEX_URL")
+var (
+	// This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
+	LogplexURL = os.Getenv("LOGPLEX_URL")
+
+	// Default loggers to stdout and stderr
+	Logger    = log.New(os.Stdout, "log-shuttle: ", log.LstdFlags)
+	ErrLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
+
+	logToSyslog bool
+)
 
 var version = "" // log-shuttle version, set with linker
 
@@ -29,7 +37,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
-	flag.BoolVar(&c.LogToSyslog, "log-to-syslog", c.LogToSyslog, "Log to syslog instead of stderr")
+	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
 
 	flag.StringVar(&c.Prival, "prival", c.Prival, "The primary value of the rfc5424 header.")
 	flag.StringVar(&c.Version, "syslog-version", c.Version, "The version of syslog.")
@@ -98,24 +106,29 @@ func main() {
 	config.ID = version
 
 	if !UseStdin() {
-		shuttle.ErrLogger.Fatalln("No stdin detected.")
-	}
-
-	if config.LogToSyslog {
-		shuttle.Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
-		if err != nil {
-			log.Fatalf("Unable to setup syslog logger: %s\n", err)
-		}
-		shuttle.ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
-		if err != nil {
-			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
-		}
+		ErrLogger.Fatalln("No stdin detected.")
 	}
 
 	s := shuttle.NewShuttle(config)
+
+	// Setup the loggers before doing anything else
+	if logToSyslog {
+		s.Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
+		if err != nil {
+			log.Fatalf("Unable to setup syslog logger: %s\n", err)
+		}
+		s.ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
+		if err != nil {
+			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
+		}
+	} else {
+		s.Logger = Logger
+		s.ErrLogger = ErrLogger
+	}
+
 	s.Launch()
 
-	go shuttle.LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, shuttle.Logger)
+	go LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
 
 	// Blocks until os.Stdin is closed
 	s.ReadLogLines(os.Stdin)

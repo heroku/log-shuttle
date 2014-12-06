@@ -4,8 +4,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/rcrowley/go-metrics"
 )
 
 func ProduceLogLines(count int, c chan<- LogLine) {
@@ -20,12 +18,10 @@ func ProduceLogLines(count int, c chan<- LogLine) {
 
 func BenchmarkBatcher(b *testing.B) {
 	b.ResetTimer()
-	outBatches := make(chan Batch)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		logs := make(chan LogLine, config.FrontBuff)
-		drops := NewCounter(0)
-		batcher := NewBatcher(config.BatchSize, config.Timeout, drops, metrics.NewRegistry(), logs, outBatches)
+		s := NewShuttle(config)
+		batcher := NewBatcher(s)
 		wg := new(sync.WaitGroup)
 		wg.Add(1)
 		b.StartTimer()
@@ -33,8 +29,8 @@ func BenchmarkBatcher(b *testing.B) {
 			defer wg.Done()
 			batcher.Batch()
 		}()
-		ProduceLogLines(TestProducerLines, logs)
-		close(logs)
+		ProduceLogLines(TestProducerLines, s.LogLines)
+		close(s.LogLines)
 		wg.Wait()
 	}
 }

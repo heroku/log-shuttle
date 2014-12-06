@@ -1,4 +1,4 @@
-package shuttle
+package main
 
 import (
 	"log"
