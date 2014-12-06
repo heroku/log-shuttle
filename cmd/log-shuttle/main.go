@@ -111,9 +111,9 @@ func main() {
 
 	go shuttle.LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, shuttle.Logger)
 
-	// Blocks until closed
-	s.Reader.Read(os.Stdin)
+	// Blocks until os.Stdin is closed
+	s.ReadLogLines(os.Stdin)
 
-	// Shutdown everything else.
+	// Shutdown the shuttle.
 	s.Shutdown()
 }

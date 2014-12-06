@@ -10,20 +10,20 @@ import (
 
 // Reader performs the reading of lines from an io.ReadCloser, encapsulating
 // lines into a LogLine and emitting them on outbox
-type Reader struct {
+type LogLineReader struct {
 	outbox      chan<- LogLine
 	lineCounter metrics.Counter
 }
 
 // NewReader constructs a new reader with it's own Outbox.
-func NewReader(o chan<- LogLine, m metrics.Registry) Reader {
-	return Reader{
+func NewLogLineReader(o chan<- LogLine, m metrics.Registry) LogLineReader {
+	return LogLineReader{
 		outbox:      o,
 		lineCounter: metrics.GetOrRegisterCounter("reader.line.count", m),
 	}
 }
 
-func (rdr Reader) Read(input io.ReadCloser) error {
+func (rdr LogLineReader) ReadLogLines(input io.ReadCloser) error {
 	rdrIo := bufio.NewReader(input)
 
 	for {

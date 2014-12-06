@@ -82,7 +82,7 @@ func TestIntegration(t *testing.T) {
 	shut := NewShuttle(config)
 	shut.Launch()
 
-	shut.Reader.Read(NewTestInput())
+	shut.ReadLogLines(NewTestInput())
 	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
@@ -112,7 +112,7 @@ func TestSkipHeadersIntegration(t *testing.T) {
 	shut := NewShuttle(config)
 	shut.Launch()
 
-	shut.Reader.Read(NewTestInputWithHeaders())
+	shut.ReadLogLines(NewTestInputWithHeaders())
 	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
@@ -139,7 +139,7 @@ func TestDrops(t *testing.T) {
 
 	shut.Drops.Add(1)
 	shut.Drops.Add(1)
-	shut.Reader.Read(NewTestInput())
+	shut.ReadLogLines(NewTestInput())
 	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+\n`)
@@ -175,7 +175,7 @@ func TestLost(t *testing.T) {
 
 	shut.Lost.Add(1)
 	shut.Lost.Add(1)
-	shut.Reader.Read(NewTestInput())
+	shut.ReadLogLines(NewTestInput())
 	shut.Shutdown()
 
 	pat1 := regexp.MustCompile(`135 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L13: 2 messages lost since [0-9T:\+\-\.]+\n`)
@@ -210,7 +210,7 @@ func TestUserAgentHeader(t *testing.T) {
 	shut := NewShuttle(config)
 	shut.Launch()
 
-	shut.Reader.Read(NewTestInput())
+	shut.ReadLogLines(NewTestInput())
 	shut.Shutdown()
 
 	uaHeader, ok := th.Headers["User-Agent"]
@@ -235,7 +235,7 @@ func TestRequestId(t *testing.T) {
 	shut := NewShuttle(config)
 	shut.Launch()
 
-	shut.Reader.Read(NewTestInput())
+	shut.ReadLogLines(NewTestInput())
 	shut.Shutdown()
 
 	_, ok := th.Headers["X-Request-Id"]
@@ -261,7 +261,7 @@ func BenchmarkPipeline(b *testing.B) {
 		ti := NewLongerTestInput()
 		b.SetBytes(int64(ti.Len()))
 		b.StartTimer()
-		shut.Reader.Read(ti)
+		shut.ReadLogLines(ti)
 	}
 	shut.Shutdown()
 }

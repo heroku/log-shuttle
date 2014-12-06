@@ -8,8 +8,8 @@ import (
 
 // Shuttle is the main entry point into the library
 type Shuttle struct {
+	LogLineReader
 	config           Config
-	Reader           Reader
 	LogLines         chan LogLine
 	Batches          chan Batch
 	MetricsRegistry  metrics.Registry
@@ -25,7 +25,7 @@ func NewShuttle(config Config) *Shuttle {
 
 	return &Shuttle{
 		config:          config,
-		Reader:          NewReader(ll, mr),
+		LogLineReader:   NewLogLineReader(ll, mr),
 		LogLines:        ll,
 		Batches:         make(chan Batch, config.BackBuff),
 		Drops:           NewCounter(0),

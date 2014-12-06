@@ -55,43 +55,43 @@ func (tc TestConsumer) Consume(in <-chan LogLine) {
 	}()
 }
 
-func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
+func doBasicLogLineReaderBenchmark(b *testing.B, frontBuffSize int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		logs := make(chan LogLine, frontBuffSize)
-		rdr := NewReader(logs, metrics.NewRegistry())
+		rdr := NewLogLineReader(logs, metrics.NewRegistry())
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
 		testConsumer.Consume(logs)
 		llp := NewInputProducer(TestProducerLines)
 		b.StartTimer()
-		rdr.Read(llp)
+		rdr.ReadLogLines(llp)
 		b.SetBytes(int64(llp.TotalBytes))
 		close(logs)
 		testConsumer.Wait()
 	}
 }
 
-func BenchmarkReaderWithFrontBuffEqual0(b *testing.B) {
-	doBasicReaderBenchmark(b, 0)
+func BenchmarkLogLineReaderWithFrontBuffEqual0(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, 0)
 }
 
-func BenchmarkReaderWithFrontBuffEqual1(b *testing.B) {
-	doBasicReaderBenchmark(b, 1)
+func BenchmarkLogLineReaderWithFrontBuffEqual1(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, 1)
 }
 
-func BenchmarkReaderWithFrontBuffEqual100(b *testing.B) {
-	doBasicReaderBenchmark(b, 100)
+func BenchmarkLogLineReaderWithFrontBuffEqual100(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, 100)
 }
 
-func BenchmarkReaderWithFrontBuffEqual1000(b *testing.B) {
-	doBasicReaderBenchmark(b, 1000)
+func BenchmarkLogLineReaderWithFrontBuffEqual1000(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, 1000)
 }
 
-func BenchmarkReaderWithFrontBuffEqual10000(b *testing.B) {
-	doBasicReaderBenchmark(b, 10000)
+func BenchmarkLogLineReaderWithFrontBuffEqual10000(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, 10000)
 }
 
-func BenchmarkReaderWithDefaultFrontBuff(b *testing.B) {
-	doBasicReaderBenchmark(b, DefaultFrontBuff)
+func BenchmarkLogLineReaderWithDefaultFrontBuff(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, DefaultFrontBuff)
 }
