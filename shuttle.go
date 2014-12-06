@@ -1,21 +1,30 @@
 package shuttle
 
 import (
+	"io/ioutil"
+	"log"
 	"sync"
 
 	metrics "github.com/rcrowley/go-metrics"
 )
 
+// Default logger to /dev/null
+var (
+	discardLogger = log.New(ioutil.Discard, "", 0)
+)
+
 // Shuttle is the main entry point into the library
 type Shuttle struct {
+	LogLineReader
 	config           Config
-	Reader           Reader
 	LogLines         chan LogLine
 	Batches          chan Batch
 	MetricsRegistry  metrics.Registry
 	bWaiter, oWaiter *sync.WaitGroup
 	Drops, Lost      *Counter
-	BatchFormatter   NewHTTPFormatterFunc
+	NewFormatterFunc NewHTTPFormatterFunc
+	Logger           *log.Logger
+	ErrLogger        *log.Logger
 }
 
 // NewShuttle returns a properly constructed Shuttle with a given config
@@ -24,16 +33,18 @@ func NewShuttle(config Config) *Shuttle {
 	mr := metrics.NewRegistry()
 
 	return &Shuttle{
-		config:          config,
-		Reader:          NewReader(ll, mr),
-		LogLines:        ll,
-		Batches:         make(chan Batch, config.BackBuff),
-		Drops:           NewCounter(0),
-		Lost:            NewCounter(0),
-		MetricsRegistry: mr,
-		BatchFormatter:  NewLogplexBatchFormatter,
-		oWaiter:         new(sync.WaitGroup),
-		bWaiter:         new(sync.WaitGroup),
+		config:           config,
+		LogLineReader:    NewLogLineReader(ll, mr),
+		LogLines:         ll,
+		Batches:          make(chan Batch, config.BackBuff),
+		Drops:            NewCounter(0),
+		Lost:             NewCounter(0),
+		MetricsRegistry:  mr,
+		NewFormatterFunc: NewLogplexBatchFormatter,
+		oWaiter:          new(sync.WaitGroup),
+		bWaiter:          new(sync.WaitGroup),
+		Logger:           discardLogger,
+		ErrLogger:        discardLogger,
 	}
 }
 
@@ -51,7 +62,7 @@ func (s *Shuttle) startOutlets() {
 		s.oWaiter.Add(1)
 		go func() {
 			defer s.oWaiter.Done()
-			outlet := NewHTTPOutlet(s.config, s.Drops, s.Lost, s.MetricsRegistry, s.Batches, s.BatchFormatter)
+			outlet := NewHTTPOutlet(s)
 			outlet.Outlet()
 		}()
 	}
@@ -64,7 +75,7 @@ func (s *Shuttle) startBatchers() {
 		s.bWaiter.Add(1)
 		go func() {
 			defer s.bWaiter.Done()
-			batcher := NewBatcher(s.config.BatchSize, s.config.WaitDuration, s.Drops, s.MetricsRegistry, s.LogLines, s.Batches)
+			batcher := NewBatcher(s)
 			batcher.Batch()
 		}()
 	}

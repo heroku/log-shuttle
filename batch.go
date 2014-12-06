@@ -13,7 +13,7 @@ type Batch struct {
 func NewBatch(capacity int) Batch {
 	uuid, err := uuid.NewV4()
 	if err != nil {
-		ErrLogger.Printf("at=new_batch.generate_uuid err=%q\n", err)
+		panic(err) // probably the only sesnsible thing to do
 	}
 	return Batch{
 		logLines: make([]LogLine, 0, capacity),

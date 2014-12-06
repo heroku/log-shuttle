@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
 	"GoVersion": "go1.3.3",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/heroku/slog",
@@ -12,7 +15,7 @@
 		},
 		{
 			"ImportPath": "github.com/pebbe/util",
-			"Rev": "55c63b3b022c13ed2081abd3277e425ac731ba68"
+			"Rev": "e0e04dfe647cbd76fc8a1fba55406e60a2e49a11"
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",

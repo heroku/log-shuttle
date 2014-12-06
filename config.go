@@ -2,10 +2,8 @@ package shuttle
 
 import (
 	"fmt"
-	"os"
+	"log"
 	"time"
-
-	"github.com/pebbe/util"
 )
 
 // Input format constants.
@@ -40,7 +38,6 @@ const (
 	DefaultNumBatchers   = 2
 	DefaultNumOutlets    = 4
 	DefaultBatchSize     = 500
-	DefaultLogToSyslog   = false
 	DefaultID            = ""
 )
 
@@ -79,13 +76,15 @@ type Config struct {
 	SkipVerify                          bool
 	PrintVersion                        bool
 	Verbose                             bool
-	LogToSyslog                         bool
 	WaitDuration                        time.Duration
 	Timeout                             time.Duration
 	StatsInterval                       time.Duration
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
 	ID                                  string
+	// Loggers
+	Logger    *log.Logger
+	ErrLogger *log.Logger
 }
 
 // NewConfig returns a newly created Config, filled in with defaults
@@ -114,18 +113,14 @@ func NewConfig() Config {
 		FrontBuff:     DefaultFrontBuff,
 		BackBuff:      DefaultBackBuff,
 		Timeout:       time.Duration(DefaultTimeout),
-		LogToSyslog:   DefaultLogToSyslog,
 		ID:            DefaultID,
+		Logger:        discardLogger,
+		ErrLogger:     discardLogger,
 	}
 
 	shuttleConfig.ComputeHeader()
 
 	return shuttleConfig
-}
-
-// UseStdin determines if we're using the terminal's stdin or not
-func (c *Config) UseStdin() bool {
-	return !util.IsTerminal(os.Stdin)
 }
 
 // ComputeHeader computes the syslogFrameHeaderFormat once so we don't have to

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -27,9 +28,9 @@ const (
 	RetryWithTypeFormat = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
 )
 
-// HTTPOutlet handles delivery of batches to HTTPendpoints by creating
-// formatters for the request. HTTPOutlets handle retries, response parsing and
-// lost counters
+// HTTPOutlet handles delivery of batches to HTTP endpoints by creating
+// formatters for each request. HTTPOutlets handle retries, response parsing
+// and lost counters
 type HTTPOutlet struct {
 	inbox            <-chan Batch
 	drops            *Counter
@@ -40,33 +41,39 @@ type HTTPOutlet struct {
 	newFormatterFunc NewHTTPFormatterFunc
 	userAgent        string
 
+	// User supplied loggers
+	Logger    *log.Logger
+	errLogger *log.Logger
+
 	// Various stats that we'll collect, see NewHTTPOutlet for names
 	inboxLengthGauge metrics.Gauge // The number of outstanding batches, reported every time after we read a batch from the channel.
 	postSuccessTimer metrics.Timer // The timing data for successful posts
 	postFailureTimer metrics.Timer // The timing data for failed posts
 }
 
-// NewHTTPOutlet returns a properly constructed HTTPOutlet
-func NewHTTPOutlet(config Config, drops, lost *Counter, m metrics.Registry, inbox <-chan Batch, ff NewHTTPFormatterFunc) *HTTPOutlet {
+// NewHTTPOutlet returns a properly constructed HTTPOutlet for the given shuttle
+func NewHTTPOutlet(s *Shuttle) *HTTPOutlet {
 	return &HTTPOutlet{
-		drops:            drops,
-		lost:             lost,
-		lostMark:         int(float64(config.BackBuff) * DepthHighWatermark),
-		inbox:            inbox,
-		config:           config,
-		newFormatterFunc: ff,
-		userAgent:        fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", config.ID, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler),
+		drops:            s.Drops,
+		lost:             s.Lost,
+		lostMark:         int(float64(s.config.BackBuff) * DepthHighWatermark),
+		inbox:            s.Batches,
+		config:           s.config,
+		newFormatterFunc: s.NewFormatterFunc,
+		userAgent:        fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", s.config.ID, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler),
+		errLogger:        s.ErrLogger,
+		Logger:           s.Logger,
 		client: &http.Client{
-			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.SkipVerify},
-				ResponseHeaderTimeout: config.Timeout,
+			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: s.config.SkipVerify},
+				ResponseHeaderTimeout: s.config.Timeout,
 				Dial: func(network, address string) (net.Conn, error) {
-					return net.DialTimeout(network, address, config.Timeout)
+					return net.DialTimeout(network, address, s.config.Timeout)
 				},
 			},
 		},
-		inboxLengthGauge: metrics.GetOrRegisterGauge("outlet.inbox.length", m),
-		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success.time", m),
-		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure.time", m),
+		inboxLengthGauge: metrics.GetOrRegisterGauge("outlet.inbox.length", s.MetricsRegistry),
+		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success.time", s.MetricsRegistry),
+		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure.time", s.MetricsRegistry),
 	}
 }
 
@@ -109,7 +116,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 			err, ok := err.(*url.Error)
 			if ok {
 				if attempts < h.config.MaxAttempts && inboxLength < h.lostMark {
-					ErrLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
+					h.errLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
 					if err.Err == io.EOF {
 						time.Sleep(time.Duration(attempts) * EOFRetrySleep * time.Millisecond)
 					} else {
@@ -118,7 +125,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 					continue
 				}
 			}
-			ErrLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, uuid, attempts, err, err)
+			h.errLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, uuid, attempts, err, err)
 			h.lost.Add(msgCount)
 		}
 		return
@@ -150,14 +157,14 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter, uuid string) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			ErrLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", uuid, status, err)
+			h.errLogger.Printf("at=post request_id=%q status=%d error_reading_body=%q\n", uuid, status, err)
 		} else {
-			ErrLogger.Printf("at=post request_id=%q status=%d body=%q\n", uuid, status, body)
+			h.errLogger.Printf("at=post request_id=%q status=%d body=%q\n", uuid, status, body)
 		}
 
 	default:
 		if h.config.Verbose {
-			ErrLogger.Printf("at=post request_id=%q status=%d\n", uuid, status)
+			h.Logger.Printf("at=post request_id=%q status=%d\n", uuid, status)
 		}
 	}
 
