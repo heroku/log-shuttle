@@ -4,6 +4,8 @@ import (
 	"io"
 	"sync"
 	"testing"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -44,39 +46,28 @@ type TestConsumer struct {
 	*sync.WaitGroup
 }
 
-func (tc TestConsumer) Consume(in <-chan LogLine, stats <-chan NamedValue) {
+func (tc TestConsumer) Consume(in <-chan LogLine) {
 	tc.Add(1)
 	go func() {
 		defer tc.Done()
 		for _ = range in {
 		}
 	}()
-	tc.Add(1)
-	go func() {
-		defer tc.Done()
-		ConsumeNamedValues(stats)
-	}()
-}
-
-func ConsumeNamedValues(c <-chan NamedValue) {
-	for _ = range c {
-	}
 }
 
 func doBasicReaderBenchmark(b *testing.B, frontBuffSize int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		stats := make(chan NamedValue, config.StatsBuff)
-		rdr := NewReader(frontBuffSize, stats)
+		logs := make(chan LogLine, frontBuffSize)
+		rdr := NewReader(logs, metrics.NewRegistry())
 		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Consume(rdr.Outbox, stats)
+		testConsumer.Consume(logs)
 		llp := NewInputProducer(TestProducerLines)
 		b.StartTimer()
 		rdr.Read(llp)
 		b.SetBytes(int64(llp.TotalBytes))
-		close(rdr.Outbox)
-		close(stats)
+		close(logs)
 		testConsumer.Wait()
 	}
 }

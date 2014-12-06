@@ -21,8 +21,6 @@ const (
 	DefaultInputFormat   = InputFormatRaw
 	DefaultFrontBuff     = 1000
 	DefaultBackBuff      = 50
-	DefaultStatsBuff     = 5000
-	DefaultStatsAddr     = ""
 	DefaultTimeout       = 5 * time.Second
 	DefaultWaitDuration  = 250 * time.Millisecond
 	DefaultMaxAttempts   = 3
@@ -64,7 +62,6 @@ type Config struct {
 	MaxLineLength                       int
 	BackBuff                            int
 	FrontBuff                           int
-	StatsBuff                           int
 	BatchSize                           int
 	NumBatchers                         int
 	NumOutlets                          int
@@ -77,7 +74,6 @@ type Config struct {
 	Hostname                            string
 	Appname                             string
 	Msgid                               string
-	StatsAddr                           string
 	StatsSource                         string
 	SkipHeaders                         bool
 	SkipVerify                          bool
@@ -107,7 +103,6 @@ func NewConfig() Config {
 		Hostname:      DefaultHostname,
 		Msgid:         DefaultMsgID,
 		LogsURL:       DefaultLogsURL,
-		StatsAddr:     DefaultStatsAddr,
 		StatsSource:   DefaultStatsSource,
 		StatsInterval: time.Duration(DefaultStatsInterval),
 		MaxAttempts:   DefaultMaxAttempts,
@@ -118,7 +113,6 @@ func NewConfig() Config {
 		BatchSize:     DefaultBatchSize,
 		FrontBuff:     DefaultFrontBuff,
 		BackBuff:      DefaultBackBuff,
-		StatsBuff:     DefaultStatsBuff,
 		Timeout:       time.Duration(DefaultTimeout),
 		LogToSyslog:   DefaultLogToSyslog,
 		ID:            DefaultID,

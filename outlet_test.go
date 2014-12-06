@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 type testEOFHelper struct {
@@ -42,14 +44,9 @@ func TestOutletEOFRetry(t *testing.T) {
 	config.LogsURL = ts.URL
 	config.SkipVerify = true
 
-	schan := make(chan NamedValue)
-	go func() {
-		for _ = range schan {
-		}
-	}()
 	drops := NewCounter(0)
 	lost := NewCounter(0)
-	outlet := NewHTTPOutlet(config, drops, lost, schan, nil, NewLogplexBatchFormatter)
+	outlet := NewHTTPOutlet(config, drops, lost, metrics.NewRegistry(), nil, NewLogplexBatchFormatter)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -80,14 +77,9 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	logCapture := new(bytes.Buffer)
 	ErrLogger = log.New(logCapture, "", 0)
 
-	schan := make(chan NamedValue)
-	go func() {
-		for _ = range schan {
-		}
-	}()
 	drops := NewCounter(0)
 	lost := NewCounter(0)
-	outlet := NewHTTPOutlet(config, drops, lost, schan, nil, NewLogplexBatchFormatter)
+	outlet := NewHTTPOutlet(config, drops, lost, metrics.NewRegistry(), nil, NewLogplexBatchFormatter)
 
 	batch := NewBatch(config.BatchSize)
 
