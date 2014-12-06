@@ -9,12 +9,18 @@ import (
 	"os"
 
 	"github.com/heroku/log-shuttle"
+	"github.com/pebbe/util"
 )
 
 // This is the Logplex url to connect to, default to the $LOGPLEX_URL environment variable
 var LogplexURL = os.Getenv("LOGPLEX_URL")
 
 var version = "" // log-shuttle version, set with linker
+
+// UseStdin determines if we're using the terminal's stdin or not
+func UseStdin() bool {
+	return !util.IsTerminal(os.Stdin)
+}
 
 // ParseFlags overrides the properties of the given config using the provided
 // command-line flags.  Any option not overridden by a flag will be untouched.
@@ -91,7 +97,7 @@ func main() {
 
 	config.ID = version
 
-	if !config.UseStdin() {
+	if !UseStdin() {
 		shuttle.ErrLogger.Fatalln("No stdin detected.")
 	}
 

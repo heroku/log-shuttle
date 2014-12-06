@@ -2,10 +2,7 @@ package shuttle
 
 import (
 	"fmt"
-	"os"
 	"time"
-
-	"github.com/pebbe/util"
 )
 
 // Input format constants.
@@ -121,11 +118,6 @@ func NewConfig() Config {
 	shuttleConfig.ComputeHeader()
 
 	return shuttleConfig
-}
-
-// UseStdin determines if we're using the terminal's stdin or not
-func (c *Config) UseStdin() bool {
-	return !util.IsTerminal(os.Stdin)
 }
 
 // ComputeHeader computes the syslogFrameHeaderFormat once so we don't have to
