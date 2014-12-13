@@ -38,20 +38,20 @@ func NewBatcher(s *Shuttle) Batcher {
 // Batch loops getting an empty batch and filling it. Filled batcches are sent
 // via the outBatches channel. If outBatches is full, then the batch is dropped
 // and the drops counters is incremented by the number of messages dropped.
-func (batcher Batcher) Batch() {
+func (b Batcher) Batch() {
 
 	for {
-		closeDown, batch := batcher.fillBatch()
+		closeDown, batch := b.fillBatch()
 
 		if msgCount := batch.MsgCount(); msgCount > 0 {
 			select {
-			case batcher.outBatches <- batch:
+			case b.outBatches <- batch:
 				// submitted into the delivery channel, just record some stats
-				batcher.msgBatchedCount.Inc(int64(msgCount))
+				b.msgBatchedCount.Inc(int64(msgCount))
 			default:
 				//Unable to deliver into the delivery channel, increment drops
-				batcher.msgDroppedCount.Inc(int64(msgCount))
-				batcher.drops.Add(msgCount)
+				b.msgDroppedCount.Inc(int64(msgCount))
+				b.drops.Add(msgCount)
 			}
 		}
 
@@ -65,10 +65,10 @@ func (batcher Batcher) Batch() {
 // batch happens on timeout after at least one message is received
 // or when the batch is full.
 // returns the channel status, completed batch
-func (batcher Batcher) fillBatch() (bool, Batch) {
-	batch := NewBatch(batcher.batchSize) // Make a batch
-	timeout := new(time.Timer)           // Gives us a nil channel and no timeout to start with
-	chanOpen := true                     // Assume the channel is open
+func (b Batcher) fillBatch() (bool, Batch) {
+	batch := NewBatch(b.batchSize) // Make a batch
+	timeout := new(time.Timer)     // Gives us a nil channel and no timeout to start with
+	chanOpen := true               // Assume the channel is open
 	count := 0
 
 	for {
@@ -76,22 +76,22 @@ func (batcher Batcher) fillBatch() (bool, Batch) {
 		case <-timeout.C:
 			return !chanOpen, batch
 
-		case line, chanOpen := <-batcher.inLogs:
+		case line, chanOpen := <-b.inLogs:
 			if !chanOpen {
 				return !chanOpen, batch
 			}
 
 			// We have a line now, so set a timeout
 			if timeout.C == nil {
-				defer func(t time.Time) { batcher.fillTime.UpdateSince(t) }(time.Now())
-				timeout = time.NewTimer(batcher.timeout)
+				defer func(t time.Time) { b.fillTime.UpdateSince(t) }(time.Now())
+				timeout = time.NewTimer(b.timeout)
 				defer timeout.Stop() // ensure timer is stopped when done
 			}
 
 			batch.Add(line)
 			count++
 
-			if count >= batcher.batchSize {
+			if count >= b.batchSize {
 				return !chanOpen, batch
 			}
 		}
