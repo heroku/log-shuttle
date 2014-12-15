@@ -57,7 +57,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
-	flag.StringVar(&formatter, "formatter", formatter, "Formatter to use for http requests.")
+	flag.StringVar(&formatter, "formatter", formatter, "Formatter to use for http requests. logplex (default) or kinesis")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")

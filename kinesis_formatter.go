@@ -56,8 +56,8 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	return kf
 }
 
-//ContentLength is basically a TODO ATM
-//doesn't seem to matter for Kinesis, so just returning 0 for now.
+//ContentLength doesn't matter for Kinesis, just here to support the interface,
+//so return 0
 func (kf *KinesisFormatter) ContentLength() int64 {
 	return 0
 }
@@ -102,7 +102,8 @@ func (kf *KinesisFormatter) Read(p []byte) (n int, err error) {
 	return kf.rdr.Read(p)
 }
 
-//MsgCount returns 0 for kinesis for now
+//MsgCount doesn't matter for kinesis, just here to support the interface, so
+//return 0
 func (kf *KinesisFormatter) MsgCount() int {
 	return 0
 }
