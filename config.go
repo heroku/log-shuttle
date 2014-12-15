@@ -46,6 +46,11 @@ const (
 	errLost
 )
 
+// Defaults that can't be constants
+var (
+	DefaultFormatterFunc = NewLogplexBatchFormatter
+)
+
 type errType int
 
 type errData struct {
@@ -72,6 +77,9 @@ type Config struct {
 	Appname                             string
 	Msgid                               string
 	StatsSource                         string
+	AwsAccessKey                        string
+	AwsSecretKey                        string
+	KinesisStreamName                   string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
@@ -83,6 +91,8 @@ type Config struct {
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
 	ID                                  string
+	FormatterFunc                       NewHTTPFormatterFunc
+
 	// Loggers
 	Logger    *log.Logger
 	ErrLogger *log.Logger
@@ -117,6 +127,7 @@ func NewConfig() Config {
 		ID:            DefaultID,
 		Logger:        discardLogger,
 		ErrLogger:     discardLogger,
+		FormatterFunc: DefaultFormatterFunc,
 	}
 
 	shuttleConfig.ComputeHeader()

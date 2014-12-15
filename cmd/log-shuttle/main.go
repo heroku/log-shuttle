@@ -22,6 +22,7 @@ var (
 	ErrLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
 
 	logToSyslog bool
+	formatter   string
 )
 
 var version = "" // log-shuttle version, set with linker
@@ -34,6 +35,12 @@ func UseStdin() bool {
 // ParseFlags overrides the properties of the given config using the provided
 // command-line flags.  Any option not overridden by a flag will be untouched.
 func ParseFlags(c shuttle.Config) shuttle.Config {
+	formatter := "logplex"
+	formatters := map[string]shuttle.NewHTTPFormatterFunc{
+		"logplex": shuttle.NewLogplexBatchFormatter,
+		"kinesis": shuttle.NewKinesisFormatter,
+	}
+
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
@@ -50,6 +57,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
+	flag.StringVar(&formatter, "formatter", formatter, "Formatter to use for http requests.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
@@ -82,6 +90,12 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	if err != nil {
 		log.Fatalln("Error parsing -logs-url or $LOGPLEX_URL: ", err)
 	}
+
+	f, ok := formatters[formatter]
+	if !ok {
+		log.Fatalln("Unknown formatter specified: ", formatter)
+	}
+	c.FormatterFunc = f
 
 	if oURL.User == nil {
 		oURL.User = url.UserPassword("token", c.Appname)

@@ -6,6 +6,10 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/bmizerany/aws4",
+			"Rev": "5fb2e72396263668edd9a2956052e402cf6c104a"
+		},
+		{
 			"ImportPath": "github.com/heroku/slog",
 			"Rev": "7746152d93404575df4efa59a29adb8c168c464a"
 		},

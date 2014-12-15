@@ -40,7 +40,7 @@ func NewShuttle(config Config) *Shuttle {
 		Drops:            NewCounter(0),
 		Lost:             NewCounter(0),
 		MetricsRegistry:  mr,
-		NewFormatterFunc: NewLogplexBatchFormatter,
+		NewFormatterFunc: config.FormatterFunc,
 		oWaiter:          new(sync.WaitGroup),
 		bWaiter:          new(sync.WaitGroup),
 		Logger:           discardLogger,
