@@ -14,6 +14,7 @@ type Batcher struct {
 	drops      *Counter       // The drops counter
 	timeout    time.Duration  // How long once we have a log line before we need to flush the batch
 	batchSize  int            // The size of the batches
+	drop       bool           // Should we drop or not (backup instead)
 
 	// Various stats that we'll collect, see NewBatcher
 	msgBatchedCount metrics.Counter
@@ -29,6 +30,7 @@ func NewBatcher(s *Shuttle) Batcher {
 		outBatches:      s.Batches,
 		timeout:         s.config.WaitDuration,
 		batchSize:       s.config.BatchSize,
+		drop:            s.config.Drop,
 		msgBatchedCount: metrics.GetOrRegisterCounter("batch.msg.count", s.MetricsRegistry),
 		msgDroppedCount: metrics.GetOrRegisterCounter("batch.msg.dropped", s.MetricsRegistry),
 		fillTime:        metrics.GetOrRegisterTimer("batch.fill.time", s.MetricsRegistry),
@@ -44,14 +46,19 @@ func (b Batcher) Batch() {
 		closeDown, batch := b.fillBatch()
 
 		if msgCount := batch.MsgCount(); msgCount > 0 {
-			select {
-			case b.outBatches <- batch:
-				// submitted into the delivery channel, just record some stats
+			if b.drop {
+				select {
+				case b.outBatches <- batch:
+					// submitted into the delivery channel, just record some stats
+					b.msgBatchedCount.Inc(int64(msgCount))
+				default:
+					//Unable to deliver into the delivery channel, increment drops
+					b.msgDroppedCount.Inc(int64(msgCount))
+					b.drops.Add(msgCount)
+				}
+			} else {
+				b.outBatches <- batch
 				b.msgBatchedCount.Inc(int64(msgCount))
-			default:
-				//Unable to deliver into the delivery channel, increment drops
-				b.msgDroppedCount.Inc(int64(msgCount))
-				b.drops.Add(msgCount)
 			}
 		}
 

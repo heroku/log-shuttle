@@ -72,7 +72,6 @@ func (kf *KinesisFormatter) ContentLength() int64 {
 // Request constructs a request for this formatter
 // See: http://docs.aws.amazon.com/kinesis/latest/APIReference/API_PutRecord.html
 func (kf *KinesisFormatter) Request() (*http.Request, error) {
-	fmt.Println(kf.url.String())
 	req, err := http.NewRequest("POST", kf.url.String(), kf)
 	if err != nil {
 		return nil, err
