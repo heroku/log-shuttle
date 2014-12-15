@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/bmizerany/aws4"
 )
@@ -29,19 +30,25 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	if err != nil {
 		panic(err)
 	}
+	awsKey := u.User.Username()
+	awsSecret, _ := u.User.Password()
+	streamName := strings.TrimPrefix(u.Path, "/")
+
 	u.User = nil // Ensure there is no auth info
+	u.Path = ""  // Ensure there is no path
+
 	kf := &KinesisFormatter{
 		header:     bytes.NewBuffer(make([]byte, 0, 500)),
 		formatters: make([]io.Reader, 0, b.MsgCount()+len(eData)),
 		footer:     bytes.NewReader([]byte{'"', '}'}),
 		keys: &aws4.Keys{
-			AccessKey: config.AwsAccessKey,
-			SecretKey: config.AwsSecretKey,
+			AccessKey: awsKey,
+			SecretKey: awsSecret,
 		},
 		url: u,
 	}
 	kf.header.WriteString("{")
-	kf.header.WriteString(fmt.Sprintf("\"StreamName\":\"%s\",", config.KinesisStreamName))
+	kf.header.WriteString(fmt.Sprintf("\"StreamName\":\"%s\",", streamName))
 	kf.header.WriteString(fmt.Sprintf("\"PartitionKey\":\"%s\",", config.Appname))
 	kf.header.WriteString("\"Data\":\"")
 
@@ -65,6 +72,7 @@ func (kf *KinesisFormatter) ContentLength() int64 {
 // Request constructs a request for this formatter
 // See: http://docs.aws.amazon.com/kinesis/latest/APIReference/API_PutRecord.html
 func (kf *KinesisFormatter) Request() (*http.Request, error) {
+	fmt.Println(kf.url.String())
 	req, err := http.NewRequest("POST", kf.url.String(), kf)
 	if err != nil {
 		return nil, err

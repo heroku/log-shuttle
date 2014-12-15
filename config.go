@@ -77,9 +77,6 @@ type Config struct {
 	Appname                             string
 	Msgid                               string
 	StatsSource                         string
-	AwsAccessKey                        string
-	AwsSecretKey                        string
-	KinesisStreamName                   string
 	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
