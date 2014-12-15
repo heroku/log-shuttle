@@ -15,8 +15,39 @@ log-shuttle per logplex token. This will isolate data between customers and
 ensure a good QoS. Log-shuttle accepts input from stdin in a newline (\n)
 delimited format. 
 
+When using log-shuttle with [Amazon's
+Kinesis]("http://aws.amazon.com/kinesis/"), all the details for the region,
+stream and access credentials are supplied in the -logs-url (or $LOGS_URL env
+variable). See the Kinesis setion of this document.
+
 To block as little as possible, log-shuttle will drop outstanding batches if
 it accumulates > -back-buff amount.
+
+## Kinesis
+
+Kinesis expects a single "record" per put, but log-shuttle can encode multiple
+log lines into a single put request. If you want to maintain a 1 to 1 ratio of
+log lines to records, set the -batch-size=1. Otherwise use a small batch size
+somewhere in the 2-5 lines range, modulo your expected log line max length. ATM
+Kinesis has a 50KB record size, so base64(max log line size * batch size) can't
+be more than 50KB. log-shuttle does not (atm) enforce this, so you may see lost
+batches if you start going over this limit.
+
+Since Kinesis record sizes are pretty small, the -drop flag, which defaults to
+true (existing behaviour), has been added. If -drop=false then log-shuttle does
+not drop. Log-shuttle can still loose messages because of destination errors
+thought.
+
+Log-shuttle expects the following encoding of -logs-url when using Amazon
+Kinesis:
+
+    ```
+    https://<AWS_KEY>:<AWS_SECRET>@kinesis.<AMAZON_REGION>.amazonaws.com/<STREAM NAME>
+    ```
+
+See the [Amazon Endpoints
+documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ak_region)
+for supported regions and hostnames.
 
 ## Hacking on log-shuttle
 
