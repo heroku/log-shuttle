@@ -1,0 +1,7 @@
+Package: log-shuttle
+Version: {{LVER}}
+Architecture: amd64
+Maintainer: "Telemetry Team" <telemetry@heroku.com>
+Section: heroku
+Priority: optional
+Description: Move logs from a Dyno to Logplex/log-iss/etc.
