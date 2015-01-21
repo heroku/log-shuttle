@@ -7,8 +7,8 @@ before_install:
 - export LVER=$(git describe --tags --always | sed s/^v//)
 script:
 - godep go test -v ./...
-- godep go install -a -ldflags "-X main.version ${LVER}" ./...
 before_deploy:
+- godep go install -a -ldflags "-X main.version ${LVER}" ./...
 - export tmp=./tmp
 - export deb_root=${tmp}/build
 - export debout=${tmp}/deb
