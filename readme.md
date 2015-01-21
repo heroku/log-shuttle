@@ -26,7 +26,7 @@ Fork the repo, hack, submit PRs.
 
 ```bash
 $ go version
-go version go1.3.3 darwin/amd64
+go version go1.4.1 darwin/amd64
 # go get -u github.com/tools/godep
 $ go get github.com/heroku/log-shuttle
 $ cd $GOPATH/src/github.com/heroku/log-shuttle
@@ -40,22 +40,11 @@ After that `$GOPATH/bin/log-shuttle` should be available.
 ```bash
 $ godep go test ./...
 ```
-
 ### Submitting Code
 
 * Open an issue on [GitHub](https://github.com/heroku/log-shuttle/issues?state=open).
 * Keep changes in a feature branch
 * Submit PR
-
-### Building on Heroku
-
-```bash
-> heroku create -r build -b https://github.com/heroku/heroku-buildpack-go.git log-shuttle-build
-> heroku config:set GO_GIT_DESCRIBE_SYMBOL="main.version"
-> git push build master
-> heroku open -r build
-```
-Download deb
 
 ### Replacing local syslog
 
