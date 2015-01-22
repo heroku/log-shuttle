@@ -39,6 +39,7 @@ const (
 	DefaultNumOutlets    = 4
 	DefaultBatchSize     = 500
 	DefaultID            = ""
+	DefaultSocket        = ""
 )
 
 const (
@@ -82,6 +83,7 @@ type Config struct {
 	lengthPrefixedSyslogFrameHeaderSize int
 	syslogFrameHeaderFormat             string
 	ID                                  string
+	Socket                              string
 	// Loggers
 	Logger    *log.Logger
 	ErrLogger *log.Logger
@@ -113,6 +115,7 @@ func NewConfig() Config {
 		FrontBuff:     DefaultFrontBuff,
 		BackBuff:      DefaultBackBuff,
 		Timeout:       time.Duration(DefaultTimeout),
+		Socket:        DefaultSocket,
 		ID:            DefaultID,
 		Logger:        discardLogger,
 		ErrLogger:     discardLogger,
