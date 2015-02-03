@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/heroku/log-shuttle"
-	"github.com/pebbe/util"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/pebbe/util"
 )
 
 // LogplexURL is the url of the logplex cluster (or work alike) to connect

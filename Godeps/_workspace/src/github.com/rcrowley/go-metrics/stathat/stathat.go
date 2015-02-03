@@ -2,7 +2,7 @@
 package stathat
 
 import (
-	"github.com/rcrowley/go-metrics"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 	"github.com/stathat/go"
 	"log"
 	"time"

@@ -1,4 +1,4 @@
-// Package slog provides some Strcutred Logging helpers
+// Package slog provides some Structred Logging helpers
 /*
 ATM: Mostly used to hold some context for a http handler
 and log at the end of a request
@@ -10,8 +10,8 @@ Sample use in a http.HandleFunc
   http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
     start := time.Now()
     ctx := slog.Context{}
-    defer func() { fmt.Println(ctx) }
-    defer func() { ctx.Measure("health.check.duration", time.Since(start)) }
+    defer func() { fmt.Println(ctx) }()
+    defer func() { ctx.Measure("health.check.duration", time.Since(start)) }()
 
     ctx.Count("health.check",1)
     ...stuff

@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/heroku/slog"
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/heroku/slog"
+	metrics "github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
 // Percentile info for histograms and the like. These 2 arrays need to match

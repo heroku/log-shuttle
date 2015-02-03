@@ -1,13 +1,13 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
-	"GoVersion": "go1.3.3",
+	"GoVersion": "go1.4.1",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/heroku/slog",
-			"Rev": "7fea2d3038fa544293ba03f260cdc51d6674a20c"
+			"Rev": "7746152d93404575df4efa59a29adb8c168c464a"
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",

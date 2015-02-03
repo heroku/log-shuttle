@@ -2,9 +2,8 @@ package main
 
 import (
 	"errors"
-	"github.com/rcrowley/go-metrics"
-	// "github.com/rcrowley/go-metrics/stathat"
-	"log"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	"log" // "github.com/rcrowley/go-metrics/stathat"
 	"math/rand"
 	"os"
 	// "syslog"
