@@ -17,6 +17,7 @@ var (
 type Shuttle struct {
 	LogLineReader
 	config           Config
+	Socket           *Socket
 	LogLines         chan LogLine
 	Batches          chan Batch
 	MetricsRegistry  metrics.Registry
@@ -25,6 +26,7 @@ type Shuttle struct {
 	NewFormatterFunc NewHTTPFormatterFunc
 	Logger           *log.Logger
 	ErrLogger        *log.Logger
+	sWaiter          *sync.WaitGroup
 }
 
 // NewShuttle returns a properly constructed Shuttle with a given config
@@ -45,6 +47,7 @@ func NewShuttle(config Config) *Shuttle {
 		bWaiter:          new(sync.WaitGroup),
 		Logger:           discardLogger,
 		ErrLogger:        discardLogger,
+		sWaiter:          new(sync.WaitGroup),
 	}
 }
 
@@ -53,6 +56,19 @@ func NewShuttle(config Config) *Shuttle {
 func (s *Shuttle) Launch() {
 	s.startOutlets()
 	s.startBatchers()
+	if s.config.Socket != "" {
+		s.startSocketListener()
+	}
+}
+
+func (s *Shuttle) startSocketListener() {
+	s.sWaiter.Add(1)
+
+	go func() {
+		defer s.sWaiter.Done()
+		s.Socket = NewSocket(s)
+		s.Socket.Start()
+	}()
 }
 
 // startOutlet launches config.NumOutlets number of outlets. When inbox is
@@ -84,6 +100,10 @@ func (s *Shuttle) startBatchers() {
 // Land gracefully terminates the shuttle instance, ensuring that anything
 // read is batched and delivered
 func (s *Shuttle) Land() {
+	if s.Socket != nil {
+		s.Socket.Close()
+		s.sWaiter.Wait()
+	}
 	close(s.LogLines) // Close the log line channel, all of the batchers will stop once they are done
 	s.bWaiter.Wait()  // Wait for them to be done
 	close(s.Batches)  // Close the batch channel, all of the outlets will stop once they are done

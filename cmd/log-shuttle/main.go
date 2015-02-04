@@ -38,7 +38,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
-	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
+	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr.")
 
 	flag.StringVar(&c.Prival, "prival", c.Prival, "The primary value of the rfc5424 header.")
 	flag.StringVar(&c.Version, "syslog-version", c.Version, "The version of syslog.")
@@ -49,9 +49,10 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
+	flag.StringVar(&c.Socket, "socket", c.Socket, "Socket path.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
-	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
+	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex.")
 	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
 
 	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
@@ -59,7 +60,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.IntVar(&c.NumBatchers, "num-batchers", c.NumBatchers, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", c.NumOutlets, "The number of outlets to run.")
 	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
-	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input chanel.")
+	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input channel.")
 	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 

@@ -3,10 +3,13 @@ package shuttle
 import (
 	"bytes"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"testing"
+	"time"
 )
 
 var (
@@ -98,7 +101,60 @@ func TestIntegration(t *testing.T) {
 	if afterDrops, _ := shut.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
+}
 
+func TestSocketListener(t *testing.T) {
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config.LogsURL = ts.URL
+	config.Socket = "/tmp/log-shuttle.sock"
+
+	// Assert that the socket does not exist
+	if _, err := os.Stat(config.Socket); err == nil {
+		t.Fatalf("exists=%s\n", config.Socket)
+	}
+
+	shut := NewShuttle(config)
+	shut.Launch()
+
+	// Give the socket time to be created.
+	time.Sleep(300 * time.Millisecond)
+
+	// Confirm the socket is created
+	if _, err := os.Stat(config.Socket); err != nil {
+		t.Fatalf("missing=%s\n", config.Socket)
+	}
+
+	// Connect to the socket
+	c, err := net.Dial("unix", config.Socket)
+	if err != nil {
+		t.Fatalf("connect_failed=%s\n", config.Socket)
+	}
+
+	// Write to the socket
+	c.Write([]byte("a log line\n"))
+	c.Write([]byte("another log line\n"))
+
+	// Give the socket time to write to the outlet
+	time.Sleep(1 * time.Second)
+
+	shut.Land()
+
+	pat1 := regexp.MustCompile(`a log line`)
+	pat2 := regexp.MustCompile(`another log line`)
+
+	if !pat1.Match(th.Actual) {
+		t.Fatalf("actual=%s\n", string(th.Actual))
+	}
+
+	if !pat2.Match(th.Actual) {
+		t.Fatalf("actual=%s\n", string(th.Actual))
+	}
+
+	// Reset config.Socket so it is not used in other tests.
+	config.Socket = ""
 }
 
 func TestSkipHeadersIntegration(t *testing.T) {
