@@ -1,5 +1,4 @@
 GO_LINKER_SYMBOL := "main.version"
-GOPATH :=  $(shell echo ${GOPATH} | cut -d : -f 1)
 
 all: test
 

@@ -8,6 +8,7 @@ script:
 - make test
 before_deploy:
 - make install
+- echo $GOPATH
 - export GOPATH=$(echo ${GOPATH} | cut -d : -f 1)
 - export GO_LINKER_VALUE=$(git describe --tags --always | sed s/^v//)
 - export TMP=$(mktemp -d -t log-shuttle.XXXXX)
