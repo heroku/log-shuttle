@@ -4,24 +4,24 @@ go:
 before_install:
 - go get github.com/tools/godep
 - export PATH=${HOME}/gopath/bin:$PATH
-- export LVER=$(git describe --tags --always | sed s/^v//)
-- echo $GOPATH
 script:
-- godep go test -v ./...
+- make test
 before_deploy:
-- godep go install -a -ldflags "-X main.version ${LVER}" ./...
-- export tmp=./tmp
-- export deb_root=${tmp}/build
-- export debout=${tmp}/deb
-- mkdir -p ${deb_root}/DEBIAN
-- mkdir -p ${debout}
-- export controlfile=./tmp/build/DEBIAN/control
-- export installpath=${deb_root}/usr/bin
-- "sed s/{{LVER}}/${LVER}/ < misc/DEBIAN.control > ${controlfile}"
-- cat ${controlfile}
-- mkdir -p ${installpath}
-- install $HOME/gopath/bin/log-shuttle ${installpath}/log-shuttle
-- fakeroot dpkg-deb --build ${deb_root} ${debout}
+- make install
+- export GOPATH=$(echo ${GOPATH} | cut -d : -f 1)
+- export GO_LINKER_VALUE=$(git describe --tags --always | sed s/^v//)
+- export TMP=$(mktemp -d -t log-shuttle.XXXXX)
+- export DEB_ROOT=${TMP}/build
+- export DEB_OUT=${TMP}/deb
+- mkdir -p ${DEB_ROOT}/DEBIAN
+- mkdir -p ${DEB_OUT}
+- export CONTROL_FILE=${TMP}/build/DEBIAN/control
+- export INSTALL_PATH=${DEB_ROOT}/usr/bin
+- "sed s/{{GO_LINKER_VALUE}}/${GO_LINKER_VALUE}/ < misc/DEBIAN.control > ${CONTROL_FILE}"
+- cat ${CONTROL_FILE}
+- mkdir -p ${INSTALL_PATH}
+- install ${GOPATH}/bin/log-shuttle ${INSTALL_PATH}/log-shuttle
+- fakeroot dpkg-deb --build ${DEB_ROOT} ${DEB_OUT}
 notifications:
   hipchat:
     rooms:
@@ -32,8 +32,8 @@ deploy:
   api_key:
     secure: X0L3J3k9YGaIUESz22nkTf92d74LXSSOx3LiX/rLlUjavYLX06qlzRGr0nDrrBvYOM3QgkRQWgeaQUgCoPsBP2sFOya47jDl6cg7mKgw4GUPj5fwi82JeOxKOvoLhcXqttgJAaX74J61idvldjyzRtQiTftqj0HpGJj8uW4qb4I=
   file:
-    - ${debout}/log-shuttle_${LVER}_amd64.deb
-    - ${HOME}/gopath/bin/log-shuttle
+    - ${DEB_OUT}/log-shuttle_${GO_LINKER_VALUE}_amd64.deb
+    - ${GOPATH}/bin/log-shuttle
   on:
     all_branches: true
     tags: true

@@ -1,5 +1,5 @@
 Package: log-shuttle
-Version: {{LVER}}
+Version: {{GO_LINKER_VALUE}}
 Architecture: amd64
 Maintainer: "Telemetry Team" <telemetry@heroku.com>
 Section: heroku
