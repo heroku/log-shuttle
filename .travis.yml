@@ -1,9 +1,6 @@
 language: go
 go:
 - 1.4.1
-before_install:
-- go get github.com/tools/godep
-- export PATH=${HOME}/gopath/bin:$PATH
 script:
 - make test
 before_deploy:
