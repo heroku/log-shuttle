@@ -109,6 +109,9 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
 		formatter := h.newFormatterFunc(batch, edata, &h.config)
+		if h.config.UseGzip {
+			formatter = NewGzipFormatter(formatter)
+		}
 		err := h.post(formatter, uuid)
 		if err != nil {
 			inboxLength := len(h.inbox)
