@@ -76,6 +76,7 @@ type Config struct {
 	SkipVerify                          bool
 	PrintVersion                        bool
 	Verbose                             bool
+	UseGzip                             bool
 	WaitDuration                        time.Duration
 	Timeout                             time.Duration
 	StatsInterval                       time.Duration

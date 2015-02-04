@@ -39,6 +39,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
 	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
+	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression")
 
 	flag.StringVar(&c.Prival, "prival", c.Prival, "The primary value of the rfc5424 header.")
 	flag.StringVar(&c.Version, "syslog-version", c.Version, "The version of syslog.")
