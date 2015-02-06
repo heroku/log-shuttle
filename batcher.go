@@ -76,6 +76,8 @@ func (b Batcher) fillBatch() (bool, Batch) {
 			return !chanOpen, batch
 
 		case line, chanOpen := <-b.inLogs:
+			// if the channel is closed, then line will be a zero value Line, so just
+			// return
 			if !chanOpen {
 				return !chanOpen, batch
 			}
@@ -87,9 +89,7 @@ func (b Batcher) fillBatch() (bool, Batch) {
 				defer timeout.Stop() // ensure timer is stopped when done
 			}
 
-			batch.Add(line)
-
-			if batch.MsgCount() >= b.batchSize {
+			if batch.Add(line) {
 				return !chanOpen, batch
 			}
 		}

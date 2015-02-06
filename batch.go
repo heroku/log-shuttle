@@ -21,12 +21,14 @@ func NewBatch(capacity int) Batch {
 	}
 }
 
-// Add a logline to the batch
-func (b *Batch) Add(ll LogLine) {
+// Add a logline to the batch and return a boolean indicating if the batch is
+// full or not
+func (b *Batch) Add(ll LogLine) bool {
 	b.logLines = append(b.logLines, ll)
+	return len(b.logLines) == cap(b.logLines)
 }
 
-// MsgCount returns the count of msgs in the batch
+// MsgCount returns the number of msgs in the batch
 func (b *Batch) MsgCount() int {
 	return len(b.logLines)
 }
