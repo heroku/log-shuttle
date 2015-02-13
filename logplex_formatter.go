@@ -50,7 +50,6 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		r = NewLogplexErrorFormatter(edata, *config)
 		readers = append(readers, r)
 		bf.msgCount += r.MsgCount()
-		bf.contentLength += r.ContentLength()
 	}
 
 	// Process the logLine sub-batching them as necessary
@@ -62,7 +61,6 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		}
 		readers = append(readers, r)
 		bf.msgCount += r.MsgCount()
-		bf.contentLength += r.ContentLength()
 	}
 
 	// Take the msg count after the formatters are created so we have the right count
@@ -82,7 +80,6 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 		return nil, err
 	}
 
-	req.ContentLength = bf.ContentLength()
 	req.Header = bf.headers
 
 	return req, nil
@@ -105,11 +102,6 @@ func splitLine(ll LogLine, mll int) Batch {
 		batch.Add(LogLine{line: ll.line[i:t], when: ll.when})
 	}
 	return batch
-}
-
-// ContentLength of the batch as formatted by the Formatter
-func (bf *LogplexBatchFormatter) ContentLength() int64 {
-	return bf.contentLength
 }
 
 // LogplexLineFormatter formats individual loglines into length prefixed
@@ -139,11 +131,6 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 		line:   ll.line,
 		header: header,
 	}
-}
-
-// ContentLength of the line, as formatted by this formatter
-func (llf *LogplexLineFormatter) ContentLength() int64 {
-	return int64(len(llf.header) + len(llf.line))
 }
 
 // MsgCount is always 1 for a Line

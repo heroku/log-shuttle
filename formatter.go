@@ -10,7 +10,6 @@ import (
 // CountentLength returns the byte count of the formatted messages.
 type SubFormatter interface {
 	MsgCount() int
-	ContentLength() int64
 	io.Reader
 }
 

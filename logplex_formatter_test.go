@@ -83,10 +83,6 @@ func TestLogplexBatchFormatter_LongLine(t *testing.T) {
 		t.Log("'" + string(d) + "'")
 		t.Fatalf("Expected a length of 30044, but got %d\n", len(d))
 	}
-
-	if l := br.ContentLength(); l != 30188 {
-		t.Fatalf("Expected a Length() of 30188, but got %d instead\n", l)
-	}
 }
 
 func TestLogplexLineFormatter_Basic(t *testing.T) {
@@ -100,9 +96,6 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 		t.Fatalf("actual=%q\n", d)
 	}
 
-	if l := llr.ContentLength(); l != 81 {
-		t.Fatalf("Expected a Length of 81, got %d instead\n", l)
-	}
 }
 
 func TestLogplexBatchFormatter_WithHeaders(t *testing.T) {
