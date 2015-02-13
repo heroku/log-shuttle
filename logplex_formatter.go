@@ -1,8 +1,11 @@
 package shuttle
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -47,7 +50,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 			bf.headers.Add("Logplex-Lost-Count", strconv.Itoa(edata.count))
 		}
 
-		r = NewLogplexErrorFormatter(edata, *config)
+		r = NewLogplexErrorFormatter(edata, config)
 		readers = append(readers, r)
 		bf.msgCount += r.MsgCount()
 	}
@@ -158,9 +161,40 @@ func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 	return
 }
 
+func (llf *LogplexLineFormatter) len() int {
+	return len(llf.line) + len(llf.header)
+}
+
+// MarshalJSON implements the Marshaler interface for LogplexLineFormatter
+// This is used by ffjson and isn't the true MarshalJSON representation
+//
+// Since the data should be relatively small just read the stuff into ram,
+// making a bunch of temporary garbage.  AFAICT it's just not worth it to try
+// and string these together with io.Pipes and the like. :-(
+func (llf *LogplexLineFormatter) MarshalJSON() ([]byte, error) {
+	t, err := ioutil.ReadAll(llf)
+	if err != nil {
+		return t, err
+	}
+
+	b := bytes.NewBufferString(`"`)
+	e := base64.NewEncoder(base64.StdEncoding, b)
+
+	if _, err = e.Write(t); err != nil {
+		return make([]byte, 0), err
+	}
+	e.Close()
+
+	if _, err = b.WriteString(`"`); err != nil {
+		return make([]byte, 0), err
+	}
+
+	return b.Bytes(), err
+}
+
 // NewLogplexErrorFormatter returns a LogplexLineFormatter for the error data.
 // These can be used to inject error data into the log stream
-func NewLogplexErrorFormatter(err errData, config Config) *LogplexLineFormatter {
+func NewLogplexErrorFormatter(err errData, config *Config) *LogplexLineFormatter {
 	var what, code string
 
 	switch err.eType {

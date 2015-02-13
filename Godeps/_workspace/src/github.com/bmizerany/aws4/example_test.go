@@ -2,7 +2,7 @@ package aws4_test
 
 import (
 	"fmt"
-	"github.com/bmizerany/aws4"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/bmizerany/aws4"
 	"log"
 	"net/http"
 	"net/url"

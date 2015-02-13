@@ -2,14 +2,15 @@ package shuttle
 
 import (
 	"bytes"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/bmizerany/aws4"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/bmizerany/aws4"
+	"github.com/heroku/log-shuttle/kinesis"
 )
 
 // KinesisFormatter formats batches destined for AWS Kinesis HTTP endpoints
@@ -17,6 +18,7 @@ import (
 // Kinesis formats the Data using the LogplexLineFormatter, which is additionally base64 encoded.
 type KinesisFormatter struct {
 	header     *bytes.Buffer
+	records    []kinesis.Record
 	formatters []io.Reader
 	footer     *bytes.Reader
 	rdr        io.Reader
@@ -38,9 +40,9 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	u.Path = ""  // Ensure there is no path
 
 	kf := &KinesisFormatter{
-		header:     bytes.NewBuffer(make([]byte, 0, 500)),
-		formatters: make([]io.Reader, 0, b.MsgCount()+len(eData)),
-		footer:     bytes.NewReader([]byte{'"', '}'}),
+		header:  bytes.NewBuffer(make([]byte, 0, 500)),
+		records: make([]kinesis.Record, 0, b.MsgCount()+len(eData)),
+		footer:  bytes.NewReader([]byte("]}")),
 		keys: &aws4.Keys{
 			AccessKey: awsKey,
 			SecretKey: awsSecret,
@@ -49,24 +51,17 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	}
 	kf.header.WriteString("{")
 	kf.header.WriteString(fmt.Sprintf("\"StreamName\":\"%s\",", streamName))
-	kf.header.WriteString(fmt.Sprintf("\"PartitionKey\":\"%s\",", config.Appname))
-	kf.header.WriteString("\"Data\":\"")
+	kf.header.WriteString("\"Records\":[")
 
 	for _, edata := range eData {
-		kf.formatters = append(kf.formatters, NewLogplexErrorFormatter(edata, *config))
+		kf.records = append(kf.records, kinesis.Record{Data: NewLogplexErrorFormatter(edata, config), PartitionKey: config.Appname})
 	}
 
 	for _, l := range b.logLines {
-		kf.formatters = append(kf.formatters, NewLogplexLineFormatter(l, config))
+		kf.records = append(kf.records, kinesis.Record{Data: NewLogplexLineFormatter(l, config), PartitionKey: config.Appname})
 	}
 
 	return kf
-}
-
-//ContentLength doesn't matter for Kinesis, just here to support the interface,
-//so return 0
-func (kf *KinesisFormatter) ContentLength() int64 {
-	return 0
 }
 
 // Request constructs a request for this formatter
@@ -92,19 +87,16 @@ func (kf *KinesisFormatter) Request() (*http.Request, error) {
 
 func (kf *KinesisFormatter) Read(p []byte) (n int, err error) {
 	if kf.rdr == nil {
-		dataReader, dataWriter := io.Pipe()
-		kf.rdr = io.MultiReader(kf.header, dataReader, kf.footer)
+		recordsReader, recordsWriter := io.Pipe()
+		kf.rdr = io.MultiReader(kf.header, recordsReader, kf.footer)
 		go func() {
-			encoder := base64.NewEncoder(base64.StdEncoding, dataWriter)
-			//TODO: Handle errors somehow?
-			io.Copy(encoder, io.MultiReader(kf.formatters...))
-			encoder.Close()
-			dataWriter.Close()
+			encoder := json.NewEncoder(recordsWriter)
+			for i := range kf.records {
+				encoder.Encode(kf.records[i])
+			}
+			recordsWriter.Close()
 		}()
 	}
-
-	// header get's read completely
-	// io.Pipe(
 
 	return kf.rdr.Read(p)
 }

@@ -1,6 +1,7 @@
 package shuttle
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -94,6 +95,37 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 
 	if !logplexTestLineOnePattern.Match(d) {
 		t.Fatalf("actual=%q\n", d)
+	}
+
+}
+
+func TestLogplexLineFormatter_JSON(t *testing.T) {
+	llr := NewLogplexLineFormatter(LogLineOne, &config)
+	encoded, err := llr.MarshalJSON()
+	if err != nil {
+		t.Fatal("Unexpected error calling MarshalJSON: ", err)
+	}
+
+	if v := encoded[0]; v != 34 { // 34 == "
+		t.Log("Expected encoded to start with byte 34, but didn't: ", v)
+	}
+
+	if v := encoded[len(encoded)-1]; v != 34 {
+		t.Log("Expected encoded to start with byte 34, but didn't: ", v)
+	}
+
+	inside := encoded[1 : len(encoded)-1]
+	decoded := make([]byte, base64.StdEncoding.DecodedLen(len(inside)))
+	_, err = base64.StdEncoding.Decode(decoded, inside)
+	if err != nil {
+		t.Fatal("Unexpected error decoding: ", err)
+	}
+
+	ll2 := NewLogplexLineFormatter(LogLineOne, &config)
+	dupe, _ := ioutil.ReadAll(ll2)
+
+	if string(decoded) != string(dupe) {
+		t.Fatalf("Expected both encoded and decoded to be equal! '%s' vs '%s'", string(decoded), string(dupe))
 	}
 
 }
