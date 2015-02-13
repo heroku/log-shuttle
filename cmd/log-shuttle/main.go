@@ -37,9 +37,11 @@ func UseStdin() bool {
 // ParseFlags overrides the properties of the given config using the provided
 // command-line flags.  Any option not overridden by a flag will be untouched.
 func ParseFlags(c shuttle.Config) shuttle.Config {
+	var skipHeaders bool
+
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
-	flag.BoolVar(&c.SkipHeaders, "skip-headers", c.SkipHeaders, "Skip the prepending of rfc5424 headers.")
+	flag.BoolVar(&skipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
 	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
 	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression")
@@ -60,7 +62,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
 
 	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
-	flag.IntVar(&c.InputFormat, "input-format", c.InputFormat, "0=raw (default), 1=rfc3164 (syslog(3))")
+	flag.IntVar(&c.InputFormat, "input-format", c.InputFormat, "0=raw (default), 1=rfc3164 (syslog(3)) 2=rfc5424")
 	flag.IntVar(&c.NumBatchers, "num-batchers", c.NumBatchers, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", c.NumOutlets, "The number of outlets to run.")
 	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
@@ -69,6 +71,15 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 
 	flag.Parse()
+
+	if skipHeaders {
+		log.Println("Warning: Use of -skip-headers is deprecated, use -input-format=2 (rfc5424) instead")
+		if c.InputFormat == shuttle.InputFormatRaw {
+			c.InputFormat = shuttle.InputFormatRFC5424
+		} else {
+			log.Fatal("Cannot use -skip-headers with anything except the default input format")
+		}
+	}
 
 	if c.MaxAttempts < 1 {
 		log.Fatalf("-max-attempts must be >= 1")

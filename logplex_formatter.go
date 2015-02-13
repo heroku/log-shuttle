@@ -57,7 +57,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 
 	// Process the logLine sub-batching them as necessary
 	for _, l := range b.logLines {
-		if !config.SkipHeaders && len(l.line) > config.MaxLineLength {
+		if config.InputFormat == InputFormatRaw && len(l.line) > config.MaxLineLength {
 			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), nil, config)
 		} else {
 			r = NewLogplexLineFormatter(l, config)
@@ -113,12 +113,14 @@ type LogplexLineFormatter struct {
 	headerPos, msgPos int    // Positions in the the parts of the log lines
 	line              []byte // the raw line bytes
 	header            string // the precomputed, length prefixed syslog frame header
+	inputFormat       int
 }
 
 // NewLogplexLineFormatter returns a new LogplexLineFormatter wrapping the provided LogLine
 func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 	var header string
-	if config.SkipHeaders {
+
+	if config.InputFormat == InputFormatRFC5424 {
 		header = strconv.Itoa(len(ll.line)) + " "
 	} else {
 		//fmt.Sprintf induces an extra allocation
@@ -131,8 +133,9 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 			config.Msgid + " "
 	}
 	return &LogplexLineFormatter{
-		line:   ll.line,
-		header: header,
+		line:        ll.line,
+		header:      header,
+		inputFormat: config.InputFormat,
 	}
 }
 
@@ -174,22 +177,47 @@ func (llf *LogplexLineFormatter) len() int {
 func (llf *LogplexLineFormatter) MarshalJSON() ([]byte, error) {
 	t, err := ioutil.ReadAll(llf)
 	if err != nil {
-		return t, err
+		return nil, err
 	}
 
 	b := bytes.NewBufferString(`"`)
 	e := base64.NewEncoder(base64.StdEncoding, b)
 
 	if _, err = e.Write(t); err != nil {
-		return make([]byte, 0), err
+		return nil, err
 	}
 	e.Close()
 
 	if _, err = b.WriteString(`"`); err != nil {
-		return make([]byte, 0), err
+		return nil, err
 	}
 
 	return b.Bytes(), err
+}
+
+func thirdPartOfLine(l []byte) string {
+	var start, found int
+	for i := 0; i < len(l); i++ {
+		if l[i] == 32 {
+			found++
+			if found == 3 {
+				start = i
+			} else if found == 4 {
+				return string(l[start+1 : i])
+			}
+		}
+	}
+	return ""
+}
+
+func (llf *LogplexLineFormatter) AppName() string {
+	switch llf.inputFormat {
+	case InputFormatRaw:
+		return thirdPartOfLine([]byte(llf.header))
+	case InputFormatRFC5424:
+		return thirdPartOfLine(llf.line)
+	}
+	panic("Unknown input format, or can't get appname reliably for input format")
 }
 
 // NewLogplexErrorFormatter returns a LogplexLineFormatter for the error data.
@@ -216,7 +244,8 @@ func NewLogplexErrorFormatter(err errData, config *Config) *LogplexLineFormatter
 		what,
 		err.since.UTC().Format(LogplexBatchTimeFormat))
 	return &LogplexLineFormatter{
-		line:   []byte(msg),
-		header: fmt.Sprintf("%d ", len(msg)),
+		line:        []byte(msg),
+		header:      fmt.Sprintf("%d ", len(msg)),
+		inputFormat: InputFormatRFC5424,
 	}
 }

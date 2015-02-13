@@ -11,6 +11,7 @@ import (
 const (
 	InputFormatRaw = iota
 	InputFormatRFC3164
+	InputFormatRFC5424
 )
 
 // Default option values
@@ -26,7 +27,6 @@ const (
 	DefaultStatsSource   = ""
 	DefaultPrintVersion  = false
 	DefaultVerbose       = false
-	DefaultSkipHeaders   = false
 	DefaultSkipVerify    = false
 	DefaultPriVal        = "190"
 	DefaultVersion       = "1"
@@ -78,7 +78,6 @@ type Config struct {
 	Appname                             string
 	Msgid                               string
 	StatsSource                         string
-	SkipHeaders                         bool
 	SkipVerify                          bool
 	PrintVersion                        bool
 	Verbose                             bool
@@ -103,7 +102,6 @@ func NewConfig() Config {
 		MaxLineLength: DefaultMaxLineLength,
 		PrintVersion:  DefaultPrintVersion,
 		Verbose:       DefaultVerbose,
-		SkipHeaders:   DefaultSkipHeaders,
 		SkipVerify:    DefaultSkipVerify,
 		Prival:        DefaultPriVal,
 		Version:       DefaultVersion,

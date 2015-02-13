@@ -101,13 +101,13 @@ func TestIntegration(t *testing.T) {
 
 }
 
-func TestSkipHeadersIntegration(t *testing.T) {
+func TestInputFormatRFC5424Integration(t *testing.T) {
 	th := new(testHelper)
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
-	config.SkipHeaders = true
+	config.InputFormat = InputFormatRFC5424
 
 	shut := NewShuttle(config)
 	shut.Launch()
@@ -132,7 +132,7 @@ func TestDrops(t *testing.T) {
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
-	config.SkipHeaders = false
+	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
 	shut.Launch()
@@ -168,7 +168,7 @@ func TestLost(t *testing.T) {
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
-	config.SkipHeaders = false
+	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
 	shut.Launch()
@@ -204,7 +204,7 @@ func TestUserAgentHeader(t *testing.T) {
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
-	config.SkipHeaders = false
+	config.InputFormat = InputFormatRaw
 	config.ID = "0.1-abcde"
 
 	shut := NewShuttle(config)
@@ -230,7 +230,7 @@ func TestRequestId(t *testing.T) {
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
-	config.SkipHeaders = false
+	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
 	shut.Launch()
@@ -250,7 +250,7 @@ func BenchmarkPipeline(b *testing.B) {
 	defer ts.Close()
 
 	config.LogsURL = ts.URL
-	config.SkipHeaders = false
+	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
 	shut.Launch()

@@ -99,6 +99,16 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 
 }
 
+func TestLogplexLineFormatter_AppName(t *testing.T) {
+	c := NewConfig()
+	c.InputFormat = InputFormatRFC5424
+
+	llr := NewLogplexLineFormatter(LogLineOneWithHeaders, &c)
+	if v := llr.AppName(); v != "token" {
+		t.Fatalf("Expected to get the token, but got: '%s'", v)
+	}
+}
+
 func TestLogplexLineFormatter_JSON(t *testing.T) {
 	llr := NewLogplexLineFormatter(LogLineOne, &config)
 	encoded, err := llr.MarshalJSON()
@@ -135,8 +145,8 @@ func TestLogplexBatchFormatter_WithHeaders(t *testing.T) {
 	b.Add(LogLineOneWithHeaders) // 1 frame
 	b.Add(LogLineTwoWithHeaders) // 1 frame
 
-	config.SkipHeaders = true
-	defer func() { config.SkipHeaders = false }()
+	config.InputFormat = InputFormatRFC5424
+	defer func() { config.InputFormat = InputFormatRaw }()
 
 	bf := NewLogplexBatchFormatter(b, noErrData, &config)
 	d, err := ioutil.ReadAll(bf)

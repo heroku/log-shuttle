@@ -3,7 +3,6 @@ package shuttle
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -17,13 +16,12 @@ import (
 // Kinesis has a very small payload side, so recommend setting config.BatchSize in the 1-3 range so as to not loose logs because we go over the batch size.
 // Kinesis formats the Data using the LogplexLineFormatter, which is additionally base64 encoded.
 type KinesisFormatter struct {
-	header     *bytes.Buffer
-	records    []kinesis.Record
-	formatters []io.Reader
-	footer     *bytes.Reader
-	rdr        io.Reader
-	keys       *aws4.Keys
-	url        *url.URL
+	header  *bytes.Reader
+	footer  *bytes.Reader
+	records []kinesis.Record
+	rdr     io.Reader
+	keys    *aws4.Keys
+	url     *url.URL
 }
 
 // NewKinesisFormatter constructs a proper HTTPFormatter for Kinesis http targets
@@ -40,25 +38,24 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	u.Path = ""  // Ensure there is no path
 
 	kf := &KinesisFormatter{
-		header:  bytes.NewBuffer(make([]byte, 0, 500)),
-		records: make([]kinesis.Record, 0, b.MsgCount()+len(eData)),
+		header:  bytes.NewReader([]byte(`{"StreamName":"` + streamName + `","Records":[`)),
 		footer:  bytes.NewReader([]byte("]}")),
+		records: make([]kinesis.Record, 0, b.MsgCount()+len(eData)),
 		keys: &aws4.Keys{
 			AccessKey: awsKey,
 			SecretKey: awsSecret,
 		},
 		url: u,
 	}
-	kf.header.WriteString("{")
-	kf.header.WriteString(fmt.Sprintf("\"StreamName\":\"%s\",", streamName))
-	kf.header.WriteString("\"Records\":[")
 
 	for _, edata := range eData {
-		kf.records = append(kf.records, kinesis.Record{Data: NewLogplexErrorFormatter(edata, config), PartitionKey: config.Appname})
+		lf := NewLogplexErrorFormatter(edata, config)
+		kf.records = append(kf.records, kinesis.Record{Data: lf, PartitionKey: lf.AppName()})
 	}
 
 	for _, l := range b.logLines {
-		kf.records = append(kf.records, kinesis.Record{Data: NewLogplexLineFormatter(l, config), PartitionKey: config.Appname})
+		lf := NewLogplexLineFormatter(l, config)
+		kf.records = append(kf.records, kinesis.Record{Data: lf, PartitionKey: lf.AppName()})
 	}
 
 	return kf
