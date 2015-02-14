@@ -22,10 +22,6 @@
 			"Rev": "e0e04dfe647cbd76fc8a1fba55406e60a2e49a11"
 		},
 		{
-			"ImportPath": "github.com/pquerna/ffjson/fflib/v1",
-			"Rev": "eee537e434ae5ffba381f2c166fedaba526e6af3"
-		},
-		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
 			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
 		}

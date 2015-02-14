@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/bmizerany/aws4"
-	"github.com/heroku/log-shuttle/kinesis"
 )
 
 // KinesisFormatter formats batches destined for AWS Kinesis HTTP endpoints
@@ -18,7 +17,7 @@ import (
 type KinesisFormatter struct {
 	header  *bytes.Reader
 	footer  *bytes.Reader
-	records []kinesis.Record
+	records []KinesisRecord
 	rdr     io.Reader
 	keys    *aws4.Keys
 	url     *url.URL
@@ -40,7 +39,7 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	kf := &KinesisFormatter{
 		header:  bytes.NewReader([]byte(`{"StreamName":"` + streamName + `","Records":[`)),
 		footer:  bytes.NewReader([]byte("]}")),
-		records: make([]kinesis.Record, 0, b.MsgCount()+len(eData)),
+		records: make([]KinesisRecord, 0, b.MsgCount()+len(eData)),
 		keys: &aws4.Keys{
 			AccessKey: awsKey,
 			SecretKey: awsSecret,
@@ -49,13 +48,11 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	}
 
 	for _, edata := range eData {
-		lf := NewLogplexErrorFormatter(edata, config)
-		kf.records = append(kf.records, kinesis.Record{Data: lf, PartitionKey: lf.AppName()})
+		kf.records = append(kf.records, KinesisRecord{NewLogplexErrorFormatter(edata, config)})
 	}
 
 	for _, l := range b.logLines {
-		lf := NewLogplexLineFormatter(l, config)
-		kf.records = append(kf.records, kinesis.Record{Data: lf, PartitionKey: lf.AppName()})
+		kf.records = append(kf.records, KinesisRecord{NewLogplexLineFormatter(l, config)})
 	}
 
 	return kf
@@ -90,6 +87,9 @@ func (kf *KinesisFormatter) Read(p []byte) (n int, err error) {
 			encoder := json.NewEncoder(recordsWriter)
 			for i := range kf.records {
 				encoder.Encode(kf.records[i])
+				if i < len(kf.records)-1 {
+					recordsWriter.Write([]byte(`,`))
+				}
 			}
 			recordsWriter.Close()
 		}()

@@ -1,11 +1,8 @@
 package shuttle
 
 import (
-	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -166,33 +163,6 @@ func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
 
 func (llf *LogplexLineFormatter) len() int {
 	return len(llf.line) + len(llf.header)
-}
-
-// MarshalJSON implements the Marshaler interface for LogplexLineFormatter
-// This is used by ffjson and isn't the true MarshalJSON representation
-//
-// Since the data should be relatively small just read the stuff into ram,
-// making a bunch of temporary garbage.  AFAICT it's just not worth it to try
-// and string these together with io.Pipes and the like. :-(
-func (llf *LogplexLineFormatter) MarshalJSON() ([]byte, error) {
-	t, err := ioutil.ReadAll(llf)
-	if err != nil {
-		return nil, err
-	}
-
-	b := bytes.NewBufferString(`"`)
-	e := base64.NewEncoder(base64.StdEncoding, b)
-
-	if _, err = e.Write(t); err != nil {
-		return nil, err
-	}
-	e.Close()
-
-	if _, err = b.WriteString(`"`); err != nil {
-		return nil, err
-	}
-
-	return b.Bytes(), err
 }
 
 func thirdPartOfLine(l []byte) string {
