@@ -141,6 +141,12 @@ func (llf *LogplexLineFormatter) MsgCount() int {
 	return 1
 }
 
+// Reset the reader so that the log line can be re-read
+func (llf *LogplexLineFormatter) Reset() {
+	llf.headerPos = 0
+	llf.msgPos = 0
+}
+
 // Implements the io.Reader interface
 // tries to fill p as full as possible before returning
 func (llf *LogplexLineFormatter) Read(p []byte) (n int, err error) {
