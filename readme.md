@@ -25,18 +25,11 @@ it accumulates > -back-buff amount.
 
 ## Kinesis
 
-Kinesis expects a single "record" per put, but log-shuttle can encode multiple
-log lines into a single put request. If you want to maintain a 1 to 1 ratio of
-log lines to records, set the -batch-size=1. Otherwise use a small batch size
-somewhere in the 2-5 lines range, modulo your expected log line max length. ATM
-Kinesis has a 50KB record size, so base64(max log line size * batch size) can't
-be more than 50KB. log-shuttle does not (atm) enforce this, so you may see lost
-batches if you start going over this limit.
-
-Since Kinesis record sizes are pretty small, the -drop flag, which defaults to
-true (existing behaviour), has been added. If -drop=false then log-shuttle does
-not drop. Log-shuttle can still loose messages because of destination errors
-thought.
+log-shuttle sends data into Kinesis using the
+[PutRecords](http://docs.aws.amazon.com/kinesis/latest/APIReference/API_PutRecords.html)
+API call. Each Kinesis record is encoded as length prefixed rfc5424 encoded
+logs as per [rfc6587](https://tools.ietf.org/html/rfc6587#section-3.4.1) (this
+is the same format logplex accepts). One record per log line.
 
 Log-shuttle expects the following encoding of -logs-url when using Amazon
 Kinesis:
@@ -48,6 +41,21 @@ Kinesis:
 See the [Amazon Endpoints
 documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ak_region)
 for supported regions and hostnames.
+
+#### Kinesis Caveats
+
+Things that should be handled better/things you should know:
+
+1. `AWS_SECRET`, `AWS_KEY`, `AMAZON_REGION` & `STREAM NAME` need to be properly
+   url encoded.
+1. log-shuttle assumes a 200 response means everything is good. Kinesis can
+   return a 200, meaning the http request was good, but include per record
+   errors in the response body. 
+1. The maximum number of records in a PutRecords requests is 500, so set the
+   batch size no higher than 498 (500 - 2 records for possible drops / lost).
+1. Logplex max line length is 10k, Kinesis max record size is 50k of base64
+   encoded data. A `-max-line-length` of somewhere less than 37500 should work
+   for Kinesis w/o causing errors.
 
 ## Hacking on log-shuttle
 
