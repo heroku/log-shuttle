@@ -57,14 +57,12 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 
 	go func() {
 		for i, record := range kf.records {
-			err := record.MarshalJSONToWriter(recordsWriter)
-			if err != nil {
+			if err := record.MarshalJSONToWriter(recordsWriter); err != nil {
 				recordsWriter.CloseWithError(err)
 				return
 			}
 			if i < len(kf.records)-1 {
-				_, err := recordsWriter.Write([]byte(`,`))
-				if err != nil {
+				if _, err := recordsWriter.Write([]byte(`,`)); err != nil {
 					recordsWriter.CloseWithError(err)
 					return
 				}
