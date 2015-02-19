@@ -34,6 +34,20 @@ func UseStdin() bool {
 	return !util.IsTerminal(os.Stdin)
 }
 
+func mapInputFormat(i string) int {
+	switch i {
+	case "raw":
+		return shuttle.InputFormatRaw
+	case "rfc3164":
+		return shuttle.InputFormatRFC3164
+	case "rfc5424":
+		return shuttle.InputFormatRFC5424
+	default:
+		log.Fatal("Unknown input format: %s\n", i)
+	}
+	panic("won't get here")
+}
+
 // ParseFlags overrides the properties of the given config using the provided
 // command-line flags.  Any option not overridden by a flag will be untouched.
 func ParseFlags(c shuttle.Config) shuttle.Config {
@@ -41,11 +55,14 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
-	flag.BoolVar(&skipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
-	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
 	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression")
 	flag.BoolVar(&c.Drop, "drop", c.Drop, "Drop (default) logs or backup & block stdin")
+
+	flag.BoolVar(&skipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
+	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
+
+	var inputFormat string
 
 	flag.StringVar(&c.Prival, "prival", c.Prival, "The primary value of the rfc5424 header.")
 	flag.StringVar(&c.Version, "syslog-version", c.Version, "The version of syslog.")
@@ -57,12 +74,13 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
 
+	flag.StringVar(&inputFormat, "input-format", "raw", "raw (default), rfc3164 (syslog(3)), rfc5424")
+
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
 	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
 
 	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
-	flag.IntVar(&c.InputFormat, "input-format", c.InputFormat, "0=raw (default), 1=rfc3164 (syslog(3)) 2=rfc5424")
 	flag.IntVar(&c.NumBatchers, "num-batchers", c.NumBatchers, "The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", c.NumOutlets, "The number of outlets to run.")
 	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into a logplex http request.")
@@ -71,6 +89,8 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 
 	flag.Parse()
+
+	c.InputFormat = mapInputFormat(inputFormat)
 
 	if skipHeaders {
 		log.Println("Warning: Use of -skip-headers is deprecated, use -input-format=2 (rfc5424) instead")
