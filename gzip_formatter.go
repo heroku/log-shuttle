@@ -22,7 +22,6 @@ func NewGzipFormatter(delegate HTTPFormatter) *GzipFormatter {
 		reader:   reader,
 		writer:   writer,
 	}
-	go f.writeGzip()
 	return f
 }
 
@@ -46,6 +45,9 @@ func (g *GzipFormatter) Request() (*http.Request, error) {
 	if err != nil {
 		return request, err
 	}
+
+	go g.writeGzip()
+
 	request.Header.Add("Content-Encoding", "gzip")
 	return request, nil
 }
