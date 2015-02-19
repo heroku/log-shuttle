@@ -2,7 +2,6 @@ package shuttle
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -29,6 +28,7 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	if err != nil {
 		panic(err)
 	}
+
 	awsKey := u.User.Username()
 	awsSecret, _ := u.User.Password()
 	streamName := strings.TrimPrefix(u.Path, "/")
@@ -67,7 +67,7 @@ func (kf *KinesisFormatter) Request() (*http.Request, error) {
 	}
 
 	req.Header.Add("Content-Type", "application/x-amz-json-1.1")
-	req.Header.Add("X-Amz-Target", "Kinesis_20131202.PutRecord")
+	req.Header.Add("X-Amz-Target", "Kinesis_20131202.PutRecords")
 	req.Host = kf.url.Host
 
 	err = aws4.Sign(kf.keys, req)
@@ -84,9 +84,8 @@ func (kf *KinesisFormatter) Read(p []byte) (n int, err error) {
 		recordsReader, recordsWriter := io.Pipe()
 		kf.rdr = io.MultiReader(kf.header, recordsReader, kf.footer)
 		go func() {
-			encoder := json.NewEncoder(recordsWriter)
 			for i := range kf.records {
-				encoder.Encode(kf.records[i])
+				kf.records[i].MarshalJSONToWriter(recordsWriter)
 				if i < len(kf.records)-1 {
 					recordsWriter.Write([]byte(`,`))
 				}

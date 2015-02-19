@@ -22,9 +22,13 @@ func TestKinesisRecord_MarshalJSONToWriter(t *testing.T) {
 		PartitionKey string
 	}{}
 
+	t.Logf("%+q\n", b.Bytes())
+
 	if err := json.Unmarshal(b.Bytes(), &tr); err != nil {
 		t.Fatal("Unexpected error unmashalling KinesisRecord: ", err)
 	}
+
+	t.Logf("%+q\n", tr)
 
 	if tr.PartitionKey == "" {
 		t.Fatal("Expected PartitonKey to not be empty, but was.")
