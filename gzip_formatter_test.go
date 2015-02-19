@@ -38,10 +38,6 @@ func TestGzipFormatter(t *testing.T) {
 	if gr.MsgCount() != 1 {
 		t.Fatal(gr.MsgCount)
 	}
-	// verify that g does not preserve content length
-	if gr.ContentLength() != 0 {
-		t.Fatal(gr.ContentLength())
-	}
 	// read the compressed bytes
 	compressed, err := ioutil.ReadAll(gr)
 	if err != nil {

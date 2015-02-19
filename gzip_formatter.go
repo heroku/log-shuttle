@@ -37,10 +37,6 @@ func (g *GzipFormatter) writeGzip() {
 	}
 }
 
-func (g *GzipFormatter) ContentLength() int64 {
-	return 0
-}
-
 func (g *GzipFormatter) MsgCount() int {
 	return g.delegate.MsgCount()
 }
@@ -51,8 +47,6 @@ func (g *GzipFormatter) Request() (*http.Request, error) {
 		return request, err
 	}
 	request.Header.Add("Content-Encoding", "gzip")
-	request.ContentLength = g.ContentLength()
-	request.Body = g
 	return request, nil
 }
 

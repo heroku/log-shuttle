@@ -14,12 +14,10 @@ import (
 // Kinesis has a very small payload side, so recommend setting config.BatchSize in the 1-3 range so as to not loose logs because we go over the batch size.
 // Kinesis formats the Data using the LogplexLineFormatter, which is additionally base64 encoded.
 type KinesisFormatter struct {
-	header  *bytes.Reader
-	footer  *bytes.Reader
 	records []KinesisRecord
-	rdr     io.Reader
 	keys    *aws4.Keys
 	url     *url.URL
+	io.Reader
 }
 
 // NewKinesisFormatter constructs a proper HTTPFormatter for Kinesis http targets
@@ -37,14 +35,9 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	u.Path = ""  // Ensure there is no path
 
 	kf := &KinesisFormatter{
-		header:  bytes.NewReader([]byte(`{"StreamName":"` + streamName + `","Records":[`)),
-		footer:  bytes.NewReader([]byte("]}")),
 		records: make([]KinesisRecord, 0, b.MsgCount()+len(eData)),
-		keys: &aws4.Keys{
-			AccessKey: awsKey,
-			SecretKey: awsSecret,
-		},
-		url: u,
+		keys:    &aws4.Keys{AccessKey: awsKey, SecretKey: awsSecret},
+		url:     u,
 	}
 
 	for _, edata := range eData {
@@ -54,6 +47,31 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	for _, l := range b.logLines {
 		kf.records = append(kf.records, KinesisRecord{NewLogplexLineFormatter(l, config)})
 	}
+
+	recordsReader, recordsWriter := io.Pipe()
+	kf.Reader = io.MultiReader(
+		bytes.NewReader([]byte(`{"StreamName":"`+streamName+`","Records":[`)),
+		recordsReader,
+		bytes.NewReader([]byte("]}")),
+	)
+
+	go func() {
+		for i, record := range kf.records {
+			err := record.MarshalJSONToWriter(recordsWriter)
+			if err != nil {
+				recordsWriter.CloseWithError(err)
+				return
+			}
+			if i < len(kf.records)-1 {
+				_, err := recordsWriter.Write([]byte(`,`))
+				if err != nil {
+					recordsWriter.CloseWithError(err)
+					return
+				}
+			}
+		}
+		recordsWriter.Close()
+	}()
 
 	return kf
 }
@@ -76,29 +94,9 @@ func (kf *KinesisFormatter) Request() (*http.Request, error) {
 	}
 
 	return req, nil
-
 }
 
-func (kf *KinesisFormatter) Read(p []byte) (n int, err error) {
-	if kf.rdr == nil {
-		recordsReader, recordsWriter := io.Pipe()
-		kf.rdr = io.MultiReader(kf.header, recordsReader, kf.footer)
-		go func() {
-			for i := range kf.records {
-				kf.records[i].MarshalJSONToWriter(recordsWriter)
-				if i < len(kf.records)-1 {
-					recordsWriter.Write([]byte(`,`))
-				}
-			}
-			recordsWriter.Close()
-		}()
-	}
-
-	return kf.rdr.Read(p)
-}
-
-//MsgCount doesn't matter for kinesis, just here to support the interface, so
-//return 0
+//MsgCount returns the number of records that the formatter is formatting
 func (kf *KinesisFormatter) MsgCount() int {
-	return 0
+	return len(kf.records)
 }

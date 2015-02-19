@@ -56,6 +56,8 @@ Things that should be handled better/things you should know:
 1. Logplex max line length is 10k, Kinesis max record size is 50k of base64
    encoded data. A `-max-line-length` of somewhere less than 37500 should work
    for Kinesis w/o causing errors.
+1. Kinesis does not support the -gzip option as that option compresses the body
+   of the request.
 
 ## Hacking on log-shuttle
 
