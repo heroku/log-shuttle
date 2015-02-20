@@ -3,7 +3,8 @@ GO_LINKER_SYMBOL := "main.version"
 all: test
 
 test:
-	go test ./...
+	go test -v ./...
+	go test -race -v ./...
 
 install:
 	$(eval GO_LINKER_VALUE := $(shell git describe --tags --always | sed s/^v//))
