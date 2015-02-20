@@ -6,16 +6,12 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 )
 
 type fakeFormatter struct {
-	b []byte
 	r io.Reader
-}
-
-func (f *fakeFormatter) ContentLength() int64 {
-	return int64(len(f.b))
 }
 
 func (f *fakeFormatter) MsgCount() int {
@@ -23,7 +19,7 @@ func (f *fakeFormatter) MsgCount() int {
 }
 
 func (f *fakeFormatter) Request() (*http.Request, error) {
-	return nil, nil
+	return http.NewRequest("POST", "http://localhost/", f.r)
 }
 
 func (f *fakeFormatter) Read(p []byte) (int, error) {
@@ -31,13 +27,14 @@ func (f *fakeFormatter) Read(p []byte) (int, error) {
 }
 
 func TestGzipFormatter(t *testing.T) {
-	b := []byte("Hi there!")
-	f := &fakeFormatter{b, bytes.NewReader(b)}
+	testString := "Hi there!"
+	f := &fakeFormatter{strings.NewReader(testString)}
 	gr := NewGzipFormatter(f)
 
 	if gr.MsgCount() != 1 {
 		t.Fatal(gr.MsgCount)
 	}
+
 	// read the compressed bytes
 	compressed, err := ioutil.ReadAll(gr)
 	if err != nil {
@@ -53,7 +50,7 @@ func TestGzipFormatter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(uncompressed) != "Hi there!" {
+	if string(uncompressed) != testString {
 		t.Fatal(string(uncompressed))
 	}
 

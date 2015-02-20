@@ -3,7 +3,9 @@ package shuttle
 import (
 	"compress/gzip"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
 // a GzipFormatter is an HTTPFormatter that is built with a
@@ -12,6 +14,7 @@ type GzipFormatter struct {
 	delegate HTTPFormatter
 	reader   *io.PipeReader
 	writer   *io.PipeWriter
+	once     *sync.Once
 }
 
 // NewGzipFormatter builds a new GzipFormatter with the supplied delegate
@@ -21,6 +24,7 @@ func NewGzipFormatter(delegate HTTPFormatter) *GzipFormatter {
 		delegate: delegate,
 		reader:   reader,
 		writer:   writer,
+		once:     new(sync.Once),
 	}
 	return f
 }
@@ -46,13 +50,15 @@ func (g *GzipFormatter) Request() (*http.Request, error) {
 		return request, err
 	}
 
-	go g.writeGzip()
-
+	request.Body = ioutil.NopCloser(g)
 	request.Header.Add("Content-Encoding", "gzip")
 	return request, nil
 }
 
 func (g *GzipFormatter) Read(p []byte) (int, error) {
+	g.once.Do(func() {
+		go g.writeGzip()
+	})
 	return g.reader.Read(p)
 }
 
