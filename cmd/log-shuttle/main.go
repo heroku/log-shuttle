@@ -13,10 +13,6 @@ import (
 	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/pebbe/util"
 )
 
-// LogplexURL is the url of the logplex cluster (or work alike) to connect
-// to, defaults to the $LOGPLEX_URL environment variable
-var LogplexURL = os.Getenv("LOGPLEX_URL")
-
 var detectKinesis = regexp.MustCompile(`\Akinesis.[[:alpha:]]{2}-[[:alpha:]]{2,}-[[:digit:]]\.amazonaws\.com\z`)
 
 // Default loggers to stdout and stderr
@@ -46,6 +42,32 @@ func mapInputFormat(i string) int {
 		log.Fatal("Unknown input format: %s\n", i)
 	}
 	panic("won't get here")
+}
+
+// determineLogsURL from the various options favoring each one in turn
+func determineLogsURL(logplexURL, logsURL, cmdLineURL string) string {
+	var envURL string
+
+	if len(logplexURL) > 0 {
+		log.Println("Warning: $LOGPLEX_URL is deprecated, use $LOGS_URL instead")
+		envURL = logplexURL
+	}
+
+	if len(logsURL) > 0 {
+		if len(logplexURL) > 0 {
+			log.Println("Warning: Use of both $LOGPLEX_URL & $LOGS_URL, using $LOGS_URL instead")
+		}
+		envURL = logsURL
+	}
+
+	if len(cmdLineURL) > 0 {
+		if len(envURL) > 0 {
+			log.Println("Warning: Use of both an evnironment variable ($LOGPLEX_URL or $LOGS_URL) and -logs-url, using -logs-url option")
+		}
+		return cmdLineURL
+	} else {
+		return envURL
+	}
 }
 
 // ParseFlags overrides the properties of the given config using the provided
@@ -105,17 +127,11 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 		log.Fatalf("-max-attempts must be >= 1")
 	}
 
-	if len(LogplexURL) > 0 {
-		if c.LogsURL != shuttle.DefaultLogsURL {
-			log.Println("Warning: Use of both $LOGPLEX_URL and -logs-url, defaulting to -logs-url setting.")
-		} else {
-			c.LogsURL = LogplexURL
-		}
-	}
+	c.LogsURL = determineLogsURL(os.Getenv("LOGPLEX_URL"), os.Getenv("LOGS_URL"), c.LogsURL)
 
 	oURL, err := url.Parse(c.LogsURL)
 	if err != nil {
-		log.Fatalln("Error parsing -logs-url or $LOGPLEX_URL: ", err)
+		log.Fatalln("Error parsing -logs-url/$LOGPLEX_URL/$LOGS_URL: ", err)
 	}
 
 	if oURL.User == nil {
