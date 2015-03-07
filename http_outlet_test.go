@@ -43,7 +43,7 @@ func TestOutletEOFRetry(t *testing.T) {
 	config.SkipVerify = true
 
 	s := NewShuttle(config)
-	outlet := NewHTTPOutlet(s)
+	outlet := NewHTTPOutlet(s).(*HTTPOutlet)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -75,7 +75,7 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	s := NewShuttle(config)
 	s.ErrLogger = log.New(logCapture, "", 0)
 
-	outlet := NewHTTPOutlet(s)
+	outlet := NewHTTPOutlet(s).(*HTTPOutlet)
 
 	batch := NewBatch(config.BatchSize)
 

@@ -33,18 +33,17 @@ func NewShuttle(config Config) *Shuttle {
 	mr := metrics.NewRegistry()
 
 	return &Shuttle{
-		config:           config,
-		LogLineReader:    NewLogLineReader(ll, mr),
-		LogLines:         ll,
-		Batches:          make(chan Batch, config.BackBuff),
-		Drops:            NewCounter(0),
-		Lost:             NewCounter(0),
-		MetricsRegistry:  mr,
-		NewFormatterFunc: config.FormatterFunc,
-		oWaiter:          new(sync.WaitGroup),
-		bWaiter:          new(sync.WaitGroup),
-		Logger:           discardLogger,
-		ErrLogger:        discardLogger,
+		config:          config,
+		LogLineReader:   NewLogLineReader(ll, mr),
+		LogLines:        ll,
+		Batches:         make(chan Batch, config.BackBuff),
+		Drops:           NewCounter(0),
+		Lost:            NewCounter(0),
+		MetricsRegistry: mr,
+		oWaiter:         new(sync.WaitGroup),
+		bWaiter:         new(sync.WaitGroup),
+		Logger:          discardLogger,
+		ErrLogger:       discardLogger,
 	}
 }
 
@@ -62,7 +61,7 @@ func (s *Shuttle) startOutlets() {
 		s.oWaiter.Add(1)
 		go func() {
 			defer s.oWaiter.Done()
-			outlet := NewHTTPOutlet(s)
+			outlet := s.config.OutletFunc(s)
 			outlet.Outlet()
 		}()
 	}

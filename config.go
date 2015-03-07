@@ -50,6 +50,7 @@ const (
 // Defaults that can't be constants
 var (
 	DefaultFormatterFunc = NewLogplexBatchFormatter
+	DefaultOutletFunc    = NewHTTPOutlet
 )
 
 type errType int
@@ -90,6 +91,7 @@ type Config struct {
 	syslogFrameHeaderFormat             string
 	ID                                  string
 	FormatterFunc                       NewHTTPFormatterFunc
+	OutletFunc                          NewOutletFunc
 
 	// Loggers
 	Logger    *log.Logger
@@ -125,7 +127,9 @@ func NewConfig() Config {
 		Logger:        discardLogger,
 		ErrLogger:     discardLogger,
 		FormatterFunc: DefaultFormatterFunc,
-		Drop:          DefaultDrop,
+		OutletFunc:    DefaultOutletFunc,
+
+		Drop: DefaultDrop,
 	}
 
 	shuttleConfig.ComputeHeader()

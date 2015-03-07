@@ -52,7 +52,7 @@ type HTTPOutlet struct {
 }
 
 // NewHTTPOutlet returns a properly constructed HTTPOutlet for the given shuttle
-func NewHTTPOutlet(s *Shuttle) *HTTPOutlet {
+func NewHTTPOutlet(s *Shuttle) Outlet {
 	return &HTTPOutlet{
 		drops:            s.Drops,
 		lost:             s.Lost,
