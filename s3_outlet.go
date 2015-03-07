@@ -3,7 +3,7 @@ package shuttle
 import (
 	"io"
 
-	"github.com/kr/s3/s3util"
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/kr/s3/s3util"
 )
 
 type S3Outlet struct {

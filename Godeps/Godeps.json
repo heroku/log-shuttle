@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/heroku/log-shuttle",
-	"GoVersion": "go1.4.1",
+	"GoVersion": "go1.4.2",
 	"Packages": [
 		"./..."
 	],
@@ -12,6 +12,10 @@
 		{
 			"ImportPath": "github.com/heroku/slog",
 			"Rev": "7746152d93404575df4efa59a29adb8c168c464a"
+		},
+		{
+			"ImportPath": "github.com/kr/s3",
+			"Rev": "c070c8f9a8f0032d48f0d2a77d4e382788bd8a1d"
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
