@@ -59,7 +59,7 @@ func NewHTTPOutlet(s *Shuttle) Outlet {
 		lostMark:         int(float64(s.config.BackBuff) * DepthHighWatermark),
 		inbox:            s.Batches,
 		config:           s.config,
-		newFormatterFunc: s.NewFormatterFunc,
+		newFormatterFunc: s.config.FormatterFunc,
 		userAgent:        fmt.Sprintf("log-shuttle/%s (%s; %s; %s; %s)", s.config.ID, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.Compiler),
 		errLogger:        s.ErrLogger,
 		Logger:           s.Logger,

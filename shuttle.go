@@ -22,7 +22,6 @@ type Shuttle struct {
 	MetricsRegistry  metrics.Registry
 	bWaiter, oWaiter *sync.WaitGroup
 	Drops, Lost      *Counter
-	NewFormatterFunc NewHTTPFormatterFunc
 	Logger           *log.Logger
 	ErrLogger        *log.Logger
 }
