@@ -59,28 +59,35 @@ Things that should be handled better/things you should know:
 1. Kinesis does not support the -gzip option as that option compresses the body
    of the request.
 
-## Hacking on log-shuttle
-
-Fork the repo, hack, submit PRs.
-
-### Local Setup
+## Install
 
 ```bash
-$ go version
-go version go1.4.1 darwin/amd64
-# go get -u github.com/tools/godep
-$ go get github.com/heroku/log-shuttle
-$ cd $GOPATH/src/github.com/heroku/log-shuttle
-$ godep go install ./...
+$ go get -u github.com/heroku/log-shuttle/...
 ```
 
 After that `$GOPATH/bin/log-shuttle` should be available.
 
+### Making Debs
+
+Requires:
+
+* dpkg (see also `brew install dpkg`)
+* go & gox (updated via Makefile)
+
+```bash
+make debs
+```
+
+## Hacking on log-shuttle
+
+Fork the repo, hack, submit PRs.
+
 ### Testing
 
 ```bash
-$ godep go test ./...
+$ go test -v ./...
 ```
+
 ### Submitting Code
 
 * Open an issue on [GitHub](https://github.com/heroku/log-shuttle/issues?state=open).
@@ -105,7 +112,7 @@ sudo rm -f /dev/log
 
 ## License
 
-Copyright (c) 2013-14 Heroku Inc.
+Copyright (c) 2013-15 Heroku Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
