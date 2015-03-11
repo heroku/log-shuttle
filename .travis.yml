@@ -4,22 +4,8 @@ go:
 script:
 - make test
 before_deploy:
-- make install
-- echo $GOPATH
-- export GOPATH=$(echo ${GOPATH} | cut -d : -f 1)
-- export GO_LINKER_VALUE=$(git describe --tags --always | sed s/^v//)
-- export TMP=$(mktemp -d -t log-shuttle.XXXXX)
-- export DEB_ROOT=${TMP}/build
-- export DEB_OUT=${TMP}/deb
-- mkdir -p ${DEB_ROOT}/DEBIAN
-- mkdir -p ${DEB_OUT}
-- export CONTROL_FILE=${TMP}/build/DEBIAN/control
-- export INSTALL_PATH=${DEB_ROOT}/usr/bin
-- "sed s/{{GO_LINKER_VALUE}}/${GO_LINKER_VALUE}/ < misc/DEBIAN.control > ${CONTROL_FILE}"
-- cat ${CONTROL_FILE}
-- mkdir -p ${INSTALL_PATH}
-- install ${GOPATH}/bin/log-shuttle ${INSTALL_PATH}/log-shuttle
-- fakeroot dpkg-deb --build ${DEB_ROOT} ${DEB_OUT}
+- make debs
+- export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
 notifications:
   hipchat:
     rooms:
@@ -30,8 +16,7 @@ deploy:
   api_key:
     secure: X0L3J3k9YGaIUESz22nkTf92d74LXSSOx3LiX/rLlUjavYLX06qlzRGr0nDrrBvYOM3QgkRQWgeaQUgCoPsBP2sFOya47jDl6cg7mKgw4GUPj5fwi82JeOxKOvoLhcXqttgJAaX74J61idvldjyzRtQiTftqj0HpGJj8uW4qb4I=
   file:
-    - ${DEB_OUT}/log-shuttle_${GO_LINKER_VALUE}_amd64.deb
-    - ${GOPATH}/bin/log-shuttle
+    - log-shuttle_${DEB_VERSION}_amd64.deb
   on:
     all_branches: true
     tags: true
