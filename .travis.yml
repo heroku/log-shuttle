@@ -11,7 +11,9 @@ notifications:
     rooms:
       secure: CR38+crHhfjYvU+4w+5TrZ7Sx2xFUoDGf81gjC0ow+lyIwTyHtvznLxGt5wSBgGPnVbzTf7TFDMrmjFV6g3oXwRYD7nrRQasj1JCc9G04s0xHpIgnMYVszzdXxaSsBByH8GheUafyJTwCXFpSwNidH2CH5n/y/XsWx3hxmgWvyo=
     template:
-                - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
+    - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}
+      (<a href="%{build_url}">Details</a> | <a href="%{compare_url}">Change view</a>)'
+    format: html
 deploy:
   skip_cleanup: true
   provider: releases
