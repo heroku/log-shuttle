@@ -9,14 +9,15 @@ before_deploy:
 notifications:
   hipchat:
     rooms:
-      secure: JaAp09GeSWHDYVzUFcW/9f2bXt/IlC85cNbByvgv1BNR6fVhem2p7MANeY6fpcWw9R9GajZSi/XBNKUbRRdMIroifOEJxa8ewp0Un2a79Lj0kmINZz8isgtP6cIY3tkozXQqQVFRE1lokAGU4wxh7/hjTMf1A7AOTpwKLKatw4w=
+      secure: CR38+crHhfjYvU+4w+5TrZ7Sx2xFUoDGf81gjC0ow+lyIwTyHtvznLxGt5wSBgGPnVbzTf7TFDMrmjFV6g3oXwRYD7nrRQasj1JCc9G04s0xHpIgnMYVszzdXxaSsBByH8GheUafyJTwCXFpSwNidH2CH5n/y/XsWx3hxmgWvyo=
+    template:
+                - "%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}"
 deploy:
   skip_cleanup: true
   provider: releases
   api_key:
     secure: X0L3J3k9YGaIUESz22nkTf92d74LXSSOx3LiX/rLlUjavYLX06qlzRGr0nDrrBvYOM3QgkRQWgeaQUgCoPsBP2sFOya47jDl6cg7mKgw4GUPj5fwi82JeOxKOvoLhcXqttgJAaX74J61idvldjyzRtQiTftqj0HpGJj8uW4qb4I=
-  file:
-    - log-shuttle_${DEB_VERSION}_amd64.deb
+  file: log-shuttle_${DEB_VERSION}_amd64.deb
   on:
     all_branches: true
     tags: true
