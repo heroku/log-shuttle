@@ -12,7 +12,7 @@ func TestKinesisRecord_MarshalJSONToWriter(t *testing.T) {
 	b := new(bytes.Buffer)
 	r := KinesisRecord{llf}
 
-	err := r.MarshalJSONToWriter(b)
+	_, err := r.WriteTo(b)
 	if err != nil {
 		t.Fatal("Unexpected error calling MarshalJSONToWriter: ", err)
 	}

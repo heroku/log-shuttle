@@ -12,29 +12,36 @@ type KinesisRecord struct {
 	llf *LogplexLineFormatter
 }
 
-// MarshalJSONToWriter marshals the LogplexLineFormatter to the provided writer
-// in Kinesis' PutRecordsFormat
+// WriteTo writes the LogplexLineFormatter to the provided writer
+// in Kinesis' PutRecordsFormat. Conforms to the WriterTo interface.
 //
 // Since the data should be relatively small just read the LogplexLineFormatter
 // into ram making a bunch of temporary garbage.  AFAICT it's just not worth it
 // to try and string these together with io.Pipes and the like. :-(
-func (r KinesisRecord) MarshalJSONToWriter(w io.Writer) error {
-	t, err := ioutil.ReadAll(r.llf)
+func (r KinesisRecord) WriteTo(w io.Writer) (n int64, err error) {
+	var t int
+
+	b, err := ioutil.ReadAll(r.llf)
 	if err != nil {
-		return err
+		return
 	}
 
-	if _, err = w.Write([]byte(`{"PartitionKey":"` + r.llf.AppName() + `","Data":"`)); err != nil {
-		return err
+	t, err = w.Write([]byte(`{"PartitionKey":"` + r.llf.AppName() + `","Data":"`))
+	n += int64(t)
+	if err != nil {
+		return
 	}
 
 	e := base64.NewEncoder(base64.StdEncoding, w)
 
-	if _, err = e.Write(t); err != nil {
-		return err
+	t, err = e.Write(b)
+	n += int64(t)
+	if err != nil {
+		return
 	}
 	e.Close()
 
-	_, err = w.Write([]byte(`"}`))
-	return err
+	t, err = w.Write([]byte(`"}`))
+	n += int64(t)
+	return
 }
