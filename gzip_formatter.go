@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// a GzipFormatter is an HTTPFormatter that is built with a
+// GzipFormatter is an HTTPFormatter that is built with a
 // delegate HTTPFormatter but which compresses the request body
 type GzipFormatter struct {
 	delegate HTTPFormatter
@@ -40,10 +40,13 @@ func (g *GzipFormatter) writeGzip() {
 	}
 }
 
+// MsgCount return the number of messages contained in the formatted batch
 func (g *GzipFormatter) MsgCount() int {
 	return g.delegate.MsgCount()
 }
 
+// Request returns a http.Request to be used with a http.Client
+// The request has it's body and headers set as necessary
 func (g *GzipFormatter) Request() (*http.Request, error) {
 	request, err := g.delegate.Request()
 	if err != nil {
@@ -55,6 +58,7 @@ func (g *GzipFormatter) Request() (*http.Request, error) {
 	return request, nil
 }
 
+// Read bytes from the formatter stream
 func (g *GzipFormatter) Read(p []byte) (int, error) {
 	g.once.Do(func() {
 		go g.writeGzip()
@@ -62,6 +66,7 @@ func (g *GzipFormatter) Read(p []byte) (int, error) {
 	return g.reader.Read(p)
 }
 
+// Close the stream
 func (g *GzipFormatter) Close() error {
 	return g.reader.Close()
 }

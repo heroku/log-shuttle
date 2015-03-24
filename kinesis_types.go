@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 )
 
-// Record is used to marshal LoglexLineFormatters to Kinesis Records for the
-// PutRecords API Call
+// KinesisRecord is used to marshal LoglexLineFormatters to Kinesis Records for
+// the PutRecords API Call
 type KinesisRecord struct {
 	llf *LogplexLineFormatter
 }

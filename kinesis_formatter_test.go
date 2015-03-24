@@ -28,7 +28,7 @@ func TestKinesisFormatterRequest(t *testing.T) {
 	kf := NewKinesisFormatter(b, noErrData, &config)
 	r, err := kf.Request()
 	if err != nil {
-		t.Fatalf("Unexpected error calling Request: ", err)
+		t.Fatal("Unexpected error calling Request: ", err)
 	}
 
 	// Read the body of the request

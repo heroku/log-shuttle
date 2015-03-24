@@ -186,6 +186,8 @@ func thirdPartOfLine(l []byte) string {
 	return ""
 }
 
+// AppName returns the name of app name field based on the inputFormat
+// For use in syslog framing
 func (llf *LogplexLineFormatter) AppName() string {
 	switch llf.inputFormat {
 	case InputFormatRaw:

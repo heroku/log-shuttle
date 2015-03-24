@@ -39,7 +39,7 @@ func mapInputFormat(i string) int {
 	case "rfc5424":
 		return shuttle.InputFormatRFC5424
 	default:
-		log.Fatal("Unknown input format: %s\n", i)
+		log.Fatalf("Unknown input format: %s\n", i)
 	}
 	panic("won't get here")
 }
