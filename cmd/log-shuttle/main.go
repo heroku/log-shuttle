@@ -65,9 +65,8 @@ func determineLogsURL(logplexURL, logsURL, cmdLineURL string) string {
 			log.Println("Warning: Use of both an evnironment variable ($LOGPLEX_URL or $LOGS_URL) and -logs-url, using -logs-url option")
 		}
 		return cmdLineURL
-	} else {
-		return envURL
 	}
+	return envURL
 }
 
 // ParseFlags overrides the properties of the given config using the provided
