@@ -135,6 +135,8 @@ func NewConfig() Config {
 
 // ComputeHeader computes the syslogFrameHeaderFormat once so we don't have to
 // do that for every formatter itteration
+// Should be called after setting up the rest of the config or if the config
+// changes
 func (c *Config) ComputeHeader() {
 	// This is here to pre-compute this so other's don't have to later
 	c.lengthPrefixedSyslogFrameHeaderSize = len(c.Prival) + len(c.Version) + len(LogplexBatchTimeFormat) +

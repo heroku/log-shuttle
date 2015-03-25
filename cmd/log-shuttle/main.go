@@ -17,16 +17,16 @@ var detectKinesis = regexp.MustCompile(`\Akinesis.[[:alpha:]]{2}-[[:alpha:]]{2,}
 
 // Default loggers to stdout and stderr
 var (
-	Logger    = log.New(os.Stdout, "log-shuttle: ", log.LstdFlags)
-	ErrLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
+	logger    = log.New(os.Stdout, "log-shuttle: ", log.LstdFlags)
+	errLogger = log.New(os.Stderr, "log-shuttle: ", log.LstdFlags)
 
 	logToSyslog bool
 )
 
 var version = "" // log-shuttle version, set with linker
 
-// UseStdin determines if we're using the terminal's stdin or not
-func UseStdin() bool {
+// useStdin determines if we're using the terminal's stdin or not
+func useStdin() bool {
 	return !util.IsTerminal(os.Stdin)
 }
 
@@ -69,9 +69,9 @@ func determineLogsURL(logplexURL, logsURL, cmdLineURL string) string {
 	return envURL
 }
 
-// ParseFlags overrides the properties of the given config using the provided
+// parseFlags overrides the properties of the given config using the provided
 // command-line flags.  Any option not overridden by a flag will be untouched.
-func ParseFlags(c shuttle.Config) shuttle.Config {
+func parseFlags(c shuttle.Config) shuttle.Config {
 	var skipHeaders bool
 
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
@@ -122,6 +122,12 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 		}
 	}
 
+	return c
+}
+
+func getConfig() shuttle.Config {
+	c := parseFlags(shuttle.NewConfig())
+
 	if c.MaxAttempts < 1 {
 		log.Fatalf("-max-attempts must be >= 1")
 	}
@@ -137,11 +143,7 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 		oURL.User = url.UserPassword("token", c.Appname)
 	}
 
-	if detectKinesis.MatchString(oURL.Host) {
-		c.FormatterFunc = shuttle.NewKinesisFormatter
-	} else {
-		c.FormatterFunc = shuttle.NewLogplexBatchFormatter
-	}
+	c.FormatterFunc = determineOutputFormatter(oURL)
 
 	c.LogsURL = oURL.String()
 
@@ -150,9 +152,15 @@ func ParseFlags(c shuttle.Config) shuttle.Config {
 	return c
 }
 
+func determineOutputFormatter(u *url.URL) shuttle.NewHTTPFormatterFunc {
+	if detectKinesis.MatchString(u.Host) {
+		return shuttle.NewKinesisFormatter
+	}
+	return shuttle.NewLogplexBatchFormatter
+}
+
 func main() {
-	config := shuttle.NewConfig()
-	config = ParseFlags(config)
+	config := getConfig()
 
 	var err error
 
@@ -163,8 +171,8 @@ func main() {
 
 	config.ID = version
 
-	if !UseStdin() {
-		ErrLogger.Fatalln("No stdin detected.")
+	if !useStdin() {
+		errLogger.Fatalln("No stdin detected.")
 	}
 
 	s := shuttle.NewShuttle(config)
@@ -180,8 +188,8 @@ func main() {
 			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
 		}
 	} else {
-		s.Logger = Logger
-		s.ErrLogger = ErrLogger
+		s.Logger = logger
+		s.ErrLogger = errLogger
 	}
 
 	s.Launch()
