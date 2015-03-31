@@ -26,7 +26,7 @@ func (r KinesisRecord) WriteTo(w io.Writer) (n int64, err error) {
 	e := base64.NewEncoder(base64.StdEncoding, w)
 
 	t64, err = io.Copy(e, r.llf)
-	n += int64(base64.StdEncoding.EncodedLen(int(t64)))
+	n += encodedLen(t64)
 	if err != nil {
 		return
 	}
@@ -38,4 +38,9 @@ func (r KinesisRecord) WriteTo(w io.Writer) (n int64, err error) {
 	t, err = w.Write([]byte(`"}`))
 	n += int64(t)
 	return
+}
+
+// The same as Encoding.EncodedLen, but for int64
+func encodedLen(n int64) int64 {
+	return (n + 2) / 3 * 4
 }
