@@ -14,6 +14,7 @@ import (
 )
 
 var detectKinesis = regexp.MustCompile(`\Akinesis.[[:alpha:]]{2}-[[:alpha:]]{2,}-[[:digit:]]\.amazonaws\.com\z`)
+var detectS3 = regexp.MustCompile(`\As3(.*)?\.amazonaws\.com\z`)
 
 // Default loggers to stdout and stderr
 var (
@@ -145,11 +146,20 @@ func getConfig() shuttle.Config {
 
 	c.FormatterFunc = determineOutputFormatter(oURL)
 
+	c.OutletFunc = determineOutletFunc(oURL)
+
 	c.LogsURL = oURL.String()
 
 	c.ComputeHeader()
 
 	return c
+}
+
+func determineOutletFunc(u *url.URL) shuttle.NewOutletFunc {
+	if detectS3.MatchString(u.Host) {
+		return shuttle.NewS3Outlet
+	}
+	return shuttle.NewHTTPOutlet
 }
 
 func determineOutputFormatter(u *url.URL) shuttle.NewHTTPFormatterFunc {
