@@ -148,6 +148,18 @@ func getConfig() shuttle.Config {
 
 	c.OutletFunc = determineOutletFunc(oURL)
 
+	if detectS3.MatchString(oURL.Host) {
+		if c.NumOutlets > 1 {
+			log.Printf("Warning: s3 URL detected, limiting to a single outlet even though %d were specified.\n", c.NumOutlets)
+			c.NumOutlets = 1
+		}
+
+		if c.NumBatchers > 1 {
+			log.Printf("Warning: s3 URL detected, limiting to a single batcher even though %d were specified.\n", c.NumBatchers)
+			c.NumBatchers = 1
+		}
+	}
+
 	c.LogsURL = oURL.String()
 
 	c.ComputeHeader()

@@ -34,6 +34,14 @@ func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.Headers = r.Header
 }
 
+func getHTTPOutlet(s *Shuttle) *HTTPOutlet {
+	o, err := NewHTTPOutlet(s)
+	if err != nil {
+		log.Fatal("Unable to create NewHTTPOutlet: ", err)
+	}
+	return o.(*HTTPOutlet)
+}
+
 func TestOutletEOFRetry(t *testing.T) {
 	logLineText := "Hello"
 	th := &testEOFHelper{maxCloses: 1}
@@ -43,7 +51,8 @@ func TestOutletEOFRetry(t *testing.T) {
 	config.SkipVerify = true
 
 	s := NewShuttle(config)
-	outlet := NewHTTPOutlet(s).(*HTTPOutlet)
+
+	outlet := getHTTPOutlet(s)
 
 	batch := NewBatch(config.BatchSize)
 
@@ -75,7 +84,7 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	s := NewShuttle(config)
 	s.ErrLogger = log.New(logCapture, "", 0)
 
-	outlet := NewHTTPOutlet(s).(*HTTPOutlet)
+	outlet := getHTTPOutlet(s)
 
 	batch := NewBatch(config.BatchSize)
 

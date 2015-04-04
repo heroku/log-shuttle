@@ -60,7 +60,10 @@ func (s *Shuttle) startOutlets() {
 		s.oWaiter.Add(1)
 		go func() {
 			defer s.oWaiter.Done()
-			outlet := s.config.OutletFunc(s)
+			outlet, err := s.config.OutletFunc(s)
+			if err != nil {
+				s.ErrLogger.Fatal("Error creating outlet: ", err)
+			}
 			outlet.Outlet()
 		}()
 	}

@@ -63,6 +63,41 @@ Things that should be handled better/things you should know:
 1. Kinesis does not support the -gzip option as that option compresses the body
    of the request.
 
+## S3
+
+log-shuttle sends data to S3 using [Multipart
+Upload](http://docs.aws.amazon.com/AmazonS3/latest/dev/mpuoverview.html). Each
+line is encoded as length prefixed rfc5424 encoded logs as per
+[rfc6587](https://tools.ietf.org/html/rfc6587#section-3.4.1), one recorf per
+logline.
+
+Log-shuttle expects the following encoding of -log-urls when using Amazon S3:
+
+    ```
+    https://<AWS_KEY>:<AWS_SECRET>@s3.<AMAZON_REGION>.amazonaws.com/<BUCKET PATH(s)>
+    ```
+
+The following options params are supported as url query params (after the
+bucket path):
+
+1. `slice_duration=<a valid go duration>`. Defaults to `2h` otherwise.
+1. `ext=<optional file extension to add>`. Defaults to `gz`. If `ext` ends in
+   `gz` then the files will be compressed as they are written to S3.
+
+Files are written to the bucket path provided + `/YYYY-MM-DD/` (Year-Month-Day)
++ filename dependent on the `slice_duration` + outlet . The filename starts out with
+`YYYY-MM-DD`, like the path, but adds hour, minute and/or second as necessary
+to make files for the different slice durations.
+
+#### S3 Caveats
+
+1. Error handing needs work.
+1. Can't tune the number of workers writting parts to S3 (yet).
+1. s3 is limited to 1 batcher and 1 outlet atm, although the underlying library
+   used to write multipart uploads will make up to 4 connections.
+1. Arbitrary `slice_durations` are supported, but probably should be less than
+   a minute. 
+
 ## Install
 
 ```bash

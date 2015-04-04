@@ -51,8 +51,8 @@ type HTTPOutlet struct {
 	postFailureTimer metrics.Timer // The timing data for failed posts
 }
 
-// NewHTTPOutlet returns a properly constructed HTTPOutlet for the given shuttle
-func NewHTTPOutlet(s *Shuttle) Outlet {
+// NewHTTPOutlet returns a properly constructed HTTPOutlet for the given shuttle as an Outlet
+func NewHTTPOutlet(s *Shuttle) (Outlet, error) {
 	return &HTTPOutlet{
 		drops:            s.Drops,
 		lost:             s.Lost,
@@ -74,7 +74,7 @@ func NewHTTPOutlet(s *Shuttle) Outlet {
 		inboxLengthGauge: metrics.GetOrRegisterGauge("outlet.inbox.length", s.MetricsRegistry),
 		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success.time", s.MetricsRegistry),
 		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure.time", s.MetricsRegistry),
-	}
+	}, nil
 }
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.

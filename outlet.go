@@ -8,4 +8,4 @@ type Outlet interface {
 }
 
 // NewOutletFunc defines a function for creating and outlet from a given config
-type NewOutletFunc func(s *Shuttle) Outlet
+type NewOutletFunc func(s *Shuttle) (Outlet, error)
