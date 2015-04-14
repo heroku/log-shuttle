@@ -130,8 +130,6 @@ func (s3o *S3Outlet) Outlet() {
 			url += "." + s3o.fileExtension
 		}
 
-		fmt.Println(url)
-
 		until := startTime.Add(s3o.sliceDuration).Sub(time.Now().UTC())
 		if s3o.writeSlice(url, until) {
 			return
