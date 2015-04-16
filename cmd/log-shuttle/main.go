@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/heroku/log-shuttle"
 	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/pebbe/util"
@@ -125,6 +127,40 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	return c
 }
 
+// Validates the url provided as a string.
+func validateURL(u string) (*url.URL, error) {
+	oURL, err := url.Parse(u)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing logs-url/$LOGPLEX_URL/$LOGS_URL: %s", err.Error())
+	}
+
+	switch oURL.Scheme {
+	case "http", "https":
+		// no-op these are good
+	default:
+		return nil, fmt.Errorf("Invalid URL scheme in provided logs-url: %s\n", u)
+	}
+
+	if oURL.Host == "" {
+		return nil, fmt.Errorf("No host specified in provided logs-url: %s\n", u)
+	}
+
+	parts := strings.Split(oURL.Host, ":")
+
+	if len(parts) > 2 {
+		return nil, fmt.Errorf("Invalid host specified in provided logs-url: %s\n", u)
+	}
+
+	if len(parts) == 2 {
+		_, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("Invalid port specified in provided logs-url: %s\n", u)
+		}
+	}
+
+	return oURL, nil
+}
+
 func getConfig() shuttle.Config {
 	c := parseFlags(shuttle.NewConfig())
 
@@ -133,21 +169,13 @@ func getConfig() shuttle.Config {
 	}
 
 	c.LogsURL = determineLogsURL(os.Getenv("LOGPLEX_URL"), os.Getenv("LOGS_URL"), c.LogsURL)
-
-	oURL, err := url.Parse(c.LogsURL)
+	oURL, err := validateURL(c.LogsURL)
 	if err != nil {
-		log.Fatalln("Error parsing -logs-url/$LOGPLEX_URL/$LOGS_URL: ", err)
+		log.Fatalln(err.Error())
 	}
 
 	if oURL.User == nil {
 		oURL.User = url.UserPassword("token", c.Appname)
-	}
-
-	switch oURL.Scheme {
-	case "http", "https":
-		// no-op these are good
-	default:
-		log.Fatalf("Invalid URL scheme in provided logs-url: %s\n", oURL.String())
 	}
 
 	c.FormatterFunc = determineOutputFormatter(oURL)
