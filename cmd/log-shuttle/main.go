@@ -143,6 +143,13 @@ func getConfig() shuttle.Config {
 		oURL.User = url.UserPassword("token", c.Appname)
 	}
 
+	switch oURL.Scheme {
+	case "http", "https":
+		// no-op these are good
+	default:
+		log.Fatalf("Invalid URL scheme in provided logs-url: %s\n", oURL.String())
+	}
+
 	c.FormatterFunc = determineOutputFormatter(oURL)
 
 	c.LogsURL = oURL.String()
