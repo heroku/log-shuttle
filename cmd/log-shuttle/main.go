@@ -127,7 +127,7 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	return c
 }
 
-// Validates the url provided as a string.
+// validateURL validates the url provided as a string.
 func validateURL(u string) (*url.URL, error) {
 	oURL, err := url.Parse(u)
 	if err != nil {
