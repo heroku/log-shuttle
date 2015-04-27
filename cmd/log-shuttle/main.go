@@ -116,7 +116,7 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	c.InputFormat = mapInputFormat(inputFormat)
 
 	if skipHeaders {
-		log.Println("Warning: Use of -skip-headers is deprecated, use -input-format=2 (rfc5424) instead")
+		log.Println("Warning: Use of -skip-headers is deprecated, use -input-format=rfc5424 instead")
 		if c.InputFormat == shuttle.InputFormatRaw {
 			c.InputFormat = shuttle.InputFormatRFC5424
 		} else {
