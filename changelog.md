@@ -1,4 +1,28 @@
-### 0.9.6 2014-05-16 Edward Muller (edward@heroku.com)
+### 0.9.7 2015-04-27 Edward Muller (edward@heroku.com)
+
+* Dockerfile (Thanks @ddollar)
+* Preliminary AWS Kinesis Support
+* Switch to go-metrics for metrics collection and reporting
+* Namespaced most of the code into shuttle so it can be used as a library. The
+    command line parts were moved to cmd/log-shuttle/. (Thanks @trestletech and
+    others).
+* go lint and vet cleanups
+* Split out formatting of logs from delivery using the Formatter interfaces
+* No more Stats\* config items.
+* log-shuttle will no longer listen for requests to report stats on a socket.
+* Some stats names have changed because of the switch to go-metrics.
+* Line delay stat has been removed.
+* log-shuttle will exit with an error when given a URL it considers invalid.
+* gzip body support (Thanks @collinvandyck)
+* Formalization of the input types.
+* `$LOGPLEX_URL` deprecated in favor of `$LOGS_URL`
+* `-skip-headers` deprecated in favor of `-input-format=rfc5424`
+* Travis + GitHub release integration
+* Releases built 100% static (vs. linked to libc)
+* godep save -r ./... used to vendor and rewrite deps making log-shuttle
+    go-gettable
+
+## 0.9.6 2014-05-16 Edward Muller (edward@heroku.com)
 
 * Restore lost.count and drops.count every metrics poll
 
