@@ -31,9 +31,9 @@ func NewBatcher(s *Shuttle) Batcher {
 		timeout:         s.config.WaitDuration,
 		batchSize:       s.config.BatchSize,
 		drop:            s.config.Drop,
-		msgBatchedCount: metrics.GetOrRegisterCounter("batch.msg.count", s.MetricsRegistry),
-		msgDroppedCount: metrics.GetOrRegisterCounter("batch.msg.dropped", s.MetricsRegistry),
-		fillTime:        metrics.GetOrRegisterTimer("batch.fill.time", s.MetricsRegistry),
+		msgBatchedCount: metrics.GetOrRegisterCounter("msg.batched", s.MetricsRegistry),
+		msgDroppedCount: metrics.GetOrRegisterCounter("msg.dropped", s.MetricsRegistry),
+		fillTime:        metrics.GetOrRegisterTimer("batch.fill", s.MetricsRegistry),
 	}
 }
 

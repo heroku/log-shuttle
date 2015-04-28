@@ -72,8 +72,8 @@ func NewHTTPOutlet(s *Shuttle) *HTTPOutlet {
 			},
 		},
 		inboxLengthGauge: metrics.GetOrRegisterGauge("outlet.inbox.length", s.MetricsRegistry),
-		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success.time", s.MetricsRegistry),
-		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure.time", s.MetricsRegistry),
+		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success", s.MetricsRegistry),
+		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure", s.MetricsRegistry),
 	}
 }
 
