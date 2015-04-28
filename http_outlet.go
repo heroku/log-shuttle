@@ -46,7 +46,7 @@ type HTTPOutlet struct {
 	errLogger *log.Logger
 
 	// Various stats that we'll collect, see NewHTTPOutlet for names
-	inboxLengthGauge metrics.Gauge // The number of outstanding batches, reported every time after we read a batch from the channel.
+	inboxLengthGauge metrics.Gauge // The number of outstanding batches, updated every time we try a post
 	postSuccessTimer metrics.Timer // The timing data for successful posts
 	postFailureTimer metrics.Timer // The timing data for failed posts
 }
@@ -79,10 +79,7 @@ func NewHTTPOutlet(s *Shuttle) *HTTPOutlet {
 
 // Outlet receives batches from the inbox and submits them to logplex via HTTP.
 func (h *HTTPOutlet) Outlet() {
-
 	for batch := range h.inbox {
-		h.inboxLengthGauge.Update(int64(len(h.inbox)))
-
 		h.retryPost(batch)
 	}
 }
@@ -115,6 +112,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 		err := h.post(formatter, uuid)
 		if err != nil {
 			inboxLength := len(h.inbox)
+			h.inboxLengthGauge.Update(int64(inboxLength))
 			msgCount := batch.MsgCount()
 			err, ok := err.(*url.Error)
 			if ok {
