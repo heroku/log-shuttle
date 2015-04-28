@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -11,8 +12,8 @@ import (
 // Percentile info for histograms and the like. These 2 arrays need to match
 // length and positions are relevant to each other.
 var (
-	percentiles     = []float64{0.5, 0.75, 0.95, 0.99, 0.999}
-	percentileNames = []string{"mean", "p75", "p95", "p99", "p999"}
+	percentiles     = []float64{0.75, 0.95, 0.99}
+	percentileNames = []string{"p75", "p95", "p99"}
 )
 
 // LogFmtMetricsEmitter emits the metrics in logfmt compatible formats every d
@@ -52,10 +53,10 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 			case metrics.Meter:
 				s := metric.Snapshot()
 				ctx[name+".count"] = s.Count()
-				ctx[name+".1min"] = s.Rate1()
-				ctx[name+".5min"] = s.Rate5()
-				ctx[name+".15min"] = s.Rate15()
-				ctx[name+".mean"] = s.RateMean()
+				ctx[name+".1min.rate"] = s.Rate1()
+				ctx[name+".5min.rate"] = s.Rate5()
+				ctx[name+".15min.rate"] = s.Rate15()
+				ctx[name+".mean.rate"] = s.RateMean()
 			case metrics.Timer:
 				s := metric.Snapshot()
 				ps := s.Percentiles(percentiles)
@@ -65,12 +66,13 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 				ctx[name+".mean"] = s.Mean()
 				ctx[name+".stddev"] = s.StdDev()
 				for i, pn := range percentileNames {
-					ctx[name+"."+pn] = ps[i]
+					// In ns, convert to seconds, show up to μs precision
+					ctx[name+"."+pn] = fmt.Sprintf("%.6f", ps[i]/1000000000)
 				}
-				ctx[name+".1min"] = s.Rate1()
-				ctx[name+".5min"] = s.Rate5()
-				ctx[name+".15min"] = s.Rate15()
-				ctx[name+".mean"] = s.RateMean()
+				ctx[name+".1min.rate"] = fmt.Sprintf("%.3f", s.Rate1())
+				ctx[name+".5min.rate"] = fmt.Sprintf("%.3f", s.Rate5())
+				ctx[name+".15min.rate"] = fmt.Sprintf("%.3f", s.Rate15())
+				ctx[name+".mean.rate"] = fmt.Sprintf("%.3f", s.RateMean())
 			}
 		})
 		l.Println(ctx)
