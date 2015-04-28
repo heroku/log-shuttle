@@ -80,11 +80,11 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
-	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression")
-	flag.BoolVar(&c.Drop, "drop", c.Drop, "Drop (default) logs or backup & block stdin")
+	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression.")
+	flag.BoolVar(&c.Drop, "drop", c.Drop, "Drop (default) logs or backup & block stdin.")
 
 	flag.BoolVar(&skipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
-	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr")
+	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr.")
 
 	var inputFormat string
 
@@ -98,11 +98,11 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
 
-	flag.StringVar(&inputFormat, "input-format", "raw", "raw (default), rfc3164 (syslog(3)), rfc5424")
-	flag.StringVar(&statsAddr, "stats-addr", "", "DEPRECATED, WILL BE REMOVE, HAS NO EFFECT.")
+	flag.StringVar(&inputFormat, "input-format", "raw", "raw (default), rfc3164 (syslog(3)), rfc5424.")
+	flag.StringVar(&statsAddr, "stats-addr", "", "DEPRECATED, WILL BE REMOVED, HAS NO EFFECT.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
-	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
+	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex.")
 	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from Logplex.")
 
 	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
