@@ -16,6 +16,11 @@ var (
 	percentileNames = []string{"p75", "p95", "p99"}
 )
 
+// Given a t representing a time in ns, convert to seconds, show up to μs precision
+func sec(t float64) string {
+	return fmt.Sprintf("%.6f", t/1000000000)
+}
+
 // LogFmtMetricsEmitter emits the metrics in logfmt compatible formats every d
 // duration using the provided logger. source is added to the line as
 // log_shuttle_stats_source if not empty.
@@ -53,26 +58,25 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 			case metrics.Meter:
 				s := metric.Snapshot()
 				ctx[name+".count"] = s.Count()
-				ctx[name+".1min.rate"] = s.Rate1()
-				ctx[name+".5min.rate"] = s.Rate5()
-				ctx[name+".15min.rate"] = s.Rate15()
-				ctx[name+".mean.rate"] = s.RateMean()
+				ctx[name+".rate.1min"] = s.Rate1()
+				ctx[name+".rate.5min"] = s.Rate5()
+				ctx[name+".rate.15min"] = s.Rate15()
+				ctx[name+".rate.mean"] = s.RateMean()
 			case metrics.Timer:
 				s := metric.Snapshot()
 				ps := s.Percentiles(percentiles)
 				ctx[name+".count"] = s.Count()
-				ctx[name+".min"] = s.Min()
-				ctx[name+".max"] = s.Max()
-				ctx[name+".mean"] = s.Mean()
-				ctx[name+".stddev"] = s.StdDev()
+				ctx[name+".min"] = sec(float64(s.Min()))
+				ctx[name+".max"] = sec(float64(s.Max()))
+				ctx[name+".mean"] = sec(s.Mean())
+				ctx[name+".stddev"] = sec(s.StdDev())
 				for i, pn := range percentileNames {
-					// In ns, convert to seconds, show up to μs precision
-					ctx[name+"."+pn] = fmt.Sprintf("%.6f", ps[i]/1000000000)
+					ctx[name+"."+pn] = sec(ps[i])
 				}
-				ctx[name+".1min.rate"] = fmt.Sprintf("%.3f", s.Rate1())
-				ctx[name+".5min.rate"] = fmt.Sprintf("%.3f", s.Rate5())
-				ctx[name+".15min.rate"] = fmt.Sprintf("%.3f", s.Rate15())
-				ctx[name+".mean.rate"] = fmt.Sprintf("%.3f", s.RateMean())
+				ctx[name+".rate.1min"] = fmt.Sprintf("%.3f", s.Rate1())
+				ctx[name+".rate.5min"] = fmt.Sprintf("%.3f", s.Rate5())
+				ctx[name+".rate.15min"] = fmt.Sprintf("%.3f", s.Rate15())
+				ctx[name+".rate.mean"] = fmt.Sprintf("%.3f", s.RateMean())
 			}
 		})
 		l.Println(ctx)
