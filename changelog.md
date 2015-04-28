@@ -1,3 +1,8 @@
+### 0.10.1 2015-04-28 Edward Muller (edward@heroku.com)
+
+* Fix up metrics and names a little bit.
+* Fix typos in help text.
+
 ### 0.10.0 2015-04-28 Edward Muller (edward@heroku.com)
 
 * -stats-addr re-added, but is a no-op. Will be removed in the future.
