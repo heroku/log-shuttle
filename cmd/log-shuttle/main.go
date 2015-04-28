@@ -75,6 +75,7 @@ func determineLogsURL(logplexURL, logsURL, cmdLineURL string) string {
 // command-line flags.  Any option not overridden by a flag will be untouched.
 func parseFlags(c shuttle.Config) shuttle.Config {
 	var skipHeaders bool
+	var statsAddr string
 
 	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
@@ -98,6 +99,7 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
 
 	flag.StringVar(&inputFormat, "input-format", "raw", "raw (default), rfc3164 (syslog(3)), rfc5424")
+	flag.StringVar(&statsAddr, "stats-addr", "", "DEPRECATED, WILL BE REMOVE, HAS NO EFFECT.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")
 	flag.DurationVar(&c.WaitDuration, "wait", c.WaitDuration, "Duration to wait to flush messages to logplex")
@@ -112,6 +114,10 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 
 	flag.Parse()
+
+	if statsAddr != "" {
+		log.Println("Warning: Use of -stats-addr is deprecated and will be dropped in the future.")
+	}
 
 	c.InputFormat = mapInputFormat(inputFormat)
 

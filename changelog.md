@@ -1,3 +1,8 @@
+### 0.10.0 2015-04-28 Edward Muller (edward@heroku.com)
+
+* -stats-addr re-added, but is a no-op. Will be removed in the future.
+* 0.9.7 should have been 0.10.0 :-(
+
 ### 0.9.7 2015-04-27 Edward Muller (edward@heroku.com)
 
 * Dockerfile (Thanks @ddollar)
