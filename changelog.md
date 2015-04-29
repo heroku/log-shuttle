@@ -1,3 +1,8 @@
+### 0.10.3 2015-04-29 Edward Muller (edward@heroku.com)
+
+* Add `msg.lost` to the emitted metrics. This is similar to v0.9.X
+    `alltime.lost`
+
 ### 0.10.2 2015-04-29 Edward Muller (edward@heroku.com)
 
 * Fix -version flag.

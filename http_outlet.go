@@ -46,9 +46,10 @@ type HTTPOutlet struct {
 	errLogger *log.Logger
 
 	// Various stats that we'll collect, see NewHTTPOutlet for names
-	inboxLengthGauge metrics.Gauge // The number of outstanding batches, updated every time we try a post
-	postSuccessTimer metrics.Timer // The timing data for successful posts
-	postFailureTimer metrics.Timer // The timing data for failed posts
+	inboxLengthGauge metrics.Gauge   // The number of outstanding batches, updated every time we try a post
+	postSuccessTimer metrics.Timer   // The timing data for successful posts
+	postFailureTimer metrics.Timer   // The timing data for failed posts
+	msgLostCount     metrics.Counter // The count of lost messages
 }
 
 // NewHTTPOutlet returns a properly constructed HTTPOutlet for the given shuttle
@@ -74,6 +75,7 @@ func NewHTTPOutlet(s *Shuttle) *HTTPOutlet {
 		inboxLengthGauge: metrics.GetOrRegisterGauge("outlet.inbox.length", s.MetricsRegistry),
 		postSuccessTimer: metrics.GetOrRegisterTimer("outlet.post.success", s.MetricsRegistry),
 		postFailureTimer: metrics.GetOrRegisterTimer("outlet.post.failure", s.MetricsRegistry),
+		msgLostCount:     metrics.GetOrRegisterCounter("msg.lost", s.MetricsRegistry),
 	}
 }
 
@@ -128,6 +130,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 			}
 			h.errLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, uuid, attempts, err, err)
 			h.lost.Add(msgCount)
+			h.msgLostCount.Inc(int64(msgCount))
 		}
 		return
 	}

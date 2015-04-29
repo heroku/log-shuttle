@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
 type testEOFHelper struct {
@@ -87,6 +89,11 @@ func TestOutletEOFRetryMax(t *testing.T) {
 	}
 
 	if lost := s.Lost.Read(); lost != 1 {
+		t.Errorf("lost != 1, == %q\n", lost)
+	}
+
+	mrLost := metrics.GetOrRegisterCounter("msg.lost", s.MetricsRegistry)
+	if lost := mrLost.Count(); lost != 1 {
 		t.Errorf("lost != 1, == %q\n", lost)
 	}
 
