@@ -25,7 +25,6 @@ const (
 	DefaultMaxAttempts   = 3
 	DefaultStatsInterval = 0 * time.Second
 	DefaultStatsSource   = ""
-	DefaultPrintVersion  = false
 	DefaultVerbose       = false
 	DefaultSkipVerify    = false
 	DefaultPriVal        = "190"
@@ -79,7 +78,6 @@ type Config struct {
 	Msgid                               string
 	StatsSource                         string
 	SkipVerify                          bool
-	PrintVersion                        bool
 	Verbose                             bool
 	UseGzip                             bool
 	Drop                                bool
@@ -100,7 +98,6 @@ type Config struct {
 func NewConfig() Config {
 	shuttleConfig := Config{
 		MaxLineLength: DefaultMaxLineLength,
-		PrintVersion:  DefaultPrintVersion,
 		Verbose:       DefaultVerbose,
 		SkipVerify:    DefaultSkipVerify,
 		Prival:        DefaultPriVal,

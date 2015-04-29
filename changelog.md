@@ -1,3 +1,7 @@
+### 0.10.2 2015-04-29 Edward Muller (edward@heroku.com)
+
+* Fix -version flag.
+
 ### 0.10.1 2015-04-28 Edward Muller (edward@heroku.com)
 
 * Fix up metrics and names a little bit.

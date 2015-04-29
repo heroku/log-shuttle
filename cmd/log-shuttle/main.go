@@ -76,8 +76,8 @@ func determineLogsURL(logplexURL, logsURL, cmdLineURL string) string {
 func parseFlags(c shuttle.Config) shuttle.Config {
 	var skipHeaders bool
 	var statsAddr string
+	var printVersion bool
 
-	flag.BoolVar(&c.PrintVersion, "version", c.PrintVersion, "Print log-shuttle version.")
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
 	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression.")
@@ -85,6 +85,7 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 
 	flag.BoolVar(&skipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
 	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr.")
+	flag.BoolVar(&printVersion, "version", printVersion, "Print log-shuttle version & exit.")
 
 	var inputFormat string
 
@@ -114,6 +115,11 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 
 	flag.Parse()
+
+	if printVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	if statsAddr != "" {
 		log.Println("Warning: Use of -stats-addr is deprecated and will be dropped in the future.")
@@ -204,11 +210,6 @@ func main() {
 	config := getConfig()
 
 	var err error
-
-	if config.PrintVersion {
-		fmt.Println(version)
-		os.Exit(0)
-	}
 
 	config.ID = version
 
