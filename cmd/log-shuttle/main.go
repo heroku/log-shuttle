@@ -80,11 +80,11 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 
 	flag.BoolVar(&c.Verbose, "verbose", c.Verbose, "Enable verbose debug info.")
 	flag.BoolVar(&c.SkipVerify, "skip-verify", c.SkipVerify, "Skip the verification of HTTPS server certificate.")
-	flag.BoolVar(&c.UseGzip, "gzip", false, "POST using gzip compression.")
+	flag.BoolVar(&c.UseGzip, "gzip", c.UseGzip, "POST using gzip compression.")
 	flag.BoolVar(&c.Drop, "drop", c.Drop, "Drop (default) logs or backup & block stdin.")
 
-	flag.BoolVar(&skipHeaders, "skip-headers", false, "Skip the prepending of rfc5424 headers.")
-	flag.BoolVar(&logToSyslog, "log-to-syslog", false, "Log to syslog instead of stderr.")
+	flag.BoolVar(&skipHeaders, "skip-headers", skipHeaders, "Skip the prepending of rfc5424 headers.")
+	flag.BoolVar(&logToSyslog, "log-to-syslog", logToSyslog, "Log to syslog instead of stderr.")
 	flag.BoolVar(&printVersion, "version", printVersion, "Print log-shuttle version & exit.")
 
 	var inputFormat string

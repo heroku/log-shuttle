@@ -39,6 +39,7 @@ const (
 	DefaultBatchSize     = 500
 	DefaultID            = ""
 	DefaultDrop          = true
+	DefaultUseGzip       = false
 )
 
 const (
@@ -123,6 +124,7 @@ func NewConfig() Config {
 		ErrLogger:     discardLogger,
 		FormatterFunc: DefaultFormatterFunc,
 		Drop:          DefaultDrop,
+		UseGzip:       DefaultUseGzip,
 	}
 
 	shuttleConfig.ComputeHeader()
