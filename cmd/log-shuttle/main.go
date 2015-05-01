@@ -32,18 +32,16 @@ func useStdin() bool {
 	return !util.IsTerminal(os.Stdin)
 }
 
-func mapInputFormat(i string) int {
+func mapInputFormat(i string) (int, error) {
 	switch i {
 	case "raw":
-		return shuttle.InputFormatRaw
+		return shuttle.InputFormatRaw, nil
 	case "rfc3164":
-		return shuttle.InputFormatRFC3164
+		return shuttle.InputFormatRFC3164, nil
 	case "rfc5424":
-		return shuttle.InputFormatRFC5424
-	default:
-		log.Fatalf("Unknown input format: %s\n", i)
+		return shuttle.InputFormatRFC5424, nil
 	}
-	panic("won't get here")
+	return 0, fmt.Errorf("Unknown input format: %s", i)
 }
 
 // determineLogsURL from the various options favoring each one in turn
@@ -73,7 +71,7 @@ func determineLogsURL(logplexURL, logsURL, cmdLineURL string) string {
 
 // parseFlags overrides the properties of the given config using the provided
 // command-line flags.  Any option not overridden by a flag will be untouched.
-func parseFlags(c shuttle.Config) shuttle.Config {
+func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 	var skipHeaders bool
 	var statsAddr string
 	var printVersion bool
@@ -125,18 +123,22 @@ func parseFlags(c shuttle.Config) shuttle.Config {
 		log.Println("Warning: Use of -stats-addr is deprecated and will be dropped in the future.")
 	}
 
-	c.InputFormat = mapInputFormat(inputFormat)
+	var err error
+	c.InputFormat, err = mapInputFormat(inputFormat)
+	if err != nil {
+		return c, err
+	}
 
 	if skipHeaders {
 		log.Println("Warning: Use of -skip-headers is deprecated, use -input-format=rfc5424 instead")
 		if c.InputFormat == shuttle.InputFormatRaw {
 			c.InputFormat = shuttle.InputFormatRFC5424
 		} else {
-			log.Fatal("Cannot use -skip-headers with anything except the default input format")
+			return c, fmt.Errorf("Cannot use -skip-headers with anything except the default input format")
 		}
 	}
 
-	return c
+	return c, nil
 }
 
 // validateURL validates the url provided as a string.
@@ -150,40 +152,43 @@ func validateURL(u string) (*url.URL, error) {
 	case "http", "https":
 		// no-op these are good
 	default:
-		return nil, fmt.Errorf("Invalid URL scheme in provided logs-url: %s\n", u)
+		return nil, fmt.Errorf("Invalid URL scheme in provided logs-url: %s", u)
 	}
 
 	if oURL.Host == "" {
-		return nil, fmt.Errorf("No host specified in provided logs-url: %s\n", u)
+		return nil, fmt.Errorf("No host specified in provided logs-url: %s", u)
 	}
 
 	parts := strings.Split(oURL.Host, ":")
 
 	if len(parts) > 2 {
-		return nil, fmt.Errorf("Invalid host specified in provided logs-url: %s\n", u)
+		return nil, fmt.Errorf("Invalid host specified in provided logs-url: %s", u)
 	}
 
 	if len(parts) == 2 {
 		_, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return nil, fmt.Errorf("Invalid port specified in provided logs-url: %s\n", u)
+			return nil, fmt.Errorf("Invalid port specified in provided logs-url: %s", u)
 		}
 	}
 
 	return oURL, nil
 }
 
-func getConfig() shuttle.Config {
-	c := parseFlags(shuttle.NewConfig())
+func getConfig() (shuttle.Config, error) {
+	c, err := parseFlags(shuttle.NewConfig())
+	if err != nil {
+		return c, err
+	}
 
 	if c.MaxAttempts < 1 {
-		log.Fatalf("-max-attempts must be >= 1")
+		return c, fmt.Errorf("-max-attempts must be >= 1")
 	}
 
 	c.LogsURL = determineLogsURL(os.Getenv("LOGPLEX_URL"), os.Getenv("LOGS_URL"), c.LogsURL)
 	oURL, err := validateURL(c.LogsURL)
 	if err != nil {
-		log.Fatalln(err.Error())
+		return c, err
 	}
 
 	if oURL.User == nil {
@@ -196,7 +201,7 @@ func getConfig() shuttle.Config {
 
 	c.ComputeHeader()
 
-	return c
+	return c, nil
 }
 
 func determineOutputFormatter(u *url.URL) shuttle.NewHTTPFormatterFunc {
@@ -207,14 +212,15 @@ func determineOutputFormatter(u *url.URL) shuttle.NewHTTPFormatterFunc {
 }
 
 func main() {
-	config := getConfig()
-
-	var err error
+	config, err := getConfig()
+	if err != nil {
+		errLogger.Fatalf("error=%q\n", err)
+	}
 
 	config.ID = version
 
 	if !useStdin() {
-		errLogger.Fatalln("No stdin detected.")
+		errLogger.Fatalln(`error="No stdin detected."`)
 	}
 
 	s := shuttle.NewShuttle(config)

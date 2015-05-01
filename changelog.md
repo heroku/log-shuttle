@@ -1,3 +1,8 @@
+### 0.10.4 Unreleased
+
+* Raise all errors to the top and use a standard reporting format in
+    log-shuttle.
+
 ### 0.10.3 2015-04-29 Edward Muller (edward@heroku.com)
 
 * Add `msg.lost` to the emitted metrics. This is similar to v0.9.X
