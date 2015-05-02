@@ -229,11 +229,11 @@ func main() {
 	if logToSyslog {
 		s.Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
 		if err != nil {
-			log.Fatalf("Unable to setup syslog logger: %s\n", err)
+			errLogger.Fatalf(`error="Unable to setup syslog logger: %s\n"`, err)
 		}
 		s.ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
 		if err != nil {
-			log.Fatalf("Unable to setup syslog error logger: %s\n", err)
+			errLogger.Fatalf(`error="Unable to setup syslog error logger: %s\n"`, err)
 		}
 	} else {
 		s.Logger = logger
