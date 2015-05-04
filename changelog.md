@@ -1,4 +1,4 @@
-### 0.10.4 Unreleased
+### 0.11.0 2015-05-04 Edward Muller (edward@heroku.com)
 
 * Raise all errors to the top and use a standard reporting format in
     log-shuttle.
