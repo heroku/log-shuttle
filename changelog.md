@@ -1,3 +1,9 @@
+### 0.12.0 Unreleased
+
+* Count metrics emit the difference between intervals, not the counter so as to
+    make down stream processing easier.
+* line.count is now lines.read.count, which makes more sense
+
 ### 0.11.0 2015-05-04 Edward Muller (edward@heroku.com)
 
 * Raise all errors to the top and use a standard reporting format in
