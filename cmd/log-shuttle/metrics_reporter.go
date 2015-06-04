@@ -14,11 +14,19 @@ import (
 var (
 	percentiles     = []float64{0.75, 0.95, 0.99}
 	percentileNames = []string{"p75", "p95", "p99"}
+	lastCounts      = make(map[string]int64)
 )
 
 // Given a t representing a time in ns, convert to seconds, show up to μs precision
 func sec(t float64) string {
 	return fmt.Sprintf("%.6f", t/1000000000)
+}
+
+func countDifference(ctx slog.Context, name string, c int64) {
+	name = name + ".count"
+	lc := lastCounts[name]
+	ctx[name] = c - lc
+	lastCounts[name] = c
 }
 
 // LogFmtMetricsEmitter emits the metrics in logfmt compatible formats every d
@@ -36,7 +44,7 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 		r.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case metrics.Counter:
-				ctx[name] = metric.Count()
+				countDifference(ctx, name, metric.Count())
 			case metrics.Gauge:
 				ctx[name] = metric.Value()
 			case metrics.GaugeFloat64:
@@ -47,7 +55,7 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 			case metrics.Histogram:
 				s := metric.Snapshot()
 				ps := s.Percentiles(percentiles)
-				ctx[name+".count"] = s.Count()
+				countDifference(ctx, name, s.Count())
 				ctx[name+".min"] = s.Min()
 				ctx[name+".max"] = s.Max()
 				ctx[name+".mean"] = s.Mean()
@@ -57,7 +65,7 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 				}
 			case metrics.Meter:
 				s := metric.Snapshot()
-				ctx[name+".count"] = s.Count()
+				countDifference(ctx, name, s.Count())
 				ctx[name+".rate.1min"] = s.Rate1()
 				ctx[name+".rate.5min"] = s.Rate5()
 				ctx[name+".rate.15min"] = s.Rate15()
@@ -65,7 +73,7 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 			case metrics.Timer:
 				s := metric.Snapshot()
 				ps := s.Percentiles(percentiles)
-				ctx[name+".count"] = s.Count()
+				countDifference(ctx, name, s.Count())
 				ctx[name+".min"] = sec(float64(s.Min()))
 				ctx[name+".max"] = sec(float64(s.Max()))
 				ctx[name+".mean"] = sec(s.Mean())
