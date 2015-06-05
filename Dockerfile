@@ -1,11 +1,7 @@
 FROM gliderlabs/alpine:3.1
 
-RUN apk-install go ca-certificates
-ENV GOPATH=/go
+RUN apk-install ca-certificates
 
-COPY . /go/src/github.com/heroku/log-shuttle
-RUN go get github.com/heroku/log-shuttle/cmd/log-shuttle
-
-RUN apk del go
-
-ENTRYPOINT ["/go/bin/log-shuttle"]
+# assumes gox has already installed the files here
+COPY .docker_build/log-shuttle_linux_amd64 /bin/log-shuttle
+ENTRYPOINT ["/bin/log-shuttle"]
