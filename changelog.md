@@ -1,8 +1,9 @@
-### 0.12.0 Unreleased
+### 0.12.0 2015-06-05 Edward Muller (edward@heroku.com)
 
 * Count metrics emit the difference between intervals, not the counter so as to
     make down stream processing easier.
 * line.count is now lines.read.count, which makes more sense
+* Smaller docker image
 
 ### 0.11.0 2015-05-04 Edward Muller (edward@heroku.com)
 
