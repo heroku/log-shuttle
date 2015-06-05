@@ -1,6 +1,6 @@
 FROM gliderlabs/alpine:3.1
 
-RUN apk-install go
+RUN apk-install go ca-certificates
 ENV GOPATH=/go
 
 COPY . /go/src/github.com/heroku/log-shuttle
