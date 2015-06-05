@@ -82,6 +82,11 @@ Requires:
 make debs
 ```
 
+## Docker
+
+There is a Makefile target named `docker` that can be used to build a docker
+image.
+
 ## Hacking on log-shuttle
 
 Fork the repo, hack, submit PRs.
