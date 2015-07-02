@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 const (

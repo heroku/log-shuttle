@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/bmizerany/aws4"
+	"github.com/bmizerany/aws4"
 	"net/http"
 	"strings"
 )

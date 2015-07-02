@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 // a regexp for extracting the unit from time.Duration.String

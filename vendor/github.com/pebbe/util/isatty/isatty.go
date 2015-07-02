@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/pebbe/util"
+	"github.com/pebbe/util"
 	"os"
 )
 

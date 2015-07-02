@@ -1,6 +1,6 @@
 package shuttle
 
-import "github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+import "github.com/nu7hatch/gouuid"
 
 // Batch holds incoming log lines and provides some helpers for dealing with
 // the grouping of logLines
