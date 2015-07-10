@@ -2,7 +2,7 @@
 	"ImportPath": "github.com/heroku/log-shuttle",
 	"GoVersion": "go1.5beta1",
 	"Packages": [
-		"./..."
+		"./cmd/..."
 	],
 	"Deps": [
 		{
