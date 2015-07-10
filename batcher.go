@@ -3,7 +3,7 @@ package shuttle
 import (
 	"time"
 
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 )
 
 // Batcher coalesces logs coming via inLogs into batches, which are sent out
