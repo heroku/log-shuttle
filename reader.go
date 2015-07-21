@@ -23,8 +23,9 @@ func NewLogLineReader(o chan<- LogLine, m metrics.Registry) LogLineReader {
 	}
 }
 
-// ReadLogLines reads lines from the ReadCloser
-func (rdr LogLineReader) ReadLogLines(input io.ReadCloser) error {
+// ReadLogLines reads lines from the Reader and returns with an error if there
+// is an error
+func (rdr LogLineReader) ReadLogLines(input io.Reader) error {
 	rdrIo := bufio.NewReader(input)
 
 	for {
@@ -32,7 +33,6 @@ func (rdr LogLineReader) ReadLogLines(input io.ReadCloser) error {
 		currentLogTime := time.Now()
 
 		if err != nil {
-			input.Close()
 			return err
 		}
 

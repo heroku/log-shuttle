@@ -244,8 +244,9 @@ func main() {
 
 	go LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
 
-	// Blocks until os.Stdin is closed
+	// Blocks until os.Stdin errors
 	s.ReadLogLines(os.Stdin)
+	os.Stdin.Close()
 
 	// Shutdown the shuttle.
 	s.Land()
