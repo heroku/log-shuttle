@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"testing"
 )
@@ -264,4 +265,13 @@ func BenchmarkPipeline(b *testing.B) {
 		shut.ReadLogLines(ti)
 	}
 	shut.Land()
+}
+
+func ExampleShuttle() {
+	config := NewConfig()
+	// Modulate the config as needed before creating a new shuttle
+	s := NewShuttle(config)
+	s.Launch()               // Start up the batching/delivering go routines
+	s.ReadLogLines(os.Stdin) // Blocks until the io.ReadCloser is closed
+	s.Land()                 // Spin down the batching/delivering go routines
 }

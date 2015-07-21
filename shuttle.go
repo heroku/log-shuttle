@@ -82,7 +82,8 @@ func (s *Shuttle) startBatchers() {
 }
 
 // Land gracefully terminates the shuttle instance, ensuring that anything
-// read is batched and delivered
+// read is batched and delivered. A panic is likely to happen if Land() is
+// called before any readers passed to any ReadLogLines() calls aren't closed.
 func (s *Shuttle) Land() {
 	close(s.LogLines) // Close the log line channel, all of the batchers will stop once they are done
 	s.bWaiter.Wait()  // Wait for them to be done
