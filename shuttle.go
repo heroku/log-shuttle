@@ -86,7 +86,8 @@ func (s *Shuttle) startBatchers() {
 }
 
 // LoadReader into the shuttle for processing it's lines. Use this if you want
-// log-shuttle to track the readers for you.
+// log-shuttle to track the readers for you. The errors returned by ReadLogLines
+// are discarded.
 func (s *Shuttle) LoadReader(rdr io.ReadCloser) {
 	s.rWaiter.Add(1)
 	s.readers = append(s.readers, rdr)
@@ -96,11 +97,14 @@ func (s *Shuttle) LoadReader(rdr io.ReadCloser) {
 	}()
 }
 
-// CloseReaders closes all tracked readers.
+// CloseReaders closes all tracked readers and returns any errors returned by
+// Close()ing the readers
 func (s *Shuttle) CloseReaders() []error {
-	errors := make([]error, 0, len(s.readers))
+	errors := make([]error, len(s.readers))
 	for _, closer := range s.readers {
-		errors = append(errors, closer.Close())
+		if err := closer.Close(); err != nil {
+			errors = append(errors, err)
+		}
 	}
 	return errors
 }
