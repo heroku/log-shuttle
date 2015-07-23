@@ -1,6 +1,7 @@
 package shuttle
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"sync"
@@ -16,15 +17,16 @@ var (
 // Shuttle is the main entry point into the library
 type Shuttle struct {
 	LogLineReader
-	config           Config
-	LogLines         chan LogLine
-	Batches          chan Batch
-	MetricsRegistry  metrics.Registry
-	bWaiter, oWaiter *sync.WaitGroup
-	Drops, Lost      *Counter
-	NewFormatterFunc NewHTTPFormatterFunc
-	Logger           *log.Logger
-	ErrLogger        *log.Logger
+	config                    Config
+	LogLines                  chan LogLine
+	Batches                   chan Batch
+	readers                   []io.ReadCloser
+	MetricsRegistry           metrics.Registry
+	bWaiter, oWaiter, rWaiter *sync.WaitGroup
+	Drops, Lost               *Counter
+	NewFormatterFunc          NewHTTPFormatterFunc
+	Logger                    *log.Logger
+	ErrLogger                 *log.Logger
 }
 
 // NewShuttle returns a properly constructed Shuttle with a given config
@@ -41,8 +43,10 @@ func NewShuttle(config Config) *Shuttle {
 		Lost:             NewCounter(0),
 		MetricsRegistry:  mr,
 		NewFormatterFunc: config.FormatterFunc,
+		readers:          make([]io.ReadCloser, 0),
 		oWaiter:          new(sync.WaitGroup),
 		bWaiter:          new(sync.WaitGroup),
+		rWaiter:          new(sync.WaitGroup),
 		Logger:           discardLogger,
 		ErrLogger:        discardLogger,
 	}
@@ -81,10 +85,43 @@ func (s *Shuttle) startBatchers() {
 	}
 }
 
+// LoadReader into the shuttle for processing it's lines. Use this if you want
+// log-shuttle to track the readers for you. The errors returned by ReadLogLines
+// are discarded.
+func (s *Shuttle) LoadReader(rdr io.ReadCloser) {
+	s.rWaiter.Add(1)
+	s.readers = append(s.readers, rdr)
+	go func() {
+		s.ReadLogLines(rdr)
+		s.rWaiter.Done()
+	}()
+}
+
+// CloseReaders closes all tracked readers and returns any errors returned by
+// Close()ing the readers
+func (s *Shuttle) CloseReaders() []error {
+	errors := make([]error, len(s.readers))
+	for _, closer := range s.readers {
+		if err := closer.Close(); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return errors
+}
+
+// DockReaders closes all tracked readers and waits for all reading go routines
+// to finish.
+func (s *Shuttle) DockReaders() []error {
+	errors := s.CloseReaders()
+	s.rWaiter.Wait()
+	return errors
+}
+
 // Land gracefully terminates the shuttle instance, ensuring that anything
 // read is batched and delivered. A panic is likely to happen if Land() is
 // called before any readers passed to any ReadLogLines() calls aren't closed.
 func (s *Shuttle) Land() {
+	s.DockReaders()
 	close(s.LogLines) // Close the log line channel, all of the batchers will stop once they are done
 	s.bWaiter.Wait()  // Wait for them to be done
 	close(s.Batches)  // Close the batch channel, all of the outlets will stop once they are done
