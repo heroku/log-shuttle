@@ -17,7 +17,7 @@ management can be quite burdensome.
 When using log-shuttle with logplex it is recommended that you spawn 1
 log-shuttle per logplex token. This will isolate data between customers and
 ensure a good QoS. Log-shuttle accepts input from stdin in a newline (\n)
-delimited format. 
+delimited format.
 
 When using log-shuttle with [Amazon's
 Kinesis]("http://aws.amazon.com/kinesis/"), all the details for the region,
@@ -54,7 +54,7 @@ Things that should be handled better/things you should know:
    url encoded.
 1. log-shuttle assumes a 200 response means everything is good. Kinesis can
    return a 200, meaning the http request was good, but include per record
-   errors in the response body. 
+   errors in the response body.
 1. The maximum number of records in a PutRecords requests is 500, so set the
    batch size no higher than 498 (500 - 2 records for possible drops / lost).
 1. Logplex max line length is 10k, Kinesis max record size is 50k of base64
@@ -116,7 +116,7 @@ Like so...
 ```bash
 sudo /etc/init.d/rsyslog stop
 sudo rm -f /dev/log
-(sudo nc -n -k -d -Ul /dev/log & until [ ! -e /dev/log ]; do sleep 0.01; done; sudo chmod a+rw /dev/log) | stdbuf -i0 -o0 tr \\0 \\n | ./log-shuttle -logs-url=... ... -input-format=1
+(sudo nc -n -k -d -Ul /dev/log & until [ ! -e /dev/log ]; do sleep 0.01; done; sudo chmod a+rw /dev/log) | stdbuf -i0 -o0 tr \\0 \\n | ./log-shuttle -logs-url=... ... -input-format=rfc3164
 ```
 
 ## License
