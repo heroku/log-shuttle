@@ -131,10 +131,14 @@ func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 
 	if skipHeaders {
 		log.Println("Warning: Use of -skip-headers is deprecated, use -input-format=rfc5424 instead")
-		if c.InputFormat == shuttle.InputFormatRaw {
+		switch c.InputFormat {
+		case shuttle.InputFormatRaw:
+			// Massage InputFormat as that's what is used internally
 			c.InputFormat = shuttle.InputFormatRFC5424
-		} else {
-			return c, fmt.Errorf("Cannot use -skip-headers with anything except the default input format")
+		case shuttle.InputFormatRFC5424:
+			// NOOP
+		default:
+			return c, fmt.Errorf("Can only use -skip-headers with default input format or rfc5424")
 		}
 	}
 
