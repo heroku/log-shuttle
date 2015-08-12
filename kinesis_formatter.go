@@ -45,7 +45,7 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	}
 
 	for _, l := range b.logLines {
-		kf.records = append(kf.records, KinesisRecord{NewLogplexLineFormatter(l, config)})
+		kf.records = append(kf.records, KinesisRecord{NewLogplexLineFormatter("xxx", l, config)})
 	}
 
 	recordsReader, recordsWriter := io.Pipe()

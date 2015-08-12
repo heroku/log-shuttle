@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -58,7 +59,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 		if config.InputFormat == InputFormatRaw && len(l.line) > config.MaxLineLength {
 			r = NewLogplexBatchFormatter(splitLine(l, config.MaxLineLength), nil, config)
 		} else {
-			r = NewLogplexLineFormatter(l, config)
+			r = NewLogplexLineFormatter(b.UUID.String(), l, config)
 		}
 		readers = append(readers, r)
 		bf.msgCount += r.MsgCount()
@@ -115,7 +116,7 @@ type LogplexLineFormatter struct {
 }
 
 // NewLogplexLineFormatter returns a new LogplexLineFormatter wrapping the provided LogLine
-func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
+func NewLogplexLineFormatter(traceId string, ll LogLine, config *Config) *LogplexLineFormatter {
 	var header string
 
 	if config.InputFormat == InputFormatRFC5424 {
@@ -127,8 +128,10 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 			ll.when.UTC().Format(LogplexBatchTimeFormat) + " " +
 			config.Hostname + " " +
 			config.Appname + " " +
-			config.Procid + " " +
+			// config.Procid + " " +
+			strings.Replace(traceId, "-", "", -1)[:len(config.Hostname)] + " " +
 			config.Msgid + " "
+		fmt.Printf("LOOGGGG => %v\n", header)
 	}
 	return &LogplexLineFormatter{
 		line:        ll.line,
