@@ -142,22 +142,22 @@ func (s *Service) writeHeaderList(w io.Writer, r *http.Request) {
 }
 
 func (s *Service) writeBody(w io.Writer, r *http.Request) {
-	var b []byte
+	h := sha256.New()
+
 	// If the payload is empty, use the empty string as the input to the SHA256 function
 	// http://docs.amazonwebservices.com/general/latest/gr/sigv4-create-canonical-request.html
 	if r.Body == nil {
-		b = []byte("")
+		h.Write([]byte(""))
 	} else {
-		var err error
-		b, err = ioutil.ReadAll(r.Body)
+		b := new(bytes.Buffer)
+		rdr := io.TeeReader(r.Body, b)
+		_, err := io.Copy(h, rdr)
 		if err != nil {
 			panic(err)
 		}
-		r.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+		r.Body = ioutil.NopCloser(b)
 	}
 
-	h := sha256.New()
-	h.Write(b)
 	fmt.Fprintf(w, "%x", h.Sum(nil))
 }
 

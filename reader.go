@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 // LogLineReader performs the reading of lines from an io.ReadCloser, encapsulating

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/heroku/log-shuttle"
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/pebbe/util"
+	"github.com/pebbe/util"
 )
 
 var detectKinesis = regexp.MustCompile(`\Akinesis.[[:alpha:]]{2}-[[:alpha:]]{2,}-[[:digit:]]\.amazonaws\.com\z`)

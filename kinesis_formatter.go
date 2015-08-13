@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/bmizerany/aws4"
+	"github.com/bmizerany/aws4"
 )
 
 // KinesisFormatter formats batches destined for AWS Kinesis HTTP endpoints

@@ -2,7 +2,7 @@ package dydb_test
 
 import (
 	"fmt"
-	"github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/bmizerany/aws4/dydb"
+	"github.com/bmizerany/aws4/dydb"
 	"log"
 )
 
