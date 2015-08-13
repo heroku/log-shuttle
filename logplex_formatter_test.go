@@ -30,6 +30,7 @@ func init() {
 }
 
 func TestLogplexBatchFormatter(t *testing.T) {
+	config := newTestConfig()
 	b := NewBatch(1)
 	b.Add(LogLineOne)
 	b.Add(LogLineTwo)
@@ -51,6 +52,7 @@ func TestLogplexBatchFormatter(t *testing.T) {
 }
 
 func TestLogplexBatchFormatter_MsgCount(t *testing.T) {
+	config := newTestConfig()
 	b := NewBatch(1)
 	b.Add(LogLineOne)  // 1 frame
 	b.Add(LongLogLine) // 3 frames
@@ -62,7 +64,33 @@ func TestLogplexBatchFormatter_MsgCount(t *testing.T) {
 	}
 }
 
+func TestLogplexBatchFormatter_MsgCount_WitheData(t *testing.T) {
+	config := newTestConfig()
+	b := NewBatch(1)
+	b.Add(LogLineOne)  // 1 frame
+	b.Add(LongLogLine) // 3 frames
+
+	edata := make([]errData, 0, 2)
+	// One more frame
+	edata = append(edata, errData{eType: errLost, count: 2, since: time.Now()})
+
+	br := NewLogplexBatchFormatter(b, edata, &config)
+
+	if msgCount := br.MsgCount(); msgCount != 5 {
+		t.Fatalf("Formatter's MsgCount != 5, is: %d\n", msgCount)
+	}
+
+	req, err := br.Request()
+	if err != nil {
+		t.Fatal("Expected to get request, not err: ", err)
+	}
+	if hMsgCount := req.Header.Get("Logplex-Msg-Count"); hMsgCount != "5" {
+		t.Fatalf("Formatter's Header Logplex-Msg-Count != 5, is: %s\n", hMsgCount)
+	}
+}
+
 func TestLogplexBatchFormatter_LongLine(t *testing.T) {
+	config := newTestConfig()
 	b := NewBatch(3)
 	b.Add(LogLineOne)  // 1 frame
 	b.Add(LongLogLine) // 3 frames
@@ -86,6 +114,7 @@ func TestLogplexBatchFormatter_LongLine(t *testing.T) {
 }
 
 func TestLogplexLineFormatter_Basic(t *testing.T) {
+	config := newTestConfig()
 	llr := NewLogplexLineFormatter(LogLineOne, &config)
 	d, err := ioutil.ReadAll(llr)
 	if err != nil {
@@ -99,21 +128,23 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 }
 
 func TestLogplexLineFormatter_AppName(t *testing.T) {
-	c := NewConfig()
-	c.InputFormat = InputFormatRFC5424
+	config := newTestConfig()
+	config.InputFormat = InputFormatRFC5424
 
-	llr := NewLogplexLineFormatter(LogLineOneWithHeaders, &c)
+	llr := NewLogplexLineFormatter(LogLineOneWithHeaders, &config)
 	if v := llr.AppName(); v != "token" {
 		t.Fatalf("Expected to get the token, but got: '%s'", v)
 	}
 }
 
 func TestLogplexBatchFormatter_WithHeaders(t *testing.T) {
+	config := newTestConfig()
+	config.InputFormat = InputFormatRFC5424
+
 	b := NewBatch(2)
 	b.Add(LogLineOneWithHeaders) // 1 frame
 	b.Add(LogLineTwoWithHeaders) // 1 frame
 
-	config.InputFormat = InputFormatRFC5424
 	defer func() { config.InputFormat = InputFormatRaw }()
 
 	bf := NewLogplexBatchFormatter(b, noErrData, &config)
@@ -131,6 +162,7 @@ func TestLogplexBatchFormatter_WithHeaders(t *testing.T) {
 }
 
 func BenchmarkLogplexLineFormatter(b *testing.B) {
+	config := newTestConfig()
 	for i := 0; i < b.N; i++ {
 		lf := NewLogplexLineFormatter(LogLineOne, &config)
 		_, err := ioutil.ReadAll(lf)
@@ -141,6 +173,7 @@ func BenchmarkLogplexLineFormatter(b *testing.B) {
 }
 
 func BenchmarkLogplexLineFormatter_WithHeaders(b *testing.B) {
+	config := newTestConfig()
 	for i := 0; i < b.N; i++ {
 		lf := NewLogplexLineFormatter(LogLineOneWithHeaders, &config)
 		_, err := ioutil.ReadAll(lf)
@@ -156,6 +189,8 @@ func BenchmarkLogplexBatchFormatter(b *testing.B) {
 		batch.Add(LogLineOne)
 		batch.Add(LogLineTwo)
 	}
+
+	config := newTestConfig()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -174,6 +209,7 @@ func BenchmarkLogplexBatchFormatter_WithHeaders(b *testing.B) {
 		batch.Add(LogLineTwoWithHeaders)
 	}
 
+	config := newTestConfig()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		bf := NewLogplexBatchFormatter(batch, noErrData, &config)

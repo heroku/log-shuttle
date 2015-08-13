@@ -109,11 +109,16 @@ func (s *Shuttle) CloseReaders() []error {
 	return errors
 }
 
+// WaitForReadersToFinish to finish reading
+func (s *Shuttle) WaitForReadersToFinish() {
+	s.rWaiter.Wait()
+}
+
 // DockReaders closes all tracked readers and waits for all reading go routines
 // to finish.
 func (s *Shuttle) DockReaders() []error {
 	errors := s.CloseReaders()
-	s.rWaiter.Wait()
+	s.WaitForReadersToFinish()
 	return errors
 }
 

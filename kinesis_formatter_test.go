@@ -7,6 +7,7 @@ import (
 )
 
 func TestKinesisFormatter(t *testing.T) {
+	config := newTestConfig()
 	config.LogsURL = "https://key:secret@foo/Stream"
 	b := NewBatch(1)
 	b.Add(LogLineOne)
@@ -21,6 +22,7 @@ func TestKinesisFormatter(t *testing.T) {
 }
 
 func TestKinesisFormatterRequest(t *testing.T) {
+	config := newTestConfig()
 	config.LogsURL = "https://key:secret@kinesis.us-east-1.amazonaws.com/Stream"
 	b := NewBatch(1)
 	b.Add(LogLineOne)
@@ -41,6 +43,7 @@ func TestKinesisFormatterRequest(t *testing.T) {
 }
 
 func TestKinesisGzip(t *testing.T) {
+	config := newTestConfig()
 	config.LogsURL = "https://key:secret@foo/Stream"
 	b := NewBatch(1)
 	b.Add(LogLineOne)
