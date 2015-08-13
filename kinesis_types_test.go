@@ -8,6 +8,7 @@ import (
 )
 
 func TestKinesisRecord_MarshalJSONToWriter(t *testing.T) {
+	config := newTestConfig()
 	llf := NewLogplexLineFormatter(LogLineOne, &config)
 	b := new(bytes.Buffer)
 	r := KinesisRecord{llf}

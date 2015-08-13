@@ -7,16 +7,16 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
+	"sync"
 	"testing"
 )
 
-var (
-	config Config
-)
-
-func init() {
-	config = NewConfig() //Do this once for the test. Defaults should always be good for the tests
+func newTestConfig() Config {
+	// Defaults should be good for most tests
+	config := NewConfig()
+	config.NumBatchers = 1
 	config.LogsURL = "http://"
+	return config
 }
 
 type TestInput struct {
@@ -38,7 +38,9 @@ Ac lorem aliquam placerat.`))}
 }
 
 func NewTestInput() *TestInput {
-	return &TestInput{bytes.NewReader([]byte("Hello World\nTest Line 2\n"))}
+	return &TestInput{bytes.NewReader([]byte(`Hello World
+Test Line 2
+`))}
 }
 
 func NewTestInputWithHeaders() *TestInput {
@@ -61,6 +63,8 @@ func (th *noopTestHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type testHelper struct {
 	Actual  []byte
 	Headers http.Header
+	Called  int
+	sync.Mutex
 }
 
 func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +73,11 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	ts.Actual = append(ts.Actual, d...)
+	ts.Mutex.Lock()
+	defer ts.Mutex.Unlock()
+	ts.Called++
+	// Last request wins the race
+	ts.Actual = d
 	ts.Headers = r.Header
 }
 
@@ -78,12 +86,14 @@ func TestIntegration(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 
 	shut := NewShuttle(config)
+	input := NewTestInput()
+	shut.LoadReader(input)
 	shut.Launch()
-
-	shut.ReadLogLines(NewTestInput())
+	shut.WaitForReadersToFinish()
 	shut.Land()
 
 	pat1 := regexp.MustCompile(`78 <190>1 [0-9T:\+\-\.]+ shuttle token shuttle - - Hello World`)
@@ -99,7 +109,6 @@ func TestIntegration(t *testing.T) {
 	if afterDrops, _ := shut.Drops.ReadAndReset(); afterDrops != 0 {
 		t.Fatalf("afterDrops=%d\n", afterDrops)
 	}
-
 }
 
 func TestInputFormatRFC5424Integration(t *testing.T) {
@@ -107,13 +116,15 @@ func TestInputFormatRFC5424Integration(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRFC5424
 
 	shut := NewShuttle(config)
+	input := NewTestInputWithHeaders()
+	shut.LoadReader(input)
 	shut.Launch()
-
-	shut.ReadLogLines(NewTestInputWithHeaders())
+	shut.WaitForReadersToFinish()
 	shut.Land()
 
 	pat1 := regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1`)
@@ -132,15 +143,17 @@ func TestDrops(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
+	input := NewTestInput()
+	shut.LoadReader(input)
 	shut.Launch()
-
 	shut.Drops.Add(1)
 	shut.Drops.Add(1)
-	shut.ReadLogLines(NewTestInput())
+	shut.WaitForReadersToFinish()
 	shut.Land()
 
 	pat1 := regexp.MustCompile(`138 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L12: 2 messages dropped since [0-9T:\+\-\.]+\n`)
@@ -168,15 +181,19 @@ func TestLost(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
+	input := NewTestInput()
+	shut.LoadReader(input)
 	shut.Launch()
 
 	shut.Lost.Add(1)
 	shut.Lost.Add(1)
-	shut.ReadLogLines(NewTestInput())
+
+	shut.WaitForReadersToFinish()
 	shut.Land()
 
 	pat1 := regexp.MustCompile(`135 <172>1 [0-9T:\+\-\.]+ heroku token log-shuttle - - Error L13: 2 messages lost since [0-9T:\+\-\.]+\n`)
@@ -204,14 +221,17 @@ func TestUserAgentHeader(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRaw
 	config.ID = "0.1-abcde"
 
 	shut := NewShuttle(config)
+	input := NewTestInput()
+	shut.LoadReader(input)
 	shut.Launch()
 
-	shut.ReadLogLines(NewTestInput())
+	shut.WaitForReadersToFinish()
 	shut.Land()
 
 	uaHeader, ok := th.Headers["User-Agent"]
@@ -230,13 +250,15 @@ func TestRequestId(t *testing.T) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
+	input := NewTestInput()
+	shut.LoadReader(input)
 	shut.Launch()
-
-	shut.ReadLogLines(NewTestInput())
+	shut.WaitForReadersToFinish()
 	shut.Land()
 
 	_, ok := th.Headers["X-Request-Id"]
@@ -250,28 +272,32 @@ func BenchmarkPipeline(b *testing.B) {
 	ts := httptest.NewServer(th)
 	defer ts.Close()
 
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRaw
-
-	shut := NewShuttle(config)
-	shut.Launch()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		ti := NewLongerTestInput()
-		b.SetBytes(int64(ti.Len()))
+		shut := NewShuttle(config)
+		input := NewLongerTestInput()
+		b.SetBytes(int64(input.Len()))
+
+		shut.LoadReader(input)
+
 		b.StartTimer()
-		shut.ReadLogLines(ti)
+		shut.Launch()
+		shut.WaitForReadersToFinish()
+		shut.Land()
 	}
-	shut.Land()
 }
 
 func ExampleShuttle() {
 	config := NewConfig()
 	// Modulate the config as needed before creating a new shuttle
 	s := NewShuttle(config)
-	s.Launch()               // Start up the batching/delivering go routines
-	s.ReadLogLines(os.Stdin) // Blocks until the io.ReadCloser is closed
-	s.Land()                 // Spin down the batching/delivering go routines
+	s.LoadReader(os.Stdin)
+	s.Launch() // Start up the batching/delivering go routines
+	s.WaitForReadersToFinish()
+	s.Land() // Spin down the batching/delivering go routines
 }

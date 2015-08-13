@@ -17,6 +17,7 @@ func ProduceLogLines(count int, c chan<- LogLine) {
 }
 
 func BenchmarkBatcher(b *testing.B) {
+	config := newTestConfig()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()

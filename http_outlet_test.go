@@ -41,6 +41,8 @@ func TestOutletEOFRetry(t *testing.T) {
 	th := &testEOFHelper{maxCloses: 1}
 	ts := httptest.NewTLSServer(th)
 	defer ts.Close()
+
+	config := newTestConfig()
 	config.LogsURL = ts.URL
 	config.SkipVerify = true
 
@@ -68,6 +70,7 @@ func TestOutletEOFRetry(t *testing.T) {
 }
 
 func TestOutletEOFRetryMax(t *testing.T) {
+	config := newTestConfig()
 	th := &testEOFHelper{maxCloses: config.MaxAttempts}
 	ts := httptest.NewTLSServer(th)
 	defer ts.Close()
