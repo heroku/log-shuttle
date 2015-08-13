@@ -30,13 +30,15 @@ func (rdr LogLineReader) ReadLogLines(input io.Reader) error {
 
 	for {
 		line, err := rdrIo.ReadBytes('\n')
-		currentLogTime := time.Now()
+
+		if len(line) > 0 {
+			currentLogTime := time.Now()
+			rdr.Enqueue(LogLine{line, currentLogTime})
+		}
 
 		if err != nil {
 			return err
 		}
-
-		rdr.Enqueue(LogLine{line, currentLogTime})
 	}
 }
 
