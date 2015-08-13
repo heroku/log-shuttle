@@ -239,7 +239,7 @@ func TestUserAgentHeader(t *testing.T) {
 		t.Fatalf("Header User-Agent not found in response")
 	}
 
-	uaPattern := regexp.MustCompile(`^^log-shuttle/[0-9a-z-\.]+ \(go\d+(\.\d+){0,2}; \w+; \w+; \w+\)$`)
+	uaPattern := regexp.MustCompile(`^^log-shuttle/[0-9a-z-\.]+ \(go\d+(\.\d+){0,2}((beta|rc)\d)?; \w+; \w+; \w+\)$`)
 	if !uaPattern.MatchString(uaHeader[0]) {
 		t.Fatalf("Header User-Agent doesn't match expected pattern. Actual: %s\n", uaHeader[0])
 	}
