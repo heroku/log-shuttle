@@ -111,7 +111,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 		if h.config.UseGzip {
 			formatter = NewGzipFormatter(formatter)
 		}
-		err := h.post(formatter, uuid)
+		err := h.post(formatter)
 		if err != nil {
 			inboxLength := len(h.inbox)
 			h.inboxLengthGauge.Update(int64(inboxLength))
@@ -136,13 +136,13 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 	}
 }
 
-func (h *HTTPOutlet) post(formatter HTTPFormatter, uuid string) error {
+func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 	req, err := formatter.Request()
 	if err != nil {
 		return err
 	}
 
-	req.Header.Add("X-Request-Id", uuid)
+	uuid := req.Header.Get("X-Request-Id")
 	req.Header.Add("User-Agent", h.userAgent)
 
 	resp, err := h.timeRequest(req)
