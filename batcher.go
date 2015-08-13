@@ -63,7 +63,7 @@ func (b Batcher) Batch() {
 		}
 
 		if closeDown {
-			break
+			return
 		}
 	}
 }
@@ -73,31 +73,30 @@ func (b Batcher) Batch() {
 // or when the batch is full.
 // returns the channel status, completed batch
 func (b Batcher) fillBatch() (bool, Batch) {
-	batch := NewBatch(b.batchSize) // Make a batch
-	timeout := new(time.Timer)     // Gives us a nil channel and no timeout to start with
-	chanOpen := true               // Assume the channel is open
+	batch := NewBatch(b.batchSize)
+	timeout := new(time.Timer) // start with a nil channel and no timeout
 
 	for {
 		select {
 		case <-timeout.C:
-			return !chanOpen, batch
+			return false, batch
 
 		case line, chanOpen := <-b.inLogs:
 			// if the channel is closed, then line will be a zero value Line, so just
-			// return
+			// return the batch and signal shutdown
 			if !chanOpen {
-				return !chanOpen, batch
+				return true, batch
 			}
 
-			// We have a line now, so set a timeout
+			// Set a timeout if we don't have one
 			if timeout.C == nil {
 				defer func(t time.Time) { b.fillTime.UpdateSince(t) }(time.Now())
 				timeout = time.NewTimer(b.timeout)
 				defer timeout.Stop() // ensure timer is stopped when done
 			}
 
-			if batch.Add(line) {
-				return !chanOpen, batch
+			if full := batch.Add(line); full {
+				return false, batch
 			}
 		}
 	}
