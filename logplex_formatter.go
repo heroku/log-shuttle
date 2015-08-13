@@ -34,6 +34,7 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 	}
 
 	bf.headers.Add("Content-Type", LogplexContentType)
+	bf.headers.Add("X-Request-Id", b.UUID.String())
 
 	var r SubFormatter
 	readers := make([]io.Reader, 0, b.MsgCount()+len(eData))
