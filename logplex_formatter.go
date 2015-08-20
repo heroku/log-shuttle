@@ -131,7 +131,6 @@ func NewLogplexLineFormatter(traceId string, ll LogLine, config *Config) *Logple
 			// config.Procid + " " +
 			strings.Replace(traceId, "-", "", -1)[:len(config.Hostname)] + " " +
 			config.Msgid + " "
-		fmt.Printf("LOOGGGG => %v\n", header)
 	}
 	return &LogplexLineFormatter{
 		line:        ll.line,
