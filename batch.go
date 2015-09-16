@@ -1,23 +1,19 @@
 package shuttle
 
-import "github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+import "github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/pborman/uuid"
 
 // Batch holds incoming log lines and provides some helpers for dealing with
 // the grouping of logLines
 type Batch struct {
 	logLines []LogLine
-	UUID     *uuid.UUID
+	UUID     string
 }
 
 // NewBatch returns a new batch with a capacity pre-set
 func NewBatch(capacity int) Batch {
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		panic(err) // probably the only sesnsible thing to do
-	}
 	return Batch{
 		logLines: make([]LogLine, 0, capacity),
-		UUID:     uuid,
+		UUID:     uuid.New(),
 	}
 }
 
