@@ -104,8 +104,6 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 		edata = append(edata, lostData)
 	}
 
-	uuid := batch.UUID.String()
-
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
 		formatter := h.newFormatterFunc(batch, edata, &h.config)
 		if h.config.UseGzip {
@@ -119,7 +117,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 			err, ok := err.(*url.Error)
 			if ok {
 				if attempts < h.config.MaxAttempts && inboxLength < h.lostMark {
-					h.errLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, uuid, attempts, err, err.Err)
+					h.errLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, batch.UUID, attempts, err, err.Err)
 					if err.Err == io.EOF {
 						time.Sleep(time.Duration(attempts) * EOFRetrySleep * time.Millisecond)
 					} else {
@@ -128,7 +126,7 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 					continue
 				}
 			}
-			h.errLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, uuid, attempts, err, err)
+			h.errLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, batch.UUID, attempts, err, err)
 			h.lost.Add(msgCount)
 			h.msgLostCount.Inc(int64(msgCount))
 		}
