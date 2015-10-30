@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var shard int = 0
+var shard int = 1
 
 // KinesisRecord is used to marshal LoglexLineFormatters to Kinesis Records for
 // the PutRecords API Call
@@ -23,7 +23,7 @@ func (r KinesisRecord) WriteTo(w io.Writer) (n int64, err error) {
 
 	// Add an integer in the PartitionKey to enable distribution
 	// over multiple shards in the Kinesis stream.
-	b = `{"PartitionKey":"` + r.llf.AppName() + getShard() + `","Data":"`
+	b = `{"PartitionKey":"` + getPartitionKey(r) + `","Data":"`
 	t, err = w.Write([]byte(b))
 	n += int64(t)
 	if err != nil {
@@ -52,13 +52,21 @@ func encodedLen(n int64) int64 {
 	return (n + 2) / 3 * 4
 }
 
-func getShard() (nextShard string) {
-	// 50 is the max number of shards possible. It is ok to have more
-	// partition keys than actual shards.
-	if shard >= 50 {
-		shard = 0
+func getShard(r KinesisRecord) (nextShard string) {
+	// For consistency with older versions, if there is only one shard,
+	// we will just use the app name, and skip any unnecessary work.
+	totalShards := r.llf.shards
+	if totalShards == 1 {
+		return ""
+	}
+	if shard > totalShards {
+		shard = totalShards
 	}
 	nextShard = strconv.Itoa(shard)
 	shard++
 	return
+}
+
+func getPartitionKey(r KinesisRecord) string {
+	return r.llf.AppName() + getShard(r)
 }

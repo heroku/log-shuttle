@@ -112,6 +112,7 @@ type LogplexLineFormatter struct {
 	line              []byte // the raw line bytes
 	header            string // the precomputed, length prefixed syslog frame header
 	inputFormat       int
+	shards            int // number of shards to use for Kinesis partition keys
 }
 
 // NewLogplexLineFormatter returns a new LogplexLineFormatter wrapping the provided LogLine
@@ -134,6 +135,7 @@ func NewLogplexLineFormatter(ll LogLine, config *Config) *LogplexLineFormatter {
 		line:        ll.line,
 		header:      header,
 		inputFormat: config.InputFormat,
+		shards: config.KinesisShards,
 	}
 }
 
