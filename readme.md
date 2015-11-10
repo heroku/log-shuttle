@@ -62,6 +62,8 @@ Things that should be handled better/things you should know:
    for Kinesis w/o causing errors.
 1. Kinesis does not support the -gzip option as that option compresses the body
    of the request.
+1. Even with `-kinesis-shards`, no guarantees can be made about writing to unique
+   shards. 
 
 ## Install
 

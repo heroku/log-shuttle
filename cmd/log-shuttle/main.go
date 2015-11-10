@@ -111,7 +111,7 @@ func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input channel.")
 	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
-	flag.IntVar(&c.KinesisShards, "kinesis-shards", c.KinesisShards, "Number of shards for which to create unique parition keys.")
+	flag.IntVar(&c.KinesisShards, "kinesis-shards", c.KinesisShards, "Number of unique partition keys to use per app.")
 
 	flag.Parse()
 
