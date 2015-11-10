@@ -40,6 +40,7 @@ const (
 	DefaultID            = ""
 	DefaultDrop          = true
 	DefaultUseGzip       = false
+	DefaultKinesisShards = 1
 )
 
 const (
@@ -70,6 +71,7 @@ type Config struct {
 	NumOutlets                          int
 	InputFormat                         int
 	MaxAttempts                         int
+	KinesisShards                       int
 	LogsURL                             string
 	Prival                              string
 	Version                             string
@@ -125,6 +127,7 @@ func NewConfig() Config {
 		FormatterFunc: DefaultFormatterFunc,
 		Drop:          DefaultDrop,
 		UseGzip:       DefaultUseGzip,
+		KinesisShards: DefaultKinesisShards,
 	}
 
 	shuttleConfig.ComputeHeader()
