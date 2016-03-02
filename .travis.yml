@@ -10,7 +10,7 @@ before_deploy:
 notifications:
   hipchat:
     rooms:
-      secure: CR38+crHhfjYvU+4w+5TrZ7Sx2xFUoDGf81gjC0ow+lyIwTyHtvznLxGt5wSBgGPnVbzTf7TFDMrmjFV6g3oXwRYD7nrRQasj1JCc9G04s0xHpIgnMYVszzdXxaSsBByH8GheUafyJTwCXFpSwNidH2CH5n/y/XsWx3hxmgWvyo=
+    - secure: "QUMhx7wwa/+gRlSLhXbANh2BoNpPR8TkxwCaRSK8/hAx2UAYExcPzkkobZrhkPCWFT6Cmbtem6j/o2/5DiR8cBb+2QSeBHWBS8Rm+zLfmlWTGOywm8mjQW+kgaUveQSBz7quV+X2Qv0yO7QORH2sWobU1NP3OTu26PfOBaNxYLA="
     template:
     - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}
       (<a href="%{build_url}">Details</a> | <a href="%{compare_url}">Change view</a>)'
