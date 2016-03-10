@@ -25,7 +25,6 @@ type Batcher struct {
 // NewBatcher created an empty Batcher for the provided shuttle
 func NewBatcher(s *Shuttle) Batcher {
 	return Batcher{
-		inLogs:          s.LogLines,
 		drops:           s.Drops,
 		outBatches:      s.Batches,
 		timeout:         s.config.WaitDuration,

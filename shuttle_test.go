@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -29,7 +30,6 @@ Ac lorem aliquam placerat.
 func newTestConfig() Config {
 	// Defaults should be good for most tests
 	config := NewConfig()
-	config.NumBatchers = 1
 	config.LogsURL = "http://"
 	return config
 }
@@ -123,6 +123,7 @@ type testHelper struct {
 }
 
 func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("REQUEST")
 	var err error
 	d, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -320,6 +321,10 @@ func TestRequestId(t *testing.T) {
 	if !ok {
 		t.Fatalf("Header X-Request-ID not found in response")
 	}
+}
+
+type lenner interface {
+	Len() int
 }
 
 func BenchmarkPipeline(b *testing.B) {
