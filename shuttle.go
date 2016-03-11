@@ -100,7 +100,7 @@ func (s *Shuttle) LoadReader(rdr io.ReadCloser) {
 // CloseReaders closes all tracked readers and returns any errors returned by
 // Close()ing the readers
 func (s *Shuttle) CloseReaders() []error {
-	errors := make([]error, len(s.readers))
+	var errors []error
 	for _, closer := range s.readers {
 		if err := closer.Close(); err != nil {
 			errors = append(errors, err)
