@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -9,22 +10,10 @@ import (
 	"regexp"
 	"sync"
 	"testing"
+	"time"
 )
 
-func newTestConfig() Config {
-	// Defaults should be good for most tests
-	config := NewConfig()
-	config.NumBatchers = 1
-	config.LogsURL = "http://"
-	return config
-}
-
-type TestInput struct {
-	*bytes.Reader
-}
-
-func NewLongerTestInput() *TestInput {
-	return &TestInput{bytes.NewReader([]byte(`Lebowski ipsum what in God's holy name are you blathering about?
+var longerTestData = []byte(`Lebowski ipsum what in God's holy name are you blathering about?
 Dolor sit amet, consectetur adipiscing elit praesent ac magna justo.
 They're nihilists.
 Pellentesque ac lectus quis elit blandit fringilla a ut turpis praesent.
@@ -34,21 +23,87 @@ Felis ligula, malesuada suscipit malesuada non, ultrices non.
 Shomer shabbos.
 Urna sed orci ipsum, placerat id condimentum rutrum, rhoncus.
 Yeah man, it really tied the room together.
-Ac lorem aliquam placerat.`))}
+Ac lorem aliquam placerat.
+`)
+
+func newTestConfig() Config {
+	// Defaults should be good for most tests
+	config := NewConfig()
+	config.NumBatchers = 1
+	config.LogsURL = "http://"
+	return config
 }
 
-func NewTestInput() *TestInput {
-	return &TestInput{bytes.NewReader([]byte(`Hello World
-Test Line 2
-`))}
+type loopingBuffer struct {
+	b     []byte
+	close chan struct{}
+	p     int
+
+	mu *sync.Mutex
+	r  int
 }
 
-func NewTestInputWithHeaders() *TestInput {
-	return &TestInput{bytes.NewReader([]byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] message 2\n"))}
+func NewLoopingBuffer(b []byte) *loopingBuffer {
+	return &loopingBuffer{
+		mu:    new(sync.Mutex),
+		b:     b,
+		close: make(chan struct{}),
+	}
 }
 
-func (i *TestInput) Close() error {
+func (b *loopingBuffer) Read(p []byte) (n int, err error) {
+	for n < len(p) && err == nil {
+		select {
+		case <-b.close:
+			return n, io.EOF
+		default:
+		}
+
+		c := copy(p[n:], b.b[b.p:])
+		n += c
+		b.p += c
+
+		b.mu.Lock()
+		b.r += c
+		b.mu.Unlock()
+		if b.p >= len(b.b) {
+			b.p = 0
+			return
+		}
+	}
+	return
+}
+
+func (b *loopingBuffer) Close() error {
+	close(b.close)
 	return nil
+}
+
+// bytesRead since last time this was called
+func (b *loopingBuffer) bytesRead() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	v := b.r
+	b.r = 0
+	return v
+}
+
+func NewLongerTestInput() *bytes.Reader {
+	return bytes.NewReader(longerTestData)
+}
+
+func NewTestInput() *bytes.Reader {
+	data := []byte(`Hello World
+Test Line 2
+`)
+	return bytes.NewReader(data)
+}
+
+func NewTestInputWithHeaders() *bytes.Reader {
+	data := []byte(`<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId="1"] message 1
+<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId="2"] message 2
+`)
+	return bytes.NewReader(data)
 }
 
 type noopTestHelper struct{}
@@ -91,7 +146,7 @@ func TestIntegration(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(input)
+	shut.LoadReader(ioutil.NopCloser(input))
 	shut.Launch()
 	shut.WaitForReadersToFinish()
 	shut.Land()
@@ -122,7 +177,7 @@ func TestInputFormatRFC5424Integration(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInputWithHeaders()
-	shut.LoadReader(input)
+	shut.LoadReader(ioutil.NopCloser(input))
 	shut.Launch()
 	shut.WaitForReadersToFinish()
 	shut.Land()
@@ -149,7 +204,7 @@ func TestDrops(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(input)
+	shut.LoadReader(ioutil.NopCloser(input))
 	shut.Launch()
 	shut.Drops.Add(1)
 	shut.Drops.Add(1)
@@ -187,7 +242,7 @@ func TestLost(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(input)
+	shut.LoadReader(ioutil.NopCloser(input))
 	shut.Launch()
 
 	shut.Lost.Add(1)
@@ -228,7 +283,7 @@ func TestUserAgentHeader(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(input)
+	shut.LoadReader(ioutil.NopCloser(input))
 	shut.Launch()
 
 	shut.WaitForReadersToFinish()
@@ -256,7 +311,7 @@ func TestRequestId(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(input)
+	shut.LoadReader(ioutil.NopCloser(input))
 	shut.Launch()
 	shut.WaitForReadersToFinish()
 	shut.Land()
@@ -276,20 +331,19 @@ func BenchmarkPipeline(b *testing.B) {
 	config.LogsURL = ts.URL
 	config.InputFormat = InputFormatRaw
 
-	b.ResetTimer()
+	shut := NewShuttle(config)
+	input := NewLoopingBuffer(longerTestData)
+	shut.LoadReader(input)
+	shut.Launch()
+	var tb int
 	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		shut := NewShuttle(config)
-		input := NewLongerTestInput()
-		b.SetBytes(int64(input.Len()))
-
-		shut.LoadReader(input)
-
-		b.StartTimer()
-		shut.Launch()
-		shut.WaitForReadersToFinish()
-		shut.Land()
+		// This sleep is here to allow the reading goroutines to make
+		// progress reading. Open to better ideas.
+		time.Sleep(10 * time.Microsecond)
+		tb += input.bytesRead()
 	}
+	b.SetBytes(int64(tb / b.N))
+	shut.Land()
 }
 
 func ExampleShuttle() {
@@ -298,6 +352,5 @@ func ExampleShuttle() {
 	s := NewShuttle(config)
 	s.LoadReader(os.Stdin)
 	s.Launch() // Start up the batching/delivering go routines
-	s.WaitForReadersToFinish()
-	s.Land() // Spin down the batching/delivering go routines
+	s.Land()   // Spin down the batching/delivering go routines
 }
