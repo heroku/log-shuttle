@@ -57,6 +57,7 @@ func (tc TestConsumer) Consume(in <-chan LogLine) {
 
 func doBasicLogLineReaderBenchmark(b *testing.B, frontBuffSize int) {
 	b.ResetTimer()
+	var tb int
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		logs := make(chan LogLine, frontBuffSize)
@@ -66,10 +67,11 @@ func doBasicLogLineReaderBenchmark(b *testing.B, frontBuffSize int) {
 		llp := NewInputProducer(TestProducerLines)
 		b.StartTimer()
 		rdr.ReadLogLines(llp)
-		b.SetBytes(int64(llp.TotalBytes))
+		tb += llp.TotalBytes
 		close(logs)
 		testConsumer.Wait()
 	}
+	b.SetBytes(int64(tb / b.N))
 }
 
 func BenchmarkLogLineReaderWithFrontBuffEqual0(b *testing.B) {
