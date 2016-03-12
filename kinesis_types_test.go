@@ -11,7 +11,7 @@ func TestKinesisRecord_MarshalJSONToWriter(t *testing.T) {
 	config := newTestConfig()
 	llf := NewLogplexLineFormatter(LogLineOne, &config)
 	b := new(bytes.Buffer)
-	r := KinesisRecord{llf}
+	r := KinesisRecord{llf: llf}
 
 	_, err := r.WriteTo(b)
 	if err != nil {
@@ -51,8 +51,8 @@ func TestKinesisRecordSharding(t *testing.T) {
 	llf := NewLogplexLineFormatter(LogLineOne, &config)
 	llf2 := NewLogplexLineFormatter(LogLineTwo, &config)
 	b := new(bytes.Buffer)
-	r := KinesisRecord{llf}
-	r2 := KinesisRecord{llf2}
+	r := KinesisRecord{llf: llf, shard: 1}
+	r2 := KinesisRecord{llf: llf2, shard: 2}
 
 	_, err := r.WriteTo(b)
 	if err != nil {
@@ -72,8 +72,9 @@ func TestKinesisRecordSharding(t *testing.T) {
 
 	t.Logf("%+q\n", tr)
 
-	if tr.PartitionKey != "shuttle1" {
-		t.Fatal("Expected PartitonKey to not be empty, but was.")
+	expected := "shuttle1"
+	if tr.PartitionKey != expected {
+		t.Fatalf("Expected PartitonKey to be `%s`, but was `%s`.", expected, tr.PartitionKey)
 	}
 
 	b = new(bytes.Buffer)
