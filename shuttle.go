@@ -1,7 +1,6 @@
 package shuttle
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -112,10 +111,7 @@ func (s *Shuttle) DockReaders() []error {
 // read is batched and delivered. A panic is likely to happen if Land() is
 // called before any readers passed to any ReadLogLines() calls aren't closed.
 func (s *Shuttle) Land() {
-	fmt.Println("doc readers")
 	s.DockReaders()
-	fmt.Println("closing batches")
 	close(s.Batches) // Close the batch channel, all of the outlets will stop once they are done
-	fmt.Println("outlet waiter")
 	s.oWaiter.Wait() // Wait for them to be done
 }
