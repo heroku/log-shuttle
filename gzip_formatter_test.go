@@ -32,7 +32,7 @@ func TestGzipFormatter(t *testing.T) {
 	gr := NewGzipFormatter(f)
 
 	if gr.MsgCount() != 1 {
-		t.Fatal(gr.MsgCount)
+		t.Fatal(gr.MsgCount())
 	}
 
 	// read the compressed bytes

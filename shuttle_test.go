@@ -2,7 +2,6 @@ package shuttle
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -123,7 +122,6 @@ type testHelper struct {
 }
 
 func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("REQUEST")
 	var err error
 	d, err := ioutil.ReadAll(r.Body)
 	if err != nil {
