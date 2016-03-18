@@ -18,7 +18,6 @@ const (
 const (
 	DefaultMaxLineLength = 10000 // Logplex max is 10000 bytes, so default to that
 	DefaultInputFormat   = InputFormatRaw
-	DefaultFrontBuff     = 1000
 	DefaultBackBuff      = 50
 	DefaultTimeout       = 5 * time.Second
 	DefaultWaitDuration  = 250 * time.Millisecond
@@ -34,7 +33,6 @@ const (
 	DefaultHostname      = "shuttle"
 	DefaultMsgID         = "- -"
 	DefaultLogsURL       = ""
-	DefaultNumBatchers   = 2
 	DefaultNumOutlets    = 4
 	DefaultBatchSize     = 500
 	DefaultID            = ""
@@ -65,9 +63,7 @@ type errData struct {
 type Config struct {
 	MaxLineLength                       int
 	BackBuff                            int
-	FrontBuff                           int
 	BatchSize                           int
-	NumBatchers                         int
 	NumOutlets                          int
 	InputFormat                         int
 	MaxAttempts                         int
@@ -114,11 +110,9 @@ func NewConfig() Config {
 		StatsInterval: time.Duration(DefaultStatsInterval),
 		MaxAttempts:   DefaultMaxAttempts,
 		InputFormat:   DefaultInputFormat,
-		NumBatchers:   DefaultNumBatchers,
 		NumOutlets:    DefaultNumOutlets,
 		WaitDuration:  time.Duration(DefaultWaitDuration),
 		BatchSize:     DefaultBatchSize,
-		FrontBuff:     DefaultFrontBuff,
 		BackBuff:      DefaultBackBuff,
 		Timeout:       time.Duration(DefaultTimeout),
 		ID:            DefaultID,

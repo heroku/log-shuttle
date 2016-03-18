@@ -6,12 +6,16 @@ import (
 	"strconv"
 )
 
-var shard int = 1
+const (
+	partitionKeyHeader = `{"PartitionKey":"`
+	partitionKeyFooter = `","Data":"`
+)
 
 // KinesisRecord is used to marshal LoglexLineFormatters to Kinesis Records for
 // the PutRecords API Call
 type KinesisRecord struct {
-	llf *LogplexLineFormatter
+	llf   *LogplexLineFormatter
+	shard int
 }
 
 // WriteTo writes the LogplexLineFormatter to the provided writer
@@ -23,7 +27,7 @@ func (r KinesisRecord) WriteTo(w io.Writer) (n int64, err error) {
 
 	// Add an integer in the PartitionKey to enable distribution
 	// over multiple shards in the Kinesis stream.
-	b = `{"PartitionKey":"` + getPartitionKey(r) + `","Data":"`
+	b = partitionKeyHeader + r.partitionKey() + partitionKeyFooter
 	t, err = w.Write([]byte(b))
 	n += int64(t)
 	if err != nil {
@@ -52,21 +56,11 @@ func encodedLen(n int64) int64 {
 	return (n + 2) / 3 * 4
 }
 
-func getShard(r KinesisRecord) (nextShard string) {
-	// For consistency with older versions, if there is only one shard,
-	// we will just use the app name, and skip any unnecessary work.
-	totalShards := r.llf.shards
-	if totalShards == 1 {
-		return ""
+// There is no guarantee that this partitionKey will hash to a different shard.
+// Consider this a simplistic form of "sharding" for now.
+func (r KinesisRecord) partitionKey() string {
+	if r.shard == 0 {
+		return r.llf.AppName()
 	}
-	if shard > totalShards {
-		shard = totalShards
-	}
-	nextShard = strconv.Itoa(shard)
-	shard++
-	return
-}
-
-func getPartitionKey(r KinesisRecord) string {
-	return r.llf.AppName() + getShard(r)
+	return r.llf.AppName() + strconv.Itoa(r.shard)
 }

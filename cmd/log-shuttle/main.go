@@ -105,10 +105,12 @@ func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 	flag.DurationVar(&c.Timeout, "timeout", c.Timeout, "Duration to wait for a response from logs-url.")
 
 	flag.IntVar(&c.MaxAttempts, "max-attempts", c.MaxAttempts, "Max number of retries.")
-	flag.IntVar(&c.NumBatchers, "num-batchers", c.NumBatchers, "The number of batchers to run.")
+	var b int
+	flag.IntVar(&b, "num-batchers", b, "[NO EFFECT/REMOVED] The number of batchers to run.")
 	flag.IntVar(&c.NumOutlets, "num-outlets", c.NumOutlets, "The number of outlets to run.")
 	flag.IntVar(&c.BatchSize, "batch-size", c.BatchSize, "Number of messages to pack into an application/logplex-1 http request.")
-	flag.IntVar(&c.FrontBuff, "front-buff", c.FrontBuff, "Number of messages to buffer in log-shuttle's input channel.")
+	var f int
+	flag.IntVar(&f, "front-buff", f, "[NO EFFECT/REMOVED] Number of messages to buffer in log-shuttle's input channel.")
 	flag.IntVar(&c.BackBuff, "back-buff", c.BackBuff, "Number of batches to buffer before dropping.")
 	flag.IntVar(&c.MaxLineLength, "max-line-length", c.MaxLineLength, "Number of bytes that the backend allows per line.")
 	flag.IntVar(&c.KinesisShards, "kinesis-shards", c.KinesisShards, "Number of unique partition keys to use per app.")
@@ -118,6 +120,14 @@ func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 	if printVersion {
 		fmt.Println(version)
 		os.Exit(0)
+	}
+
+	if f != 0 {
+		log.Println("Warning: Use of -front-buff is no longer supported. The flag has no effect and will be removed in the future.")
+	}
+
+	if b != 0 {
+		log.Println("Warning: Use of -num-batchers is no longer supported. The flag has no effect and will be removed in the future.")
 	}
 
 	if statsAddr != "" {
@@ -245,13 +255,14 @@ func main() {
 		s.ErrLogger = errLogger
 	}
 
+	s.LoadReader(os.Stdin)
+
 	s.Launch()
 
 	go LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
 
-	// Blocks until os.Stdin errors
-	s.ReadLogLines(os.Stdin)
-	os.Stdin.Close()
+	// blocks until the readers all exit
+	s.WaitForReadersToFinish()
 
 	// Shutdown the shuttle.
 	s.Land()

@@ -17,6 +17,7 @@ type KinesisFormatter struct {
 	records []KinesisRecord
 	keys    *aws4.Keys
 	url     *url.URL
+	shards  int
 	io.Reader
 }
 
@@ -37,15 +38,16 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	kf := &KinesisFormatter{
 		records: make([]KinesisRecord, 0, b.MsgCount()+len(eData)),
 		keys:    &aws4.Keys{AccessKey: awsKey, SecretKey: awsSecret},
+		shards:  config.KinesisShards,
 		url:     u,
 	}
 
 	for _, edata := range eData {
-		kf.records = append(kf.records, KinesisRecord{NewLogplexErrorFormatter(edata, config)})
+		kf.records = append(kf.records, KinesisRecord{llf: NewLogplexErrorFormatter(edata, config)})
 	}
 
 	for _, l := range b.logLines {
-		kf.records = append(kf.records, KinesisRecord{NewLogplexLineFormatter(l, config)})
+		kf.records = append(kf.records, KinesisRecord{llf: NewLogplexLineFormatter(l, config)})
 	}
 
 	recordsReader, recordsWriter := io.Pipe()
@@ -56,7 +58,10 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	)
 
 	go func() {
+		var cs int
 		for i, record := range kf.records {
+			cs := determineShard(cs, config.KinesisShards)
+			record.shard = cs
 			if _, err := record.WriteTo(recordsWriter); err != nil {
 				recordsWriter.CloseWithError(err)
 				return
@@ -72,6 +77,18 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	}()
 
 	return kf
+}
+
+// Given a current shard number and the number number of shards return the next shard number
+// In the case of 0 KinesisRecord does not add the shard number to the PartitionKey
+func determineShard(c, max int) int {
+	if max == 1 {
+		return 0
+	}
+	if c == max {
+		c = 0
+	}
+	return c + 1
 }
 
 // Request constructs a request for this formatter

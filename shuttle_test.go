@@ -29,7 +29,6 @@ Ac lorem aliquam placerat.
 func newTestConfig() Config {
 	// Defaults should be good for most tests
 	config := NewConfig()
-	config.NumBatchers = 1
 	config.LogsURL = "http://"
 	return config
 }
@@ -320,6 +319,10 @@ func TestRequestId(t *testing.T) {
 	if !ok {
 		t.Fatalf("Header X-Request-ID not found in response")
 	}
+}
+
+type lenner interface {
+	Len() int
 }
 
 func BenchmarkPipeline(b *testing.B) {
