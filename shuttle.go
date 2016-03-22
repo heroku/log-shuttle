@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	metrics "github.com/heroku/log-shuttle/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 )
 
 // Default logger to /dev/null
