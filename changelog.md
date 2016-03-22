@@ -1,3 +1,24 @@
+### 0.14.0 2016-03-22 Edward Muller (edward@heroku.com)
+
+* Build with 1.6, move to vendor/
+* Update dependencies
+* Update .travis config to release docker images as well
+
+### 0.13.1 2015-11-16 Andrew Gwozdziewycz (apg@heroku.com)
+
+* Build with 1.5.1
+* ReadBytes can return data with an io.EOF, don't drop that data
+* Doc updates
+* Kinesis Sharding support
+* Dependency updates
+
+### 0.13.0 2015-08-12 Edward Muller (edward@heroku.com)
+
+* Fix -skip-headers to not bomb out it with -input-format=rfc5424
+* Precisely ignore the top-level log-shuttle binary
+* Doc updates
+* LoadReader to add a reader for the shuttle to manage
+
 ### 0.12.0 2015-06-05 Edward Muller (edward@heroku.com)
 
 * Count metrics emit the difference between intervals, not the counter so as to
