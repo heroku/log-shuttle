@@ -22,6 +22,5 @@ deploy:
     secure: X0L3J3k9YGaIUESz22nkTf92d74LXSSOx3LiX/rLlUjavYLX06qlzRGr0nDrrBvYOM3QgkRQWgeaQUgCoPsBP2sFOya47jDl6cg7mKgw4GUPj5fwi82JeOxKOvoLhcXqttgJAaX74J61idvldjyzRtQiTftqj0HpGJj8uW4qb4I=
   file: log-shuttle_${DEB_VERSION}_amd64.deb
   on:
-    all_branches: true
     tags: true
     repo: heroku/log-shuttle
