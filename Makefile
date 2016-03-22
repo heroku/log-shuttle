@@ -45,3 +45,6 @@ docker: gox glv ver clean_docker_build
 
 clean_docker_build:
 	rm -rf .docker_build
+
+docker-push: docker
+	docker push heroku/log-shuttle:${VERSION}

@@ -1,5 +1,7 @@
 language: go
-sudo: false
+services:
+- docker
+sudo: required
 go:
 - 1.6
 script:
@@ -7,10 +9,12 @@ script:
 before_deploy:
 - make debs
 - export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
+- docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+- make docker-push
 notifications:
   hipchat:
     rooms:
-    - secure: "QUMhx7wwa/+gRlSLhXbANh2BoNpPR8TkxwCaRSK8/hAx2UAYExcPzkkobZrhkPCWFT6Cmbtem6j/o2/5DiR8cBb+2QSeBHWBS8Rm+zLfmlWTGOywm8mjQW+kgaUveQSBz7quV+X2Qv0yO7QORH2sWobU1NP3OTu26PfOBaNxYLA="
+    - secure: QUMhx7wwa/+gRlSLhXbANh2BoNpPR8TkxwCaRSK8/hAx2UAYExcPzkkobZrhkPCWFT6Cmbtem6j/o2/5DiR8cBb+2QSeBHWBS8Rm+zLfmlWTGOywm8mjQW+kgaUveQSBz7quV+X2Qv0yO7QORH2sWobU1NP3OTu26PfOBaNxYLA=
     template:
     - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}
       (<a href="%{build_url}">Details</a> | <a href="%{compare_url}">Change view</a>)'
@@ -22,5 +26,11 @@ deploy:
     secure: X0L3J3k9YGaIUESz22nkTf92d74LXSSOx3LiX/rLlUjavYLX06qlzRGr0nDrrBvYOM3QgkRQWgeaQUgCoPsBP2sFOya47jDl6cg7mKgw4GUPj5fwi82JeOxKOvoLhcXqttgJAaX74J61idvldjyzRtQiTftqj0HpGJj8uW4qb4I=
   file: log-shuttle_${DEB_VERSION}_amd64.deb
   on:
+    all_branches: true
     tags: true
     repo: heroku/log-shuttle
+env:
+  global:
+  - secure: H9oSeQVjK/5UlcFEm1Qdcx1SppHHHVhcSQ97I6fu0l6kf/frL9Ps2bonP2D7wwHo7S6UnF/VLz6GWs8Tf258Ihy6J7YqnRPPjPC68yxH1kQYrLFUa9btPKsGH8o/QBiCJ9W86Z7PCTXtaHP2iGqtRsqGZijglkgoU+jrht1qTXU=
+  - secure: QDuK5FEM+dDvcUCZ2iUP/c50vSsmRsqiagPsIspRjxwKYvcNtK4avPYzeTIXBEmym2LflBBVFgsSRf20ohAkZJ8uL6yojuVIXDyZS9Uruys9lx8bv62nW/mDYEV2XrRQmbySTEj3uk4ATE3gzycq7UbJqiWDYUcbFG4mlk5FyLc=
+  - secure: jcZ237tALuRf09+u9jmQ381r83qAWEMGJq/a79eIKbwRW7SLe1SBaDyDfZTDkUX/WB8njhU4LHdx9UavsX99nFj2U2kAaw1TLTDDUE/xo+asjptzIG8lqgouVXGsy78JKBEfdLpp/jHqnqpTGPG9G3w0CaammWoKtCn7ERQtZos=
