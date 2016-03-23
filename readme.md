@@ -63,7 +63,7 @@ Things that should be handled better/things you should know:
 1. Kinesis does not support the -gzip option as that option compresses the body
    of the request.
 1. Even with `-kinesis-shards`, no guarantees can be made about writing to unique
-   shards. 
+   shards.
 
 ## Install
 
@@ -78,7 +78,7 @@ After that `$GOPATH/bin/log-shuttle` should be available.
 Requires:
 
 * dpkg (see also `brew install dpkg`)
-* go & gox (updated via Makefile)
+* go 1.6+
 
 ```bash
 make debs
