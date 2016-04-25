@@ -26,7 +26,7 @@ type LogLineReader struct {
 	linesDroppedCount metrics.Counter
 	batchFillTime     metrics.Timer
 
-	mu *sync.Mutex // protects access to bewlo
+	mu sync.Mutex // protects access to below
 	b  Batch
 }
 
@@ -50,8 +50,7 @@ func NewLogLineReader(input io.ReadCloser, s *Shuttle) *LogLineReader {
 		linesDroppedCount: metrics.GetOrRegisterCounter("lines.dropped", s.MetricsRegistry),
 		batchFillTime:     metrics.GetOrRegisterTimer("batch.fill", s.MetricsRegistry),
 
-		mu: new(sync.Mutex),
-		b:  NewBatch(s.config.BatchSize),
+		b: NewBatch(s.config.BatchSize),
 	}
 
 	go ll.expireBatches()
@@ -109,7 +108,7 @@ func (rdr *LogLineReader) ReadLines() error {
 	}
 }
 
-// Should only be called when rdr.mu.Lock() is held
+// Should only be called when rdr.mu is held
 func (rdr *LogLineReader) deliverOrDropCurrent() {
 	rdr.timer.Stop()
 	// There is the possibility of a new batch being expired while this is happening.

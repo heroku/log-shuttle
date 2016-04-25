@@ -38,13 +38,12 @@ type loopingBuffer struct {
 	close chan struct{}
 	p     int
 
-	mu *sync.Mutex
+	mu sync.Mutex
 	r  int
 }
 
 func NewLoopingBuffer(b []byte) *loopingBuffer {
 	return &loopingBuffer{
-		mu:    new(sync.Mutex),
 		b:     b,
 		close: make(chan struct{}),
 	}
