@@ -90,18 +90,18 @@ func NewLongerTestInput() *bytes.Reader {
 	return bytes.NewReader(longerTestData)
 }
 
-func NewTestInput() *bytes.Reader {
+func NewTestInput() io.ReadCloser {
 	data := []byte(`Hello World
 Test Line 2
 `)
-	return bytes.NewReader(data)
+	return ioutil.NopCloser(bytes.NewReader(data))
 }
 
-func NewTestInputWithHeaders() *bytes.Reader {
+func NewTestInputWithHeaders() io.ReadCloser {
 	data := []byte(`<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId="1"] message 1
 <13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId="2"] message 2
 `)
-	return bytes.NewReader(data)
+	return ioutil.NopCloser(bytes.NewReader(data))
 }
 
 type noopTestHelper struct{}
@@ -144,7 +144,7 @@ func TestIntegration(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(ioutil.NopCloser(input))
+	shut.LoadReader(input)
 	shut.Launch()
 	shut.WaitForReadersToFinish()
 	shut.Land()
@@ -175,7 +175,7 @@ func TestInputFormatRFC5424Integration(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInputWithHeaders()
-	shut.LoadReader(ioutil.NopCloser(input))
+	shut.LoadReader(input)
 	shut.Launch()
 	shut.WaitForReadersToFinish()
 	shut.Land()
@@ -202,7 +202,7 @@ func TestDrops(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(ioutil.NopCloser(input))
+	shut.LoadReader(input)
 	shut.Launch()
 	shut.Drops.Add(1)
 	shut.Drops.Add(1)
@@ -240,7 +240,7 @@ func TestLost(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(ioutil.NopCloser(input))
+	shut.LoadReader(input)
 	shut.Launch()
 
 	shut.Lost.Add(1)
@@ -281,7 +281,7 @@ func TestUserAgentHeader(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(ioutil.NopCloser(input))
+	shut.LoadReader(input)
 	shut.Launch()
 
 	shut.WaitForReadersToFinish()
@@ -309,7 +309,7 @@ func TestRequestId(t *testing.T) {
 
 	shut := NewShuttle(config)
 	input := NewTestInput()
-	shut.LoadReader(ioutil.NopCloser(input))
+	shut.LoadReader(input)
 	shut.Launch()
 	shut.WaitForReadersToFinish()
 	shut.Land()
