@@ -17,7 +17,6 @@ type KinesisFormatter struct {
 	records []KinesisRecord
 	keys    *aws4.Keys
 	url     *url.URL
-	shards  int
 	io.Reader
 }
 
@@ -38,7 +37,6 @@ func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter
 	kf := &KinesisFormatter{
 		records: make([]KinesisRecord, 0, b.MsgCount()+len(eData)),
 		keys:    &aws4.Keys{AccessKey: awsKey, SecretKey: awsSecret},
-		shards:  config.KinesisShards,
 		url:     u,
 	}
 
