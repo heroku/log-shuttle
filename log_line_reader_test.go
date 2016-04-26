@@ -22,8 +22,7 @@ type InputProducer struct {
 }
 
 func NewInputProducer(c int) *InputProducer {
-	var curr, tb int
-	return &InputProducer{Total: c, Curr: curr, TotalBytes: tb, Data: TestData}
+	return &InputProducer{Total: c, Data: TestData}
 }
 
 func (llp *InputProducer) Read(p []byte) (n int, err error) {
@@ -40,10 +39,10 @@ func (llp InputProducer) Close() error {
 }
 
 type TestConsumer struct {
-	*sync.WaitGroup
+	sync.WaitGroup
 }
 
-func (tc TestConsumer) Consume(in <-chan Batch) {
+func (tc *TestConsumer) Consume(in <-chan Batch) {
 	tc.Add(1)
 	go func() {
 		defer tc.Done()
@@ -55,20 +54,20 @@ func (tc TestConsumer) Consume(in <-chan Batch) {
 func doBasicLogLineReaderBenchmark(b *testing.B, backBuffSize int) {
 	b.ResetTimer()
 	var tb int
+	var tc TestConsumer
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		batches := make(chan Batch, backBuffSize)
+		tc.Consume(batches)
 		s := NewShuttle(NewConfig())
 		llp := NewInputProducer(TestProducerLines)
 		rdr := NewLogLineReader(llp, s)
-		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Consume(batches)
-
 		b.StartTimer()
+
 		rdr.ReadLines()
 		tb += llp.TotalBytes
 		close(batches)
-		testConsumer.Wait()
+		tc.Wait()
 	}
 	b.SetBytes(int64(tb / b.N))
 }
