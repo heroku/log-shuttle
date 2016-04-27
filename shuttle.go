@@ -17,35 +17,31 @@ var (
 // Shuttle is the main entry point into the library
 type Shuttle struct {
 	LogLineReader
-	config                    Config
-	LogLines                  chan LogLine
-	Batches                   chan Batch
-	readers                   []io.ReadCloser
-	MetricsRegistry           metrics.Registry
-	bWaiter, oWaiter, rWaiter *sync.WaitGroup
-	Drops, Lost               *Counter
-	NewFormatterFunc          NewHTTPFormatterFunc
-	Logger                    *log.Logger
-	ErrLogger                 *log.Logger
+	config           Config
+	Batches          chan Batch
+	readers          []*LogLineReader
+	MetricsRegistry  metrics.Registry
+	oWaiter, rWaiter *sync.WaitGroup
+	Drops, Lost      *Counter
+	NewFormatterFunc NewHTTPFormatterFunc
+	Logger           *log.Logger
+	ErrLogger        *log.Logger
 }
 
 // NewShuttle returns a properly constructed Shuttle with a given config
 func NewShuttle(config Config) *Shuttle {
-	ll := make(chan LogLine, config.FrontBuff)
+	b := make(chan Batch, config.BackBuff)
 	mr := metrics.NewRegistry()
 
 	return &Shuttle{
 		config:           config,
-		LogLineReader:    NewLogLineReader(ll, mr),
-		LogLines:         ll,
-		Batches:          make(chan Batch, config.BackBuff),
+		Batches:          b,
 		Drops:            NewCounter(0),
 		Lost:             NewCounter(0),
 		MetricsRegistry:  mr,
 		NewFormatterFunc: config.FormatterFunc,
-		readers:          make([]io.ReadCloser, 0),
+		readers:          make([]*LogLineReader, 0),
 		oWaiter:          new(sync.WaitGroup),
-		bWaiter:          new(sync.WaitGroup),
 		rWaiter:          new(sync.WaitGroup),
 		Logger:           discardLogger,
 		ErrLogger:        discardLogger,
@@ -56,7 +52,13 @@ func NewShuttle(config Config) *Shuttle {
 // is the reverse of shutdown.
 func (s *Shuttle) Launch() {
 	s.startOutlets()
-	s.startBatchers()
+	for _, rdr := range s.readers {
+		s.rWaiter.Add(1)
+		go func(rdr *LogLineReader) {
+			rdr.ReadLines()
+			s.rWaiter.Done()
+		}(rdr)
+	}
 }
 
 // startOutlet launches config.NumOutlets number of outlets. When inbox is
@@ -65,22 +67,9 @@ func (s *Shuttle) startOutlets() {
 	for i := 0; i < s.config.NumOutlets; i++ {
 		s.oWaiter.Add(1)
 		go func() {
-			defer s.oWaiter.Done()
 			outlet := NewHTTPOutlet(s)
 			outlet.Outlet()
-		}()
-	}
-}
-
-// startBatchers starts config.NumBatchers number of batchers.  When inLogs is
-// closed the batchers will finsih up and exit.
-func (s *Shuttle) startBatchers() {
-	for i := 0; i < s.config.NumBatchers; i++ {
-		s.bWaiter.Add(1)
-		go func() {
-			defer s.bWaiter.Done()
-			batcher := NewBatcher(s)
-			batcher.Batch()
+			s.oWaiter.Done()
 		}()
 	}
 }
@@ -89,18 +78,14 @@ func (s *Shuttle) startBatchers() {
 // log-shuttle to track the readers for you. The errors returned by ReadLogLines
 // are discarded.
 func (s *Shuttle) LoadReader(rdr io.ReadCloser) {
-	s.rWaiter.Add(1)
-	s.readers = append(s.readers, rdr)
-	go func() {
-		s.ReadLogLines(rdr)
-		s.rWaiter.Done()
-	}()
+	r := NewLogLineReader(rdr, s)
+	s.readers = append(s.readers, r)
 }
 
 // CloseReaders closes all tracked readers and returns any errors returned by
 // Close()ing the readers
 func (s *Shuttle) CloseReaders() []error {
-	errors := make([]error, len(s.readers))
+	var errors []error
 	for _, closer := range s.readers {
 		if err := closer.Close(); err != nil {
 			errors = append(errors, err)
@@ -127,8 +112,6 @@ func (s *Shuttle) DockReaders() []error {
 // called before any readers passed to any ReadLogLines() calls aren't closed.
 func (s *Shuttle) Land() {
 	s.DockReaders()
-	close(s.LogLines) // Close the log line channel, all of the batchers will stop once they are done
-	s.bWaiter.Wait()  // Wait for them to be done
-	close(s.Batches)  // Close the batch channel, all of the outlets will stop once they are done
-	s.oWaiter.Wait()  // Wait for them to be done
+	close(s.Batches) // Close the batch channel, all of the outlets will stop once they are done
+	s.oWaiter.Wait() // Wait for them to be done
 }

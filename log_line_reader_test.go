@@ -4,8 +4,6 @@ import (
 	"io"
 	"sync"
 	"testing"
-
-	"github.com/rcrowley/go-metrics"
 )
 
 const (
@@ -24,9 +22,7 @@ type InputProducer struct {
 }
 
 func NewInputProducer(c int) *InputProducer {
-	curr := 0
-	tb := 0
-	return &InputProducer{Total: c, Curr: curr, TotalBytes: tb, Data: TestData}
+	return &InputProducer{Total: c, Data: TestData}
 }
 
 func (llp *InputProducer) Read(p []byte) (n int, err error) {
@@ -43,10 +39,10 @@ func (llp InputProducer) Close() error {
 }
 
 type TestConsumer struct {
-	*sync.WaitGroup
+	sync.WaitGroup
 }
 
-func (tc TestConsumer) Consume(in <-chan LogLine) {
+func (tc *TestConsumer) Consume(in <-chan Batch) {
 	tc.Add(1)
 	go func() {
 		defer tc.Done()
@@ -55,43 +51,47 @@ func (tc TestConsumer) Consume(in <-chan LogLine) {
 	}()
 }
 
-func doBasicLogLineReaderBenchmark(b *testing.B, frontBuffSize int) {
+func doBasicLogLineReaderBenchmark(b *testing.B, backBuffSize int) {
 	b.ResetTimer()
+	var tb int
+	var tc TestConsumer
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		logs := make(chan LogLine, frontBuffSize)
-		rdr := NewLogLineReader(logs, metrics.NewRegistry())
-		testConsumer := TestConsumer{new(sync.WaitGroup)}
-		testConsumer.Consume(logs)
+		batches := make(chan Batch, backBuffSize)
+		tc.Consume(batches)
+		s := NewShuttle(NewConfig())
 		llp := NewInputProducer(TestProducerLines)
+		rdr := NewLogLineReader(llp, s)
 		b.StartTimer()
-		rdr.ReadLogLines(llp)
-		b.SetBytes(int64(llp.TotalBytes))
-		close(logs)
-		testConsumer.Wait()
+
+		rdr.ReadLines()
+		tb += llp.TotalBytes
+		close(batches)
+		tc.Wait()
 	}
+	b.SetBytes(int64(tb / b.N))
 }
 
-func BenchmarkLogLineReaderWithFrontBuffEqual0(b *testing.B) {
+func BenchmarkLogLineReaderWithBackBuffEqual0(b *testing.B) {
 	doBasicLogLineReaderBenchmark(b, 0)
 }
 
-func BenchmarkLogLineReaderWithFrontBuffEqual1(b *testing.B) {
+func BenchmarkLogLineReaderWithBackBuffEqual1(b *testing.B) {
 	doBasicLogLineReaderBenchmark(b, 1)
 }
 
-func BenchmarkLogLineReaderWithFrontBuffEqual100(b *testing.B) {
+func BenchmarkLogLineReaderWithBackBuffEqual100(b *testing.B) {
 	doBasicLogLineReaderBenchmark(b, 100)
 }
 
-func BenchmarkLogLineReaderWithFrontBuffEqual1000(b *testing.B) {
+func BenchmarkLogLineReaderWithBackBuffEqual1000(b *testing.B) {
 	doBasicLogLineReaderBenchmark(b, 1000)
 }
 
-func BenchmarkLogLineReaderWithFrontBuffEqual10000(b *testing.B) {
+func BenchmarkLogLineReaderWithBackBuffEqual10000(b *testing.B) {
 	doBasicLogLineReaderBenchmark(b, 10000)
 }
 
-func BenchmarkLogLineReaderWithDefaultFrontBuff(b *testing.B) {
-	doBasicLogLineReaderBenchmark(b, DefaultFrontBuff)
+func BenchmarkLogLineReaderWithDefaultBackBuff(b *testing.B) {
+	doBasicLogLineReaderBenchmark(b, DefaultBackBuff)
 }
