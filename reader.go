@@ -81,6 +81,7 @@ func (rdr *LogLineReader) Close() error {
 // blocks until the underlying reader is closed
 func (rdr *LogLineReader) ReadLines() error {
 	rdrIo := bufio.NewReader(rdr.input)
+	now := time.Now()
 
 	for {
 		line, err := rdrIo.ReadBytes('\n')
@@ -90,9 +91,11 @@ func (rdr *LogLineReader) ReadLines() error {
 			rdr.linesRead.Inc(1)
 			rdr.mu.Lock()
 			if full := rdr.b.Add(LogLine{line, currentLogTime}); full {
+				rdr.batchFillTime.UpdateSince(now)
 				rdr.deliverOrDropCurrent()
 			}
 			if rdr.b.MsgCount() == 1 { // First line so restart the timer
+				now = time.Now()
 				rdr.timer.Reset(rdr.timeOut)
 			}
 			rdr.mu.Unlock()
