@@ -66,6 +66,7 @@ func (rdr *LogLineReader) expireBatches() {
 
 		case <-rdr.timer.C:
 			rdr.mu.Lock()
+			rdr.batchFillTime.Update(rdr.timeOut)
 			rdr.deliverOrDropCurrent()
 			rdr.mu.Unlock()
 		}
