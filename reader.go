@@ -66,7 +66,7 @@ func (rdr *LogLineReader) expireBatches() {
 
 		case <-rdr.timer.C:
 			rdr.mu.Lock()
-			rdr.deliverOrDropCurrent()
+			rdr.deliverOrDropCurrent(rdr.timeOut)
 			rdr.mu.Unlock()
 		}
 	}
@@ -91,8 +91,7 @@ func (rdr *LogLineReader) ReadLines() error {
 			rdr.linesRead.Inc(1)
 			rdr.mu.Lock()
 			if full := rdr.b.Add(LogLine{line, currentLogTime}); full {
-				rdr.batchFillTime.UpdateSince(now)
-				rdr.deliverOrDropCurrent()
+				rdr.deliverOrDropCurrent(time.Since(now))
 			}
 			if rdr.b.MsgCount() == 1 { // First line so restart the timer
 				now = time.Now()
@@ -103,7 +102,7 @@ func (rdr *LogLineReader) ReadLines() error {
 
 		if err != nil {
 			rdr.mu.Lock()
-			rdr.deliverOrDropCurrent()
+			rdr.deliverOrDropCurrent(time.Since(now))
 			rdr.mu.Unlock()
 			close(rdr.close)
 			return err
@@ -112,7 +111,7 @@ func (rdr *LogLineReader) ReadLines() error {
 }
 
 // Should only be called when rdr.mu is held
-func (rdr *LogLineReader) deliverOrDropCurrent() {
+func (rdr *LogLineReader) deliverOrDropCurrent(d time.Duration) {
 	rdr.timer.Stop()
 	// There is the possibility of a new batch being expired while this is happening.
 	// so guard against queueing up an empty batch
@@ -129,6 +128,8 @@ func (rdr *LogLineReader) deliverOrDropCurrent() {
 			rdr.out <- rdr.b
 			rdr.linesBatchedCount.Inc(int64(c))
 		}
+
+		rdr.batchFillTime.Update(d)
 		rdr.b = NewBatch(rdr.batchSize)
 	}
 }
