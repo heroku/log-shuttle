@@ -3,7 +3,7 @@ services:
 - docker
 sudo: required
 go:
-- 1.6
+- 1.7
 script:
 - make test
 before_deploy:
@@ -11,14 +11,6 @@ before_deploy:
 - export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
 - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 - make docker-push
-notifications:
-  hipchat:
-    rooms:
-    - secure: QUMhx7wwa/+gRlSLhXbANh2BoNpPR8TkxwCaRSK8/hAx2UAYExcPzkkobZrhkPCWFT6Cmbtem6j/o2/5DiR8cBb+2QSeBHWBS8Rm+zLfmlWTGOywm8mjQW+kgaUveQSBz7quV+X2Qv0yO7QORH2sWobU1NP3OTu26PfOBaNxYLA=
-    template:
-    - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message}
-      (<a href="%{build_url}">Details</a> | <a href="%{compare_url}">Change view</a>)'
-    format: html
 deploy:
   skip_cleanup: true
   provider: releases
