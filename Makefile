@@ -10,11 +10,11 @@ test:
 install: ldflags
 	go install -v ${LDFLAGS} ./...
 
-update-deps: godep
-	godep save ./...
+update-deps: govendor
+	govendor add +ex
 
-godep:
-	go get -u github.com/tools/godep
+govendor:
+	go get -u github.com/kardianos/govendor
 
 debs: tmp ldflags ver
 	$(eval DEB_ROOT := "${TMP}/DEBIAN")
