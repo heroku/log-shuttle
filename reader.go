@@ -112,7 +112,9 @@ func (rdr *LogLineReader) ReadLines() error {
 
 // Should only be called when rdr.mu is held
 func (rdr *LogLineReader) deliverOrDropCurrent(d time.Duration) {
-	rdr.timer.Stop()
+	if !rdr.timer.Stop() {
+		<-rdr.timer.C
+	}
 	// There is the possibility of a new batch being expired while this is happening.
 	// so guard against queueing up an empty batch
 	if c := rdr.b.MsgCount(); c > 0 {
