@@ -22,7 +22,7 @@ delimited format.
 When using log-shuttle with [Amazon's
 Kinesis]("http://aws.amazon.com/kinesis/"), all the details for the region,
 stream and access credentials are supplied in the -logs-url (or $LOGS_URL env
-variable). See the Kinesis setion of this document.
+variable). See the Kinesis section of this document.
 
 To block as little as possible, log-shuttle will drop outstanding batches if
 it accumulates > -back-buff amount.
