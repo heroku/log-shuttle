@@ -116,7 +116,6 @@ func (th *noopTestHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type testHelper struct {
 	Actual  []byte
 	Headers http.Header
-	Called  int
 	sync.Mutex
 }
 
@@ -128,7 +127,6 @@ func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ts.Mutex.Lock()
 	defer ts.Mutex.Unlock()
-	ts.Called++
 	// Last request wins the race
 	ts.Actual = d
 	ts.Headers = r.Header
