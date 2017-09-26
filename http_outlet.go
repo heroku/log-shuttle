@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -65,10 +64,10 @@ func NewHTTPOutlet(s *Shuttle) *HTTPOutlet {
 		errLogger:        s.ErrLogger,
 		Logger:           s.Logger,
 		client: &http.Client{
-			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: s.config.SkipVerify},
-				ResponseHeaderTimeout: s.config.Timeout,
-				Dial: func(network, address string) (net.Conn, error) {
-					return net.DialTimeout(network, address, s.config.Timeout)
+			Timeout: s.config.Timeout,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: s.config.SkipVerify,
 				},
 			},
 		},

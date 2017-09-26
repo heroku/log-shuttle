@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -100,10 +101,50 @@ func TestOutletEOFRetryMax(t *testing.T) {
 		t.Errorf("lost != 1, == %q\n", lost)
 	}
 
-	logMessageCheck := regexp.MustCompile(`EOF`)
-	logMessage := logCapture.Bytes()
-	if !logMessageCheck.Match(logMessage) {
-		t.Errorf("logMessage is wrong: %q\n", logMessage)
+	if msg := logCapture.Bytes(); !bytes.Contains(msg, []byte("EOF")) {
+		t.Errorf("expected log message to contain `EOF`, got %q", msg)
+	}
+}
+
+func TestTimeout(t *testing.T) {
+	var called int32
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&called, 1)
+		if v := atomic.LoadInt32(&called); v < 2 {
+			time.Sleep(250 * time.Millisecond)
+		}
+	}))
+	defer ts.Close()
+
+	config := newTestConfig()
+	config.LogsURL = ts.URL
+	config.SkipVerify = true
+	config.Timeout = 100 * time.Millisecond
+
+	s := NewShuttle(config)
+	var logCapture bytes.Buffer
+	s.ErrLogger = log.New(&logCapture, "", 0)
+	outlet := NewHTTPOutlet(s)
+
+	batch := NewBatch(config.BatchSize)
+	batch.Add(LogLine{[]byte("Hello"), time.Now()})
+	outlet.retryPost(batch)
+
+	if v := atomic.LoadInt32(&called); v != 2 {
+		t.Errorf("expected called to be 2, but got %d", called)
+	}
+
+	if lost := s.Lost.Read(); lost > 0 {
+		t.Errorf("expected lost of 0, got %d", lost)
+	}
+
+	mrLost := metrics.GetOrRegisterCounter("msg.lost", s.MetricsRegistry)
+	if lost := mrLost.Count(); lost > 0 {
+		t.Errorf("expected metrics lost of 0, got %d\n", lost)
+	}
+
+	if msg := logCapture.Bytes(); !bytes.Contains(msg, []byte("retry=true")) {
+		t.Errorf("expected log message to contain `retry=trye`, got %q", msg)
 	}
 
 }
