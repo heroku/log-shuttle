@@ -17,12 +17,10 @@ import (
 const (
 	// EOFRetrySleep is the amount of time to sleep between retries caused by an io.EOF, in ms.
 	EOFRetrySleep = 100
-	// OtherRetrySleep is the tIme to sleep between retries for any other error, in ms.
+	// OtherRetrySleep is the time to sleep between retries for any other error, in ms.
 	OtherRetrySleep = 1000
 	// DepthHighWatermark is the high watermark, beyond which the outlet looses batches instead of retrying.
 	DepthHighWatermark = 0.6
-	// RetryFormat is the format string for retries
-	RetryFormat = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q\n"
 	// RetryWithTypeFormat if the format string for retries that also have a type
 	RetryWithTypeFormat = "at=post retry=%t msgcount=%d inbox.length=%d request_id=%q attempts=%d error=%q errtype=\"%T\"\n"
 )
@@ -85,7 +83,7 @@ func (h *HTTPOutlet) Outlet() {
 	}
 }
 
-// Retry io.EOF errors h.config.MaxAttempts times
+// retryPost posts batch and will retry on error up to h.config.MaxAttempts times.
 func (h *HTTPOutlet) retryPost(batch Batch) {
 	var dropData, lostData errData
 
@@ -113,17 +111,14 @@ func (h *HTTPOutlet) retryPost(batch Batch) {
 			inboxLength := len(h.inbox)
 			h.inboxLengthGauge.Update(int64(inboxLength))
 			msgCount := batch.MsgCount()
-			err, ok := err.(*url.Error)
-			if ok {
-				if attempts < h.config.MaxAttempts && inboxLength < h.lostMark {
-					h.errLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, batch.UUID, attempts, err, err.Err)
-					if err.Err == io.EOF {
-						time.Sleep(time.Duration(attempts) * EOFRetrySleep * time.Millisecond)
-					} else {
-						time.Sleep(time.Duration(attempts) * OtherRetrySleep * time.Millisecond)
-					}
-					continue
+			if attempts < h.config.MaxAttempts && inboxLength < h.lostMark {
+				h.errLogger.Printf(RetryWithTypeFormat, true, msgCount, inboxLength, batch.UUID, attempts, err, err)
+				var si time.Duration = OtherRetrySleep
+				if isEOF(err) {
+					si = EOFRetrySleep
 				}
+				time.Sleep(time.Duration(attempts) * si * time.Millisecond)
+				continue
 			}
 			h.errLogger.Printf(RetryWithTypeFormat, false, msgCount, inboxLength, batch.UUID, attempts, err, err)
 			h.lost.Add(msgCount)
@@ -181,4 +176,15 @@ func (h *HTTPOutlet) timeRequest(req *http.Request) (resp *http.Response, err er
 		}
 	}(time.Now())
 	return h.client.Do(req)
+}
+
+// isEOF returns whether err is io.EOF or a *url.Error wrapping
+// io.EOF.
+func isEOF(err error) bool {
+	if err == io.EOF {
+		return true
+	}
+
+	uerr, ok := err.(*url.Error)
+	return ok && uerr.Err == io.EOF
 }
