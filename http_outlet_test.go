@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -38,6 +39,40 @@ func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ts.Actual = append(ts.Actual, d...)
 	ts.Headers = r.Header
+}
+
+func TestOutletDoesNotLeakCredentials(t *testing.T) {
+	logLineText := "Hello"
+	th := &testEOFHelper{maxCloses: 1}
+	ts := httptest.NewTLSServer(th)
+	ts.Close() // Close it because we want posts to fail.
+
+	config := newTestConfig()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u.User = url.UserPassword("some-user", "some-secret")
+
+	config.LogsURL = u.String()
+	config.SkipVerify = true
+
+	out := &bytes.Buffer{}
+	errlog := log.New(out, "", log.Lshortfile)
+	s := NewShuttle(config)
+	s.ErrLogger = errlog
+	outlet := NewHTTPOutlet(s)
+
+	batch := NewBatch(config.BatchSize)
+
+	batch.Add(LogLine{[]byte(logLineText), time.Now()})
+
+	outlet.retryPost(batch)
+
+	if l := out.String(); strings.Contains(l, "some-user") || strings.Contains(l, "some-secret") {
+		t.Errorf("got error log with secrets: some-user / some-secret, wanted nothing: %s", l)
+	}
 }
 
 func TestOutletEOFRetry(t *testing.T) {

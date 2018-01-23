@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -76,11 +77,21 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 // Request returns a properly constructed *http.Request, complete with headers
 // and ContentLength set.
 func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
-	req, err := http.NewRequest("POST", bf.stringURL, bf)
+	u, err := url.Parse(bf.stringURL)
 	if err != nil {
 		return nil, err
 	}
 
+	u, user, pass := extractCredentials(u)
+
+	req, err := http.NewRequest("POST", u.String(), bf)
+	if err != nil {
+		return nil, err
+	}
+
+	if user != "" || pass != "" {
+		req.SetBasicAuth(user, pass)
+	}
 	req.Header = bf.headers
 
 	return req, nil
