@@ -46,7 +46,6 @@ func TestCreds(t *testing.T) {
 	b := NewBatch(1)
 	b.Add(LogLineOne)
 	b.Add(LogLineTwo)
-	log.Printf("config = %+v", config)
 	br := NewLogplexBatchFormatter(b, noErrData, &config)
 	r, err := br.Request()
 	if err != nil {
