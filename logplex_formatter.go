@@ -28,7 +28,7 @@ type LogplexBatchFormatter struct {
 }
 
 type urlCacheItem struct {
-	*url.URL               // *url.URL with user credentials removed
+	url.URL                // url.URL with user credentials removed
 	urls, user, pwd string // rendered url and the user and password, if any.
 }
 
@@ -55,10 +55,9 @@ func sanatizedURL(s string) urlCacheItem {
 		c.user = u.User.Username()
 		c.pwd, _ = u.User.Password()
 	}
-	u.User = nil         // zero out user
-	c.URL = new(url.URL) // allocate a new url
-	*c.URL = *u          // copy the value, not the pointer
-	c.urls = u.String()  // save a copy as a string
+	u.User = nil // zero out user to remove any creds
+	c.URL = *u
+	c.urls = u.String() // save a copy as a string
 
 	cmu.Lock()
 	if len(urlCache) > URLCacheSizeMax {
@@ -66,6 +65,7 @@ func sanatizedURL(s string) urlCacheItem {
 	}
 	urlCache[s] = c
 	cmu.Unlock()
+
 	return c
 }
 
