@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -41,37 +40,24 @@ func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.Headers = r.Header
 }
 
-func TestOutletDoesNotLeakCredentials(t *testing.T) {
-	logLineText := "Hello"
-	th := &testEOFHelper{maxCloses: 1}
-	ts := httptest.NewTLSServer(th)
-	ts.Close() // Close it because we want posts to fail.
-
+func TestCreds(t *testing.T) {
 	config := newTestConfig()
-
-	u, err := url.Parse(ts.URL)
+	config.LogsURL = "http://foo:bar@localhost/"
+	b := NewBatch(1)
+	b.Add(LogLineOne)
+	b.Add(LogLineTwo)
+	log.Printf("config = %+v", config)
+	br := NewLogplexBatchFormatter(b, noErrData, &config)
+	r, err := br.Request()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unexpected error constructing request %q", err)
 	}
-	u.User = url.UserPassword("some-user", "some-secret")
+	if r.URL.User != nil {
+		t.Error("expected r.URL.User to be nil, but wasn't")
+	}
 
-	config.LogsURL = u.String()
-	config.SkipVerify = true
-
-	out := &bytes.Buffer{}
-	errlog := log.New(out, "", log.Lshortfile)
-	s := NewShuttle(config)
-	s.ErrLogger = errlog
-	outlet := NewHTTPOutlet(s)
-
-	batch := NewBatch(config.BatchSize)
-
-	batch.Add(LogLine{[]byte(logLineText), time.Now()})
-
-	outlet.retryPost(batch)
-
-	if l := out.String(); strings.Contains(l, "some-user") || strings.Contains(l, "some-secret") {
-		t.Errorf("got error log with secrets: some-user / some-secret, wanted nothing: %s", l)
+	if u, p, ok := r.BasicAuth(); !ok && u != "foo" && p != "bar" {
+		t.Errorf("expected BasicAuth to be foo, bar, true, but got %s, %s, %t", u, p, ok)
 	}
 }
 

@@ -89,10 +89,12 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 		return nil, err
 	}
 
+	// Assign headers before we potentially BasicAuth
+	req.Header = bf.headers
+
 	if user != "" || pass != "" {
 		req.SetBasicAuth(user, pass)
 	}
-	req.Header = bf.headers
 
 	return req, nil
 }
