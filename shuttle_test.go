@@ -29,7 +29,7 @@ Ac lorem aliquam placerat.
 func newTestConfig() Config {
 	// Defaults should be good for most tests
 	config := NewConfig()
-	config.LogsURL = "http://"
+	config.LogsURL = "http://localhost/"
 	return config
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -26,24 +27,57 @@ type LogplexBatchFormatter struct {
 	headers              http.Header
 }
 
-// NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
-func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
-	u, err := url.Parse(config.LogsURL)
+type urlCacheItem struct {
+	*url.URL               // *url.URL with user credentials removed
+	urls, user, pwd string // rendered url and the user and password, if any.
+}
+
+var (
+	URLCacheSizeMax = 100                           // dumb cache, max # of items, but better then growing unbounded
+	urlCache        = make(map[string]urlCacheItem) // raw url -> cached, cleaned url data
+	cmu             sync.RWMutex
+)
+
+func sanatizedURL(s string) urlCacheItem {
+	cmu.RLock()
+	c, ok := urlCache[s]
+	cmu.RUnlock()
+	if ok {
+		return c
+	}
+
+	// cache miss, calculate
+	u, err := url.Parse(s)
 	if err != nil {
 		panic(err)
 	}
-	var user, pwd string
 	if u.User != nil {
-		user = u.User.Username()
-		pwd, _ = u.User.Password()
+		c.user = u.User.Username()
+		c.pwd, _ = u.User.Password()
 	}
-	u.User = nil
+	u.User = nil         // zero out user
+	c.URL = new(url.URL) // allocate a new url
+	*c.URL = *u          // copy the value, not the pointer
+	c.urls = u.String()  // save a copy as a string
 
+	cmu.Lock()
+	if len(urlCache) > URLCacheSizeMax {
+		urlCache = make(map[string]urlCacheItem)
+	}
+	urlCache[s] = c
+	cmu.Unlock()
+	return c
+}
+
+// NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
+// Will panic if config.LogsURL isn't url.Parsable
+func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
+	ui := sanatizedURL(config.LogsURL)
 	bf := &LogplexBatchFormatter{
 		headers:   make(http.Header),
-		stringURL: u.String(),
-		user:      user,
-		pwd:       pwd,
+		stringURL: ui.urls,
+		user:      ui.user,
+		pwd:       ui.pwd,
 	}
 
 	bf.headers.Add("Content-Type", LogplexContentType)
@@ -95,7 +129,9 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 	}
 
 	req.Header = bf.headers
-	req.SetBasicAuth(bf.user, bf.pwd)
+	if bf.user != "" || bf.pwd != "" {
+		req.SetBasicAuth(bf.user, bf.pwd)
+	}
 
 	return req, nil
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/bmizerany/aws4"
@@ -14,30 +13,25 @@ import (
 // Kinesis has a very small payload side, so recommend setting config.BatchSize in the 1-3 range so as to not loose logs because we go over the batch size.
 // Kinesis formats the Data using the LogplexLineFormatter, which is additionally base64 encoded.
 type KinesisFormatter struct {
-	records []KinesisRecord
-	keys    *aws4.Keys
-	url     *url.URL
+	records   []KinesisRecord
+	keys      *aws4.Keys
+	url, host string
 	io.Reader
 }
 
 // NewKinesisFormatter constructs a proper HTTPFormatter for Kinesis http targets
+// Will panic if config.LogsURL isn't url.Parsable
 func NewKinesisFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
-	u, err := url.Parse(config.LogsURL)
-	if err != nil {
-		panic(err)
-	}
+	ui := sanatizedURL(config.LogsURL)
+	streamName := strings.TrimPrefix(ui.Path, "/")
 
-	awsKey := u.User.Username()
-	awsSecret, _ := u.User.Password()
-	streamName := strings.TrimPrefix(u.Path, "/")
-
-	u.User = nil // Ensure there is no auth info
-	u.Path = ""  // Ensure there is no path
+	ui.Path = "" // Ensure there is no path
 
 	kf := &KinesisFormatter{
 		records: make([]KinesisRecord, 0, b.MsgCount()+len(eData)),
-		keys:    &aws4.Keys{AccessKey: awsKey, SecretKey: awsSecret},
-		url:     u,
+		keys:    &aws4.Keys{AccessKey: ui.user, SecretKey: ui.pwd},
+		url:     ui.String(),
+		host:    ui.Host,
 	}
 
 	for _, edata := range eData {
@@ -92,14 +86,14 @@ func determineShard(c, max int) int {
 // Request constructs a request for this formatter
 // See: http://docs.aws.amazon.com/kinesis/latest/APIReference/API_PutRecord.html
 func (kf *KinesisFormatter) Request() (*http.Request, error) {
-	req, err := http.NewRequest("POST", kf.url.String(), kf)
+	req, err := http.NewRequest("POST", kf.url, kf)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Add("Content-Type", "application/x-amz-json-1.1")
 	req.Header.Add("X-Amz-Target", "Kinesis_20131202.PutRecords")
-	req.Host = kf.url.Host
+	req.Host = kf.host
 
 	err = aws4.Sign(kf.keys, req)
 	if err != nil {
