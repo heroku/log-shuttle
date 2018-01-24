@@ -227,7 +227,6 @@ func TestTimeout(t *testing.T) {
 	if msg := logCapture.Bytes(); !bytes.Contains(msg, []byte("retry=true")) {
 		t.Errorf("expected log message to contain `retry=trye`, got %q", msg)
 	}
-
 }
 
 func TestIsEOF(t *testing.T) {

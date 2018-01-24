@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -19,18 +20,30 @@ const (
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
-	headers       http.Header
-	stringURL     string
-	msgCount      int
-	contentLength int64
 	io.Reader
+	stringURL, user, pwd string
+	msgCount             int
+	headers              http.Header
 }
 
 // NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
+	u, err := url.Parse(config.LogsURL)
+	if err != nil {
+		panic(err)
+	}
+	var user, pwd string
+	if u.User != nil {
+		user = u.User.Username()
+		pwd, _ = u.User.Password()
+	}
+	u.User = nil
+
 	bf := &LogplexBatchFormatter{
 		headers:   make(http.Header),
-		stringURL: config.LogsURL,
+		stringURL: u.String(),
+		user:      user,
+		pwd:       pwd,
 	}
 
 	bf.headers.Add("Content-Type", LogplexContentType)
@@ -82,6 +95,7 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 	}
 
 	req.Header = bf.headers
+	req.SetBasicAuth(bf.user, bf.pwd)
 
 	return req, nil
 }
@@ -108,9 +122,9 @@ func splitLine(ll LogLine, mll int) Batch {
 // LogplexLineFormatter formats individual loglines into length prefixed
 // rfc5424 messages via an io.Reader interface
 type LogplexLineFormatter struct {
-	headerPos, msgPos int    // Positions in the the parts of the log lines
 	line              []byte // the raw line bytes
 	header            string // the precomputed, length prefixed syslog frame header
+	headerPos, msgPos int    // Positions in the the parts of the log lines
 	inputFormat       int
 }
 

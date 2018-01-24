@@ -29,6 +29,25 @@ func init() {
 	LongLogLine.line = append(LongLogLine.line, NewLine)
 }
 
+func TestCreds(t *testing.T) {
+	config := newTestConfig()
+	config.LogsURL = "http://foo:bar@localhost/"
+	b := NewBatch(1)
+	b.Add(LogLineOne)
+	b.Add(LogLineTwo)
+	br := NewLogplexBatchFormatter(b, noErrData, &config)
+	r, err := br.Request()
+	if err != nil {
+		t.Fatalf("unexpected error constructing request %q", err)
+	}
+	if r.URL.User != nil {
+		t.Error("expected r.URL.User to be nil, but wasn't")
+	}
+	if u, p, ok := r.BasicAuth(); !ok && u != "foo" && p != "bar" {
+		t.Errorf("expected BasicAuth to be foo, bar, true, but got %s, %s, %t", u, p, ok)
+	}
+}
+
 func TestLogplexBatchFormatter(t *testing.T) {
 	config := newTestConfig()
 	b := NewBatch(1)
@@ -218,4 +237,22 @@ func BenchmarkLogplexBatchFormatter_WithHeaders(b *testing.B) {
 			b.Fatalf("Error reading everything from line: %q", err)
 		}
 	}
+}
+
+func BenchmarkLogplexBatchFormatterCreation(b *testing.B) {
+	batch := NewBatch(50)
+	for i := 0; i < 25; i++ {
+		batch.Add(LogLineOneWithHeaders)
+		batch.Add(LogLineTwoWithHeaders)
+	}
+
+	config := newTestConfig()
+	b.ResetTimer()
+
+	var f HTTPFormatter
+	for i := 0; i < b.N; i++ {
+		f = NewLogplexBatchFormatter(batch, noErrData, &config)
+
+	}
+	_ = f.(*LogplexBatchFormatter)
 }

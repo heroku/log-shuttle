@@ -320,10 +320,6 @@ func TestRequestId(t *testing.T) {
 	}
 }
 
-type lenner interface {
-	Len() int
-}
-
 func BenchmarkPipeline(b *testing.B) {
 	th := new(noopTestHelper)
 	ts := httptest.NewServer(th)
