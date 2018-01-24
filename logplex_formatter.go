@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -19,18 +21,63 @@ const (
 // log lines.  Wraps log lines in length prefixed rfc5424 formatting, splitting
 // them as necessary to config.MaxLineLength
 type LogplexBatchFormatter struct {
-	headers       http.Header
-	stringURL     string
-	msgCount      int
-	contentLength int64
 	io.Reader
+	stringURL, user, pwd string
+	msgCount             int
+	headers              http.Header
+}
+
+type urlCacheItem struct {
+	url.URL                // url.URL with user credentials removed
+	urls, user, pwd string // rendered url and the user and password, if any.
+}
+
+var (
+	URLCacheSizeMax = 100                           // dumb cache, max # of items, but better then growing unbounded
+	urlCache        = make(map[string]urlCacheItem) // raw url -> cached, cleaned url data
+	cmu             sync.RWMutex
+)
+
+func sanatizedURL(s string) urlCacheItem {
+	cmu.RLock()
+	c, ok := urlCache[s]
+	cmu.RUnlock()
+	if ok {
+		return c
+	}
+
+	// cache miss, calculate
+	u, err := url.Parse(s)
+	if err != nil {
+		panic(err)
+	}
+	if u.User != nil {
+		c.user = u.User.Username()
+		c.pwd, _ = u.User.Password()
+	}
+	u.User = nil // zero out user to remove any creds
+	c.URL = *u
+	c.urls = u.String() // save a copy as a string
+
+	cmu.Lock()
+	if len(urlCache) > URLCacheSizeMax {
+		urlCache = make(map[string]urlCacheItem)
+	}
+	urlCache[s] = c
+	cmu.Unlock()
+
+	return c
 }
 
 // NewLogplexBatchFormatter returns a new LogplexBatchFormatter wrapping the provided batch
+// Will panic if config.LogsURL isn't url.Parsable
 func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPFormatter {
+	ui := sanatizedURL(config.LogsURL)
 	bf := &LogplexBatchFormatter{
 		headers:   make(http.Header),
-		stringURL: config.LogsURL,
+		stringURL: ui.urls,
+		user:      ui.user,
+		pwd:       ui.pwd,
 	}
 
 	bf.headers.Add("Content-Type", LogplexContentType)
@@ -82,6 +129,9 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 	}
 
 	req.Header = bf.headers
+	if bf.user != "" || bf.pwd != "" {
+		req.SetBasicAuth(bf.user, bf.pwd)
+	}
 
 	return req, nil
 }
@@ -108,9 +158,9 @@ func splitLine(ll LogLine, mll int) Batch {
 // LogplexLineFormatter formats individual loglines into length prefixed
 // rfc5424 messages via an io.Reader interface
 type LogplexLineFormatter struct {
-	headerPos, msgPos int    // Positions in the the parts of the log lines
 	line              []byte // the raw line bytes
 	header            string // the precomputed, length prefixed syslog frame header
+	headerPos, msgPos int    // Positions in the the parts of the log lines
 	inputFormat       int
 }
 
