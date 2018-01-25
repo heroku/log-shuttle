@@ -1,3 +1,8 @@
+### 0.16.1 2018-01-25 Cyril David (cyril@heroku.com)
+
+* Build with 1.9.3
+* Fixes cred leak
+
 ### 0.14.0 2016-03-22 Edward Muller (edward@heroku.com)
 
 * Build with 1.6, move to vendor/
