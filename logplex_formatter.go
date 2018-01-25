@@ -76,12 +76,22 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 // Request returns a properly constructed *http.Request, complete with headers
 // and ContentLength set.
 func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
-	req, err := http.NewRequest("POST", bf.stringURL, bf)
+	u, user, pass, err := extractCredentials(bf.stringURL)
 	if err != nil {
 		return nil, err
 	}
 
+	req, err := http.NewRequest("POST", u.String(), bf)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assign headers before we potentially BasicAuth
 	req.Header = bf.headers
+
+	if user != "" || pass != "" {
+		req.SetBasicAuth(user, pass)
+	}
 
 	return req, nil
 }

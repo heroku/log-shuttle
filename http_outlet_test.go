@@ -40,6 +40,26 @@ func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ts.Headers = r.Header
 }
 
+func TestCreds(t *testing.T) {
+	config := newTestConfig()
+	config.LogsURL = "http://foo:bar@localhost/"
+	b := NewBatch(1)
+	b.Add(LogLineOne)
+	b.Add(LogLineTwo)
+	br := NewLogplexBatchFormatter(b, noErrData, &config)
+	r, err := br.Request()
+	if err != nil {
+		t.Fatalf("unexpected error constructing request %q", err)
+	}
+	if r.URL.User != nil {
+		t.Error("expected r.URL.User to be nil, but wasn't")
+	}
+
+	if u, p, ok := r.BasicAuth(); !ok && u != "foo" && p != "bar" {
+		t.Errorf("expected BasicAuth to be foo, bar, true, but got %s, %s, %t", u, p, ok)
+	}
+}
+
 func TestOutletEOFRetry(t *testing.T) {
 	logLineText := "Hello"
 	th := &testEOFHelper{maxCloses: 1}
