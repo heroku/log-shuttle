@@ -15,7 +15,7 @@ deploy:
   skip_cleanup: true
   provider: releases
   api_key:
-    secure: X0L3J3k9YGaIUESz22nkTf92d74LXSSOx3LiX/rLlUjavYLX06qlzRGr0nDrrBvYOM3QgkRQWgeaQUgCoPsBP2sFOya47jDl6cg7mKgw4GUPj5fwi82JeOxKOvoLhcXqttgJAaX74J61idvldjyzRtQiTftqj0HpGJj8uW4qb4I=
+    secure: XLs592eds4fC6/dqefrOC8w8lZIK1/Hj+u3EFW3HSdgFI/5lMNG+DaN9GLDKLdm8mYkAf+te6vdiai3e2jg48Tox17nGzia280WRn2mGUWx4HaDvKOPsprQCnMNz7mLeKokaP7YnwFhqd6bjWD6xpS53I6OSjbW9wM+V0sN21Vo=
   file: log-shuttle_${DEB_VERSION}_amd64.deb
   on:
     tags: true
