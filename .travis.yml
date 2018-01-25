@@ -9,7 +9,7 @@ script:
 before_deploy:
 - make debs
 - export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
-- docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 - make docker-push
 deploy:
   skip_cleanup: true
