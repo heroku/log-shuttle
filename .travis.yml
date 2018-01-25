@@ -27,7 +27,7 @@ deploy:
     token:
       secure: "noS4YOfugFPsUEHezZ2ZS24hVfuTGRcO/j2o1jlR+F2eQc8jLViMf2tWOBBciZOIXmiHyYTpApQ/jA6wY8L/xwsLQWkzr14yv+/pJjfYCHlDNKhdA7/+OHycDaSFBavBGUYQlxY8MwdWjHsuBWcq2LZ8SQpod6y81DX16D9kppY="
     dist: ubuntu/trusty
-    package_glob: *.deb
+    package_glob: "*.deb"
     on:
       tags: true
       repo: heroku/log-shuttle
