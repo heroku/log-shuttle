@@ -12,14 +12,25 @@ before_deploy:
 - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 - make docker-push
 deploy:
-  skip_cleanup: true
-  provider: releases
-  api_key:
-    secure: XLs592eds4fC6/dqefrOC8w8lZIK1/Hj+u3EFW3HSdgFI/5lMNG+DaN9GLDKLdm8mYkAf+te6vdiai3e2jg48Tox17nGzia280WRn2mGUWx4HaDvKOPsprQCnMNz7mLeKokaP7YnwFhqd6bjWD6xpS53I6OSjbW9wM+V0sN21Vo=
-  file: log-shuttle_${DEB_VERSION}_amd64.deb
-  on:
-    tags: true
-    repo: heroku/log-shuttle
+  - provider: releases
+    skip_cleanup: true
+    api_key:
+      secure: XLs592eds4fC6/dqefrOC8w8lZIK1/Hj+u3EFW3HSdgFI/5lMNG+DaN9GLDKLdm8mYkAf+te6vdiai3e2jg48Tox17nGzia280WRn2mGUWx4HaDvKOPsprQCnMNz7mLeKokaP7YnwFhqd6bjWD6xpS53I6OSjbW9wM+V0sN21Vo=
+    file: log-shuttle_${DEB_VERSION}_amd64.deb
+    on:
+      tags: true
+      repo: heroku/log-shuttle
+  - provider: packagecloud
+    skip_cleanup: true
+    repository: "open"
+    username: "heroku"
+    token:
+      secure: "noS4YOfugFPsUEHezZ2ZS24hVfuTGRcO/j2o1jlR+F2eQc8jLViMf2tWOBBciZOIXmiHyYTpApQ/jA6wY8L/xwsLQWkzr14yv+/pJjfYCHlDNKhdA7/+OHycDaSFBavBGUYQlxY8MwdWjHsuBWcq2LZ8SQpod6y81DX16D9kppY="
+    dist: ubuntu/trusty
+    package_glob: *.deb
+    on:
+      tags: true
+      repo: heroku/log-shuttle
 env:
   global:
   - secure: PGlgN8iLUyf0+JgPS774jVms0RxlLvyF9mH0mofca/kGb2tgCrSkbZMFMPhBmcPISNP/RPKugrO6rrAGMvm+C04VC+NCfr32im5Al4Of0inhlwi6Xk015LfDYs6Oo8GHRMa4XSCnfhkIx+/xUO1w9JeE5vtVGEPTGcLnNbRZQ84=
