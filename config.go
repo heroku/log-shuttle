@@ -9,9 +9,9 @@ import (
 // Input format constants.
 // TODO: ensure these are really used properly
 const (
-	InputFormatRaw = iota
-	InputFormatRFC3164
-	InputFormatRFC5424
+	InputFormatRaw                   = iota // default, just text
+	InputFormatRFC5424                      // newline termined RFC5424 formated lines
+	InputFormatLengthPrefixedRFC5424        // length prefixed RFC5424 formatted lines
 )
 
 // Default option values

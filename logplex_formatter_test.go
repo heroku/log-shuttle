@@ -17,6 +17,8 @@ var (
 	LongLogLine                      = LogLine{when: time.Now()}
 	LogLineOneWithHeaders            = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId=\"1\"] message 1\n"), when: time.Now()}
 	LogLineTwoWithHeaders            = LogLine{line: []byte("<13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId=\"2\"] other message\n"), when: time.Now()}
+	LogLineOneWithLengthPrefix       = LogLine{line: append([]byte("90 "), LogLineOneWithHeaders.line...), when: time.Now()}
+	LogLineTwoWithLengthPrefix       = LogLine{line: append([]byte("94 "), LogLineTwoWithHeaders.line...), when: time.Now()}
 	logplexLineOneWithHeadersPattern = regexp.MustCompile(`90 <13>1 2013-09-25T01:16:49\.371356\+00:00 host token web\.1 - \[meta sequenceId="1"\] message 1\n`)
 	logplexLineTwoWithHeadersPattern = regexp.MustCompile(`94 <13>1 2013-09-25T01:16:49\.402923\+00:00 host token web\.1 - \[meta sequenceId="2"\] other message\n`)
 	noErrData                        = make([]errData, 0)
@@ -127,7 +129,7 @@ func TestLogplexLineFormatter_Basic(t *testing.T) {
 
 }
 
-func TestLogplexLineFormatter_AppName(t *testing.T) {
+func TestLogplexLineFormatter_RFC5424_AppName(t *testing.T) {
 	config := newTestConfig()
 	config.InputFormat = InputFormatRFC5424
 
@@ -137,13 +139,36 @@ func TestLogplexLineFormatter_AppName(t *testing.T) {
 	}
 }
 
-func TestLogplexBatchFormatter_WithHeaders(t *testing.T) {
+func TestLogplexBatchFormatter_RFC5424_WithHead(t *testing.T) {
 	config := newTestConfig()
 	config.InputFormat = InputFormatRFC5424
 
 	b := NewBatch(2)
 	b.Add(LogLineOneWithHeaders) // 1 frame
 	b.Add(LogLineTwoWithHeaders) // 1 frame
+
+	defer func() { config.InputFormat = InputFormatRaw }()
+
+	bf := NewLogplexBatchFormatter(b, noErrData, &config)
+	d, err := ioutil.ReadAll(bf)
+	if err != nil {
+		t.Fatalf("Error reading everything from batch: %q", err)
+	}
+
+	if !logplexLineOneWithHeadersPattern.Match(d) {
+		t.Fatalf("Line One actual=%q\n", d)
+	}
+	if !logplexLineTwoWithHeadersPattern.Match(d) {
+		t.Fatalf("Line Two actual=%q\n", d)
+	}
+}
+func TestLogplexBatchFormatter_RFC5424_LengthPrefixed(t *testing.T) {
+	config := newTestConfig()
+	config.InputFormat = InputFormatLengthPrefixedRFC5424
+
+	b := NewBatch(2)
+	b.Add(LogLineOneWithLengthPrefix) // 1 frame
+	b.Add(LogLineTwoWithLengthPrefix) // 1 frame
 
 	defer func() { config.InputFormat = InputFormatRaw }()
 

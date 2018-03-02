@@ -20,35 +20,30 @@ type KinesisRecord struct {
 
 // WriteTo writes the LogplexLineFormatter to the provided writer
 // in Kinesis' PutRecordsFormat. Conforms to the WriterTo interface.
-func (r KinesisRecord) WriteTo(w io.Writer) (n int64, err error) {
-	var t int
-	var t64 int64
-	var b string
-
+func (r KinesisRecord) WriteTo(w io.Writer) (int64, error) {
 	// Add an integer in the PartitionKey to enable distribution
 	// over multiple shards in the Kinesis stream.
-	b = partitionKeyHeader + r.partitionKey() + partitionKeyFooter
-	t, err = w.Write([]byte(b))
-	n += int64(t)
+	b := partitionKeyHeader + r.partitionKey() + partitionKeyFooter
+	t, err := w.Write([]byte(b))
 	if err != nil {
-		return
+		return int64(t), err
 	}
+	n := int64(t)
 
 	e := base64.NewEncoder(base64.StdEncoding, w)
-
-	t64, err = io.Copy(e, r.llf)
+	t64, err := io.Copy(e, r.llf)
 	n += encodedLen(t64)
 	if err != nil {
-		return
+		return n, err
 	}
 
 	if err = e.Close(); err != nil {
-		return
+		return n, err
 	}
 
 	t, err = w.Write([]byte(`"}`))
 	n += int64(t)
-	return
+	return n, err
 }
 
 // The same as Encoding.EncodedLen, but for int64

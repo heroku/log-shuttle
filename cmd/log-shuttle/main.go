@@ -36,10 +36,10 @@ func mapInputFormat(i string) (int, error) {
 	switch i {
 	case "raw":
 		return shuttle.InputFormatRaw, nil
-	case "rfc3164":
-		return shuttle.InputFormatRFC3164, nil
 	case "rfc5424":
 		return shuttle.InputFormatRFC5424, nil
+	case "lprfc5424":
+		return shuttle.InputFormatLengthPrefixedRFC5424, nil
 	}
 	return 0, fmt.Errorf("Unknown input format: %s", i)
 }
@@ -97,7 +97,7 @@ func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
 
-	flag.StringVar(&inputFormat, "input-format", "raw", "raw (default), rfc3164 (syslog(3)), rfc5424.")
+	flag.StringVar(&inputFormat, "input-format", "raw", "'raw' (default; newline termined text), 'rfc5424' (newline terminated rfc5424), 'lprfc5424' (length prefixed rfc5424).")
 	flag.StringVar(&statsAddr, "stats-addr", "", "DEPRECATED, WILL BE REMOVED, HAS NO EFFECT.")
 
 	flag.DurationVar(&c.StatsInterval, "stats-interval", c.StatsInterval, "How often to emit/reset stats.")

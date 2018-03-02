@@ -86,10 +86,6 @@ func (b *loopingBuffer) bytesRead() int {
 	return v
 }
 
-func NewLongerTestInput() *bytes.Reader {
-	return bytes.NewReader(longerTestData)
-}
-
 func NewTestInput() io.ReadCloser {
 	data := []byte(`Hello World
 Test Line 2
@@ -318,10 +314,6 @@ func TestRequestId(t *testing.T) {
 	if !ok {
 		t.Fatalf("Header X-Request-ID not found in response")
 	}
-}
-
-type lenner interface {
-	Len() int
 }
 
 func BenchmarkPipeline(b *testing.B) {
