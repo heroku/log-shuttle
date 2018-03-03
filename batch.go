@@ -3,7 +3,7 @@ package shuttle
 import "github.com/pborman/uuid"
 
 // Batch holds incoming log lines and provides some helpers for dealing with
-// the grouping of logLines
+// their grouping
 type Batch struct {
 	logLines []LogLine
 	UUID     string

@@ -1,8 +1,8 @@
+# Log Shuttle
+
 [![Travis](https://img.shields.io/travis/heroku/log-shuttle.svg)](https://travis-ci.org/heroku/log-shuttle)
 [![Releases](https://img.shields.io/github/release/heroku/log-shuttle.svg)](https://github.com/heroku/log-shuttle/releases)
 [![GoDoc](https://godoc.org/github.com/heroku/log-shuttle?status.svg)](http://godoc.org/github.com/heroku/log-shuttle)
-
-# Log Shuttle
 
 Log-shuttle is an open source UNIX program that delivers messages from
 applications and daemons to log routers and processors via HTTPs.
@@ -46,7 +46,7 @@ See the [Amazon Endpoints
 documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ak_region)
 for supported regions and hostnames.
 
-#### Kinesis Caveats
+### Kinesis Caveats
 
 Things that should be handled better/things you should know:
 
@@ -67,8 +67,8 @@ Things that should be handled better/things you should know:
 
 ## Install
 
-```bash
-$ go get -u github.com/heroku/log-shuttle/...
+```console
+go get -u github.com/heroku/log-shuttle/...
 ```
 
 After that `$GOPATH/bin/log-shuttle` should be available.
@@ -96,7 +96,7 @@ Fork the repo, hack, submit PRs.
 ### Testing
 
 ```bash
-$ go test -v ./...
+go test -v ./...
 ```
 
 ### Submitting Code
@@ -104,22 +104,6 @@ $ go test -v ./...
 * Open an issue on [GitHub](https://github.com/heroku/log-shuttle/issues?state=open).
 * Keep changes in a feature branch
 * Submit PR
-
-### Replacing local syslog
-
-Libc uses a local AF_UNIX SOCK_DGRAM (or SOCK_STREAM) for syslog(3) calls. Most unix utils use the syslog(3) call to log to syslog. You can have log-shuttle transport those messages too with a little help from some other standard unix programs.
-
-1. Stop your local syslog
-2. rm -f /dev/log
-3. us netcat, tr, stdbuf to read connections to /dev/log and convert the \0 terminator to \n
-
-Like so...
-
-```bash
-sudo /etc/init.d/rsyslog stop
-sudo rm -f /dev/log
-(sudo nc -n -k -d -Ul /dev/log & until [ ! -e /dev/log ]; do sleep 0.01; done; sudo chmod a+rw /dev/log) | stdbuf -i0 -o0 tr \\0 \\n | ./log-shuttle -logs-url=... ... -input-format=rfc3164
-```
 
 ## License
 
