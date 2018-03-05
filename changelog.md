@@ -1,3 +1,12 @@
+### 0.17.0 2018-03-01 Edward Muller (emuller@salesforce.com)
+
+* Build with 1.9.4
+* Remove -input=rfc3164. It looks like it was dead code anyway
+* Add -input=lprfc5424 to handle length prefixed RFC5424 input frames. This is
+  known as "logplex format".
+* Clarify that -input=rfc5424 is newline terminated RFC5424.
+* Some misc code/doc cleanups based on vet output
+
 ### 0.16.1 2018-01-25 Cyril David (cyril@heroku.com)
 
 * Build with 1.9.3
