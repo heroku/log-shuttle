@@ -25,7 +25,7 @@ deploy:
     repository: "open"
     username: "heroku"
     token:
-      secure: "noS4YOfugFPsUEHezZ2ZS24hVfuTGRcO/j2o1jlR+F2eQc8jLViMf2tWOBBciZOIXmiHyYTpApQ/jA6wY8L/xwsLQWkzr14yv+/pJjfYCHlDNKhdA7/+OHycDaSFBavBGUYQlxY8MwdWjHsuBWcq2LZ8SQpod6y81DX16D9kppY="
+      secure: "GcoejgkhMk8JC9KJQwKho0XDST2adk/7HzEM1+5CiftXgc+Y17+GLIBm4uKaVIqugkMPU5av3IbAMJkcyoSN9rpiPoYBbc/cCxoR8OCMYWASuD25+U75ptMTV692jLYr2VKa4wJ+vg1IIwsNJ5ypGuxLFpc7SOd4LylaBQ3S0go="
     dist: ubuntu/trusty
     package_glob: "*.deb"
     on:
