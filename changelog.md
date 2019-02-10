@@ -1,3 +1,8 @@
+### 0.18.0 2019-02-14 Edward Muller (emuller@salesforce.com)
+
+* Build with 1.11.5
+* Switch to using go modules
+
 ### 0.17.0 2018-03-01 Edward Muller (emuller@salesforce.com)
 
 * Build with 1.9.4
