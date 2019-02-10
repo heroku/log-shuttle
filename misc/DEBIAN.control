@@ -1,7 +1,7 @@
 Package: log-shuttle
 Version: {{VERSION}}
 Architecture: amd64
-Maintainer: "Telemetry Team" <telemetry@heroku.com>
+Maintainer: "Edward Muller" <emuller@salesforce.com>
 Section: heroku
 Priority: optional
-Description: Move logs from a Dyno to Logplex/log-iss/etc.
+Description: Shuttle logs from stdout to logplex/log-iss/kinesis and other destinations
