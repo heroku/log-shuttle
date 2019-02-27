@@ -6,15 +6,13 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
 	shuttle "github.com/heroku/log-shuttle"
+	"github.com/heroku/log-shuttle/cmd/log-shuttle/internal"
 	"github.com/pebbe/util"
 )
-
-var detectKinesis = regexp.MustCompile(`\Akinesis.[[:alpha:]]{2}-[[:alpha:]]{2,}-[[:digit:]]\.amazonaws\.com\z`)
 
 // Default loggers to stdout and stderr
 var (
@@ -209,20 +207,13 @@ func getConfig() (shuttle.Config, error) {
 		oURL.User = url.UserPassword("token", c.Appname)
 	}
 
-	c.FormatterFunc = determineOutputFormatter(oURL)
+	c.FormatterFunc = internal.DetermineOutputFormatter(oURL, errLogger)
 
 	c.LogsURL = oURL.String()
 
 	c.ComputeHeader()
 
 	return c, nil
-}
-
-func determineOutputFormatter(u *url.URL) shuttle.NewHTTPFormatterFunc {
-	if detectKinesis.MatchString(u.Host) {
-		return shuttle.NewKinesisFormatter
-	}
-	return shuttle.NewLogplexBatchFormatter
 }
 
 func main() {
