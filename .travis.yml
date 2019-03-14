@@ -3,7 +3,7 @@ services:
 - docker
 sudo: required
 go:
-- go1.9.4
+- go1.11.5
 script:
 - make test
 before_deploy:
