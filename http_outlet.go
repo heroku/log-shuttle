@@ -84,30 +84,34 @@ func (h *HTTPOutlet) Outlet() {
 }
 
 // retryPost posts batch and will retry on error up to h.config.MaxAttempts times.
-func (h *HTTPOutlet) retryPost(batch Batch) {
+	h.Logger.Printf("at=retryPost begin")
 	var dropData, lostData errData
 
 	edata := make([]errData, 0, 2)
 
 	dropData.count, dropData.since = h.drops.ReadAndReset()
 	if dropData.count > 0 {
+		h.Logger.Printf("at=retryPost etype=%s drop_count=%s", errDrop, dropData.count)
 		dropData.eType = errDrop
 		edata = append(edata, dropData)
 	}
 
 	lostData.count, lostData.since = h.lost.ReadAndReset()
 	if lostData.count > 0 {
+		h.Logger.Printf("at=retryPost etype=%s drop_count=%s", errDrop, dropData.count)
 		lostData.eType = errLost
 		edata = append(edata, lostData)
 	}
 
 	for attempts := 1; attempts <= h.config.MaxAttempts; attempts++ {
+		h.Logger.Printf("at=retryPost attempt=%f maxattempts=%f", attempts, h.config.MaxAttempts)
 		formatter := h.newFormatterFunc(batch, edata, &h.config)
 		if h.config.UseGzip {
 			formatter = NewGzipFormatter(formatter)
 		}
 		err := h.post(formatter)
 		if err != nil {
+			h.Logger.Printf("at=retryPost post_error=%s attempt=%f", err.Error(), attempts)
 			inboxLength := len(h.inbox)
 			h.inboxLengthGauge.Update(int64(inboxLength))
 			msgCount := batch.MsgCount()
@@ -148,6 +152,7 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 	if err != nil {
 		return err
 	}
+	h.Logger.Printf("at=post response_body=%s status=%d", resp.Body,)
 
 	switch status := resp.StatusCode; {
 	case status >= 400:
@@ -159,9 +164,9 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 		}
 
 	default:
-		if h.config.Verbose {
+		// if h.config.Verbose {
 			h.Logger.Printf("at=post request_id=%q status=%d\n", uuid, status)
-		}
+		// }
 	}
 
 	return nil
