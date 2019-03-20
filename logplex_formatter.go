@@ -234,6 +234,7 @@ func NewLogplexErrorFormatter(err errData, config *Config) *LogplexLineFormatter
 		err.count,
 		what,
 		err.since.UTC().Format(LogplexBatchTimeFormat))
+	config.ErrLogger.Printf("at=NewLogplexErrorFormatter, msg=%s", msg)
 	return &LogplexLineFormatter{
 		line:        []byte(msg),
 		header:      fmt.Sprintf("%d ", len(msg)),
