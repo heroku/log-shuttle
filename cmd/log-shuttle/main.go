@@ -4,14 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"log/syslog"
 	"net/url"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/heroku/log-shuttle"
+	shuttle "github.com/heroku/log-shuttle"
 	"github.com/pebbe/util"
 )
 
@@ -240,19 +239,8 @@ func main() {
 
 	s := shuttle.NewShuttle(config)
 
-	// Setup the loggers before doing anything else
-	if logToSyslog {
-		s.Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
-		if err != nil {
-			errLogger.Fatalf(`error="Unable to setup syslog logger: %s\n"`, err)
-		}
-		s.ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
-		if err != nil {
-			errLogger.Fatalf(`error="Unable to setup syslog error logger: %s\n"`, err)
-		}
-	} else {
-		s.Logger = logger
-		s.ErrLogger = errLogger
+	if err := setupLogging(logToSyslog, s, logger, errLogger); err != nil {
+		errLogger.Fatal(err)
 	}
 
 	s.LoadReader(os.Stdin)
