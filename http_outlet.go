@@ -153,9 +153,9 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			h.errLogger.Printf("at=post request_id=%q status=%d reading_body=true error=%q\n", uuid, status, err)
+			h.errLogger.Printf("at=post request_id=%q request_content_length=%d status=%d reading_body=true error=%q\n", uuid, req.ContentLength, status, err)
 		} else {
-			h.errLogger.Printf("at=post request_id=%q status=%d body=%q\n", uuid, status, body)
+			h.errLogger.Printf("at=post request_id=%q request_content_length=%d status=%d body=%q\n", uuid, req.ContentLength, status, body)
 		}
 
 	default:
