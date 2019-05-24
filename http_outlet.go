@@ -1,6 +1,7 @@
 package shuttle
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -134,6 +135,17 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 		return err
 	}
 
+	body := req.Body
+	defer body.Close()
+
+	buff, err := ioutil.ReadAll(body)
+	if err != nil {
+		return err
+	}
+
+	contentLength := len(buff)
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(buff))
+
 	uuid := req.Header.Get("X-Request-Id")
 	req.Header.Add("User-Agent", h.userAgent)
 
@@ -153,9 +165,9 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			h.errLogger.Printf("at=post request_id=%q request_content_length=%d status=%d reading_body=true error=%q\n", uuid, req.ContentLength, status, err)
+			h.errLogger.Printf("at=post request_id=%q content_length=%d msgcount=%d status=%d reading_body=true error=%q\n", uuid, contentLength, formatter.MsgCount(), status, err)
 		} else {
-			h.errLogger.Printf("at=post request_id=%q request_content_length=%d status=%d body=%q\n", uuid, req.ContentLength, status, body)
+			h.errLogger.Printf("at=post request_id=%q content_length=%d msgcount=%d status=%d body=%q\n", uuid, contentLength, formatter.MsgCount(), status, body)
 		}
 
 	default:
