@@ -259,7 +259,7 @@ func main() {
 
 	s.Launch()
 
-	go LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
+	go shuttle.LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
 
 	// blocks until the readers all exit
 	s.WaitForReadersToFinish()

@@ -1,9 +1,9 @@
-package main
+package shuttle
 
 import (
 	"fmt"
-	"log"
 	"time"
+	"log"
 
 	"github.com/heroku/slog"
 	metrics "github.com/rcrowley/go-metrics"
