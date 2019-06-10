@@ -22,6 +22,17 @@ func sec(t float64) string {
 	return fmt.Sprintf("%.6f", t/1000000000)
 }
 
+type Emitter struct {
+	registry metrics.Registry
+	source   string
+	duration time.Duration
+	logger   *log.Logger
+}
+
+func NewEmitter(r metrics.Registry, source string, d time.Duration, l *log.Logger) *Emitter {
+	return &Emitter{registry: r, source: source, duration: d, logger: l}
+}
+
 func countDifference(ctx slog.Context, name string, c int64) {
 	name = name + ".count"
 	lc := lastCounts[name]
@@ -32,16 +43,16 @@ func countDifference(ctx slog.Context, name string, c int64) {
 // LogFmtMetricsEmitter emits the metrics in logfmt compatible formats every d
 // duration using the provided logger. source is added to the line as
 // log_shuttle_stats_source if not empty.
-func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l *log.Logger) {
-	if d == 0 {
+func (e Emitter) Emit() {
+	if e.duration == 0 {
 		return
 	}
-	for _ = range time.Tick(d) {
+	for _ = range time.Tick(e.duration) {
 		ctx := slog.Context{}
-		if source != "" {
-			ctx["log_shuttle_stats_source"] = source
+		if e.source != "" {
+			ctx["log_shuttle_stats_source"] = e.source
 		}
-		r.Each(func(name string, i interface{}) {
+		e.registry.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case metrics.Counter:
 				countDifference(ctx, name, metric.Count())
@@ -87,6 +98,6 @@ func LogFmtMetricsEmitter(r metrics.Registry, source string, d time.Duration, l 
 				ctx[name+".rate.mean"] = fmt.Sprintf("%.3f", s.RateMean())
 			}
 		})
-		l.Println(ctx)
+		e.logger.Println(ctx)
 	}
 }

@@ -258,8 +258,8 @@ func main() {
 	s.LoadReader(os.Stdin)
 
 	s.Launch()
-
-	go shuttle.LogFmtMetricsEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
+	emitter := shuttle.NewEmitter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
+	go emitter.Emit()
 
 	// blocks until the readers all exit
 	s.WaitForReadersToFinish()
