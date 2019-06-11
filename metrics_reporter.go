@@ -14,7 +14,6 @@ import (
 var (
 	percentiles     = []float64{0.75, 0.95, 0.99}
 	percentileNames = []string{"p75", "p95", "p99"}
-	lastCounts      = make(map[string]int64)
 )
 
 // Given a t representing a time in ns, convert to seconds, show up to μs precision
@@ -27,17 +26,18 @@ type Emitter struct {
 	source   string
 	duration time.Duration
 	logger   *log.Logger
+	lastCounts map[string]int64
 }
 
 func NewEmitter(r metrics.Registry, source string, d time.Duration, l *log.Logger) *Emitter {
-	return &Emitter{registry: r, source: source, duration: d, logger: l}
+	return &Emitter{registry: r, source: source, duration: d, logger: l, lastCounts: make(map[string]int64)}
 }
 
-func countDifference(ctx slog.Context, name string, c int64) {
+func (e Emitter) countDifference(ctx slog.Context, name string, c int64) {
 	name = name + ".count"
-	lc := lastCounts[name]
+	lc := e.lastCounts[name]
 	ctx[name] = c - lc
-	lastCounts[name] = c
+	e.lastCounts[name] = c
 }
 
 // LogFmtMetricsEmitter emits the metrics in logfmt compatible formats every d
@@ -55,7 +55,7 @@ func (e Emitter) Emit() {
 		e.registry.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
 			case metrics.Counter:
-				countDifference(ctx, name, metric.Count())
+				e.countDifference(ctx, name, metric.Count())
 			case metrics.Gauge:
 				ctx[name] = metric.Value()
 			case metrics.GaugeFloat64:
@@ -66,7 +66,7 @@ func (e Emitter) Emit() {
 			case metrics.Histogram:
 				s := metric.Snapshot()
 				ps := s.Percentiles(percentiles)
-				countDifference(ctx, name, s.Count())
+				e.countDifference(ctx, name, s.Count())
 				ctx[name+".min"] = s.Min()
 				ctx[name+".max"] = s.Max()
 				ctx[name+".mean"] = s.Mean()
@@ -76,7 +76,7 @@ func (e Emitter) Emit() {
 				}
 			case metrics.Meter:
 				s := metric.Snapshot()
-				countDifference(ctx, name, s.Count())
+				e.countDifference(ctx, name, s.Count())
 				ctx[name+".rate.1min"] = s.Rate1()
 				ctx[name+".rate.5min"] = s.Rate5()
 				ctx[name+".rate.15min"] = s.Rate15()
@@ -84,7 +84,7 @@ func (e Emitter) Emit() {
 			case metrics.Timer:
 				s := metric.Snapshot()
 				ps := s.Percentiles(percentiles)
-				countDifference(ctx, name, s.Count())
+				e.countDifference(ctx, name, s.Count())
 				ctx[name+".min"] = sec(float64(s.Min()))
 				ctx[name+".max"] = sec(float64(s.Max()))
 				ctx[name+".mean"] = sec(s.Mean())
