@@ -298,6 +298,7 @@ func TestPostError(t *testing.T) {
 	for _, field := range []string{
 		"status=413",
 		"msgcount=1",
+		"content_length=",
 	} {
 		if msg := logCapture.Bytes(); !bytes.Contains(msg, []byte(field)) {
 			t.Errorf("expected log message to contain `%s`, got %q", field, msg)
