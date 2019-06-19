@@ -269,3 +269,40 @@ func TestIsEOF(t *testing.T) {
 		t.Errorf("got isEOF(%+v) = true, want false", uerr)
 	}
 }
+
+func TestPostError(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+	}))
+	defer ts.Close()
+
+	config := newTestConfig()
+	config.LogsURL = ts.URL
+	config.SkipVerify = true
+	config.MaxAttempts = 1
+
+	var logCapture bytes.Buffer
+	s := NewShuttle(config)
+	s.ErrLogger = log.New(&logCapture, "", 0)
+
+	outlet := NewHTTPOutlet(s)
+
+	batch := NewBatch(config.BatchSize)
+	batch.Add(LogLine{[]byte("Hello"), time.Now()})
+	outlet.retryPost(batch)
+
+	if lost := s.Lost.Read(); lost > 0 {
+		t.Errorf("expected lost of 0, got %d", lost)
+	}
+
+	for _, field := range []string{
+		"status=413",
+		"msgcount=1",
+		"content_length=",
+	} {
+		if msg := logCapture.Bytes(); !bytes.Contains(msg, []byte(field)) {
+			t.Errorf("expected log message to contain `%s`, got %q", field, msg)
+		}
+	}
+
+}

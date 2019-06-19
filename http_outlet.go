@@ -134,6 +134,11 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 		return err
 	}
 
+	cr := &countingReader{
+		reader: req.Body,
+	}
+	req.Body = ioutil.NopCloser(cr)
+
 	uuid := req.Header.Get("X-Request-Id")
 	req.Header.Add("User-Agent", h.userAgent)
 
@@ -153,9 +158,9 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 	case status >= 400:
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			h.errLogger.Printf("at=post request_id=%q status=%d reading_body=true error=%q\n", uuid, status, err)
+			h.errLogger.Printf("at=post request_id=%q content_length=%d msgcount=%d status=%d reading_body=true error=%q\n", uuid, cr.count, formatter.MsgCount(), status, err)
 		} else {
-			h.errLogger.Printf("at=post request_id=%q status=%d body=%q\n", uuid, status, body)
+			h.errLogger.Printf("at=post request_id=%q content_length=%d msgcount=%d status=%d body=%q\n", uuid, cr.count, formatter.MsgCount(), status, body)
 		}
 
 	default:
@@ -187,4 +192,17 @@ func isEOF(err error) bool {
 
 	uerr, ok := err.(*url.Error)
 	return ok && uerr.Err == io.EOF
+}
+
+// countingReader stores the total bytes read from an underlying reader.
+type countingReader struct {
+	reader io.Reader
+	count  int64
+}
+
+// Read implements the io.Reader interface.
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.reader.Read(p)
+	c.count += int64(n)
+	return n, err
 }
