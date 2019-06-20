@@ -28,11 +28,12 @@ type MetricsReporter struct {
 	duration time.Duration
 	logger   *log.Logger
 	lastCounts map[string]int64
+	doneCh chan struct{}
 }
 
 // NewMetricsReporter returns a properly constructed MetricsReporter
 func NewMetricsReporter(r metrics.Registry, source string, d time.Duration, l *log.Logger) *MetricsReporter {
-	return &MetricsReporter{registry: r, source: source, duration: d, logger: l, lastCounts: make(map[string]int64)}
+	return &MetricsReporter{registry: r, source: source, duration: d, logger: l, lastCounts: make(map[string]int64), doneCh: make(chan struct{})}
 }
 
 func (e MetricsReporter) countDifference(ctx slog.Context, name string, c int64) {
@@ -44,62 +45,81 @@ func (e MetricsReporter) countDifference(ctx slog.Context, name string, c int64)
 
 // Emit emits log-shuttle metrics in logfmt compatible formats every d
 // duration using the MetricsReporter logger. source is added to the line as
-// log_shuttle_stats_source if not empty.
+// log_shuttle_stats_source if not empty. It waits for a stop signal
+// and will stop emitting metrics when received.
 func (e MetricsReporter) Emit() {
 	if e.duration == 0 {
 		return
 	}
-	for _ = range time.Tick(e.duration) {
-		ctx := slog.Context{}
-		if e.source != "" {
-			ctx["log_shuttle_stats_source"] = e.source
+	ticker := time.NewTicker(e.duration)
+	defer ticker.Stop()
+
+	for {
+		select {
+			case <- ticker.C:
+				e.emit()
+			case <- e.doneCh:
+				e.logger.Printf("log_shuttle_stats_source=%s at=Emit msg=closed", e.source)
+				return
 		}
-		e.registry.Each(func(name string, i interface{}) {
-			switch metric := i.(type) {
-			case metrics.Counter:
-				e.countDifference(ctx, name, metric.Count())
-			case metrics.Gauge:
-				ctx[name] = metric.Value()
-			case metrics.GaugeFloat64:
-				ctx[name] = metric.Value()
-			case metrics.Healthcheck:
-				metric.Check()
-				ctx[name] = metric.Error()
-			case metrics.Histogram:
-				s := metric.Snapshot()
-				ps := s.Percentiles(percentiles)
-				e.countDifference(ctx, name, s.Count())
-				ctx[name+".min"] = s.Min()
-				ctx[name+".max"] = s.Max()
-				ctx[name+".mean"] = s.Mean()
-				ctx[name+".stddev"] = s.StdDev()
-				for i, pn := range percentileNames {
-					ctx[name+"."+pn] = ps[i]
-				}
-			case metrics.Meter:
-				s := metric.Snapshot()
-				e.countDifference(ctx, name, s.Count())
-				ctx[name+".rate.1min"] = s.Rate1()
-				ctx[name+".rate.5min"] = s.Rate5()
-				ctx[name+".rate.15min"] = s.Rate15()
-				ctx[name+".rate.mean"] = s.RateMean()
-			case metrics.Timer:
-				s := metric.Snapshot()
-				ps := s.Percentiles(percentiles)
-				e.countDifference(ctx, name, s.Count())
-				ctx[name+".min"] = sec(float64(s.Min()))
-				ctx[name+".max"] = sec(float64(s.Max()))
-				ctx[name+".mean"] = sec(s.Mean())
-				ctx[name+".stddev"] = sec(s.StdDev())
-				for i, pn := range percentileNames {
-					ctx[name+"."+pn] = sec(ps[i])
-				}
-				ctx[name+".rate.1min"] = fmt.Sprintf("%.3f", s.Rate1())
-				ctx[name+".rate.5min"] = fmt.Sprintf("%.3f", s.Rate5())
-				ctx[name+".rate.15min"] = fmt.Sprintf("%.3f", s.Rate15())
-				ctx[name+".rate.mean"] = fmt.Sprintf("%.3f", s.RateMean())
-			}
-		})
-		e.logger.Println(ctx)
 	}
+}
+
+// Stop stops a MetricsEmitter from emitting log to its logger
+func (e MetricsReporter) Stop() {
+	close(e.doneCh)
+}
+
+func (e MetricsReporter) emit() {
+	ctx := slog.Context{}
+	if e.source != "" {
+		ctx["log_shuttle_stats_source"] = e.source
+	}
+	e.registry.Each(func(name string, i interface{}) {
+		switch metric := i.(type) {
+		case metrics.Counter:
+			e.countDifference(ctx, name, metric.Count())
+		case metrics.Gauge:
+			ctx[name] = metric.Value()
+		case metrics.GaugeFloat64:
+			ctx[name] = metric.Value()
+		case metrics.Healthcheck:
+			metric.Check()
+			ctx[name] = metric.Error()
+		case metrics.Histogram:
+			s := metric.Snapshot()
+			ps := s.Percentiles(percentiles)
+			e.countDifference(ctx, name, s.Count())
+			ctx[name+".min"] = s.Min()
+			ctx[name+".max"] = s.Max()
+			ctx[name+".mean"] = s.Mean()
+			ctx[name+".stddev"] = s.StdDev()
+			for i, pn := range percentileNames {
+				ctx[name+"."+pn] = ps[i]
+			}
+		case metrics.Meter:
+			s := metric.Snapshot()
+			e.countDifference(ctx, name, s.Count())
+			ctx[name+".rate.1min"] = s.Rate1()
+			ctx[name+".rate.5min"] = s.Rate5()
+			ctx[name+".rate.15min"] = s.Rate15()
+			ctx[name+".rate.mean"] = s.RateMean()
+		case metrics.Timer:
+			s := metric.Snapshot()
+			ps := s.Percentiles(percentiles)
+			e.countDifference(ctx, name, s.Count())
+			ctx[name+".min"] = sec(float64(s.Min()))
+			ctx[name+".max"] = sec(float64(s.Max()))
+			ctx[name+".mean"] = sec(s.Mean())
+			ctx[name+".stddev"] = sec(s.StdDev())
+			for i, pn := range percentileNames {
+				ctx[name+"."+pn] = sec(ps[i])
+			}
+			ctx[name+".rate.1min"] = fmt.Sprintf("%.3f", s.Rate1())
+			ctx[name+".rate.5min"] = fmt.Sprintf("%.3f", s.Rate5())
+			ctx[name+".rate.15min"] = fmt.Sprintf("%.3f", s.Rate15())
+			ctx[name+".rate.mean"] = fmt.Sprintf("%.3f", s.RateMean())
+		}
+	})
+	e.logger.Println(ctx)
 }
