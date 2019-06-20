@@ -21,7 +21,8 @@ func sec(t float64) string {
 	return fmt.Sprintf("%.6f", t/1000000000)
 }
 
-type Emitter struct {
+// MetricsReporter handles reporting of metrics to a specified source at a given duration
+type MetricsReporter struct {
 	registry metrics.Registry
 	source   string
 	duration time.Duration
@@ -29,21 +30,22 @@ type Emitter struct {
 	lastCounts map[string]int64
 }
 
-func NewEmitter(r metrics.Registry, source string, d time.Duration, l *log.Logger) *Emitter {
-	return &Emitter{registry: r, source: source, duration: d, logger: l, lastCounts: make(map[string]int64)}
+// NewMetricsReporter returns a properly constructed MetricsReporter
+func NewMetricsReporter(r metrics.Registry, source string, d time.Duration, l *log.Logger) *MetricsReporter {
+	return &MetricsReporter{registry: r, source: source, duration: d, logger: l, lastCounts: make(map[string]int64)}
 }
 
-func (e Emitter) countDifference(ctx slog.Context, name string, c int64) {
+func (e MetricsReporter) countDifference(ctx slog.Context, name string, c int64) {
 	name = name + ".count"
 	lc := e.lastCounts[name]
 	ctx[name] = c - lc
 	e.lastCounts[name] = c
 }
 
-// LogFmtMetricsEmitter emits the metrics in logfmt compatible formats every d
-// duration using the provided logger. source is added to the line as
+// Emit emits log-shuttle metrics in logfmt compatible formats every d
+// duration using the MetricsReporter logger. source is added to the line as
 // log_shuttle_stats_source if not empty.
-func (e Emitter) Emit() {
+func (e MetricsReporter) Emit() {
 	if e.duration == 0 {
 		return
 	}
