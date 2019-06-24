@@ -258,8 +258,8 @@ func main() {
 	s.LoadReader(os.Stdin)
 
 	s.Launch()
-	metricsReporter := shuttle.NewMetricsReporter(s.MetricsRegistry, config.StatsSource, config.StatsInterval, s.Logger)
-	go metricsReporter.Emit()
+	metricsReporter := shuttle.NewMetricsReporter(s.MetricsRegistry, config.StatsSource, s.Logger)
+	go metricsReporter.Emit(config.StatsInterval)
 
 	// blocks until the readers all exit
 	s.WaitForReadersToFinish()
