@@ -12,6 +12,7 @@ import (
 
 var (
 	AWSEndpoint = regexp.MustCompile(`\A([^\.]+)\.([^\.]+)\.amazonaws\.com(?:\.cn)?\z`)
+	AWSHost     = regexp.MustCompile(`\A(?:([^\.]+)\.)(?:([^\.]+)\.)(?:([^\.]+)\.)?amazonaws\.com(?:\.cn)?\z`)
 )
 
 const (
@@ -47,7 +48,7 @@ func DetermineOutputFormatter(u *url.URL, errLogger *log.Logger) shuttle.NewHTTP
 }
 
 func DetermineAWSRegion(host string) (string, error) {
-	found := AWSEndpoint.FindAllStringSubmatch(host, 2)
+	found := AWSHost.FindAllStringSubmatch(host, 2)
 	if len(found) == 0 || len(found) > 0 && len(found[0]) < 3 {
 		return "", fmt.Errorf("Can't determine AWS region from: %q", host)
 	}
