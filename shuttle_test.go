@@ -42,7 +42,7 @@ type loopingBuffer struct {
 	r  int
 }
 
-func NewLoopingBuffer(b []byte) *loopingBuffer {
+func newLoopingBuffer(b []byte) *loopingBuffer {
 	return &loopingBuffer{
 		b:     b,
 		close: make(chan struct{}),
@@ -326,7 +326,7 @@ func BenchmarkPipeline(b *testing.B) {
 	config.InputFormat = InputFormatRaw
 
 	shut := NewShuttle(config)
-	input := NewLoopingBuffer(longerTestData)
+	input := newLoopingBuffer(longerTestData)
 	shut.LoadReader(input)
 	shut.Launch()
 	var tb int

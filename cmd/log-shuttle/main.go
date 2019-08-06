@@ -4,18 +4,15 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"log/syslog"
 	"net/url"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/heroku/log-shuttle"
+	shuttle "github.com/heroku/log-shuttle"
+	"github.com/heroku/log-shuttle/cmd/log-shuttle/internal"
 	"github.com/pebbe/util"
 )
-
-var detectKinesis = regexp.MustCompile(`\Akinesis.[[:alpha:]]{2}-[[:alpha:]]{2,}-[[:digit:]]\.amazonaws\.com\z`)
 
 // Default loggers to stdout and stderr
 var (
@@ -210,20 +207,13 @@ func getConfig() (shuttle.Config, error) {
 		oURL.User = url.UserPassword("token", c.Appname)
 	}
 
-	c.FormatterFunc = determineOutputFormatter(oURL)
+	c.FormatterFunc = internal.DetermineOutputFormatter(oURL, errLogger)
 
 	c.LogsURL = oURL.String()
 
 	c.ComputeHeader()
 
 	return c, nil
-}
-
-func determineOutputFormatter(u *url.URL) shuttle.NewHTTPFormatterFunc {
-	if detectKinesis.MatchString(u.Host) {
-		return shuttle.NewKinesisFormatter
-	}
-	return shuttle.NewLogplexBatchFormatter
 }
 
 func main() {
@@ -240,19 +230,8 @@ func main() {
 
 	s := shuttle.NewShuttle(config)
 
-	// Setup the loggers before doing anything else
-	if logToSyslog {
-		s.Logger, err = syslog.NewLogger(syslog.LOG_INFO|syslog.LOG_SYSLOG, 0)
-		if err != nil {
-			errLogger.Fatalf(`error="Unable to setup syslog logger: %s\n"`, err)
-		}
-		s.ErrLogger, err = syslog.NewLogger(syslog.LOG_ERR|syslog.LOG_SYSLOG, 0)
-		if err != nil {
-			errLogger.Fatalf(`error="Unable to setup syslog error logger: %s\n"`, err)
-		}
-	} else {
-		s.Logger = logger
-		s.ErrLogger = errLogger
+	if err := setupLogging(logToSyslog, s, logger, errLogger); err != nil {
+		errLogger.Fatal(err)
 	}
 
 	s.LoadReader(os.Stdin)

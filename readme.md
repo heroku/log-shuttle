@@ -14,15 +14,18 @@ Syslog requires that you maintain both client & server certificates for
 authentication. In multi-tenant environments, the maintenance of certificate
 management can be quite burdensome.
 
-When using log-shuttle with logplex it is recommended that you spawn 1
-log-shuttle per logplex token. This will isolate data between customers and
-ensure a good QoS. Log-shuttle accepts input from stdin in a newline (\n)
+Log-shuttle accepts input from stdin in a newline (\n)
 delimited format.
 
-When using log-shuttle with [Amazon's
-Kinesis]("http://aws.amazon.com/kinesis/"), all the details for the region,
-stream and access credentials are supplied in the -logs-url (or $LOGS_URL env
-variable). See the Kinesis section of this document.
+When using log-shuttle with logplex it is recommended that you spawn 1
+log-shuttle per logplex token. This will isolate data between tokens and
+ensure a good QoS.
+
+When using log-shuttle with either [Amazon's Kinesis]("http://aws.amazon.com/kinesis/") or [Amazon's Cloud Watch
+Logs](https://aws.amazon.com/cloudwatch/features/) services all the details for the service are supplied in the
+-logs-url (or $LOGS_URL env variable). See the [Amazon Endpoints
+documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html)
+for supported regions and hostnames. See the Kinesis and Cloud Watch Logs sections of this document.
 
 To block as little as possible, log-shuttle will drop outstanding batches if
 it accumulates > -back-buff amount.
@@ -42,9 +45,6 @@ Kinesis:
     https://<AWS_KEY>:<AWS_SECRET>@kinesis.<AMAZON_REGION>.amazonaws.com/<STREAM NAME>
     ```
 
-See the [Amazon Endpoints
-documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ak_region)
-for supported regions and hostnames.
 
 ### Kinesis Caveats
 
@@ -64,6 +64,34 @@ Things that should be handled better/things you should know:
    of the request.
 1. Even with `-kinesis-shards`, no guarantees can be made about writing to unique
    shards.
+
+## CloudWatch Logs
+
+log-shuttle sends logs to CloudWatch Logs using the
+[PutLogEvents](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutLogEvents.html) API call.
+Each log line is a seperate event and delivered in the same order received by log-shuttle.
+
+log-shuttle uses the [aws-sdk-go](https://aws.amazon.com/sdk-for-go/) library to determine the [AWS
+credentials](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials) it
+will use, starting CloudWatch Logs sequence token and to sign requests, but does not otherwise use the aws-sdk-go's clients.
+
+log-shuttle expects the following encoding of -logs-url to use Amazon CloudWatch Logs:
+
+    ```
+    https://logs.<AMAZON_REGION>.amazonaws.com/<log group name>/<log stream name>
+    ```
+
+### Cloudwatch Caveats
+
+Things that should be handled better/things you should know:
+
+1. log-shuttle doesn't do any special handling around service limits atm:
+   https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/cloudwatch_limits_cwl.html
+1. log-shuttle needs more testing against CloudWatch to ensure it handles errors and limits better
+1. PutLogEvents has a hard upper limit of 5 requests per second. If log-shuttle's input / settings causes > 5 batches
+   per second to be created this limit could be exceeded. Modulating batch size and wait duration would be needed to fix
+   this on a case by case basis.
+1. Really long lines are not split like they are with logplex
 
 ## Install
 

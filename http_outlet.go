@@ -167,9 +167,12 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 		if h.config.Verbose {
 			h.Logger.Printf("at=post request_id=%q status=%d\n", uuid, status)
 		}
+		if rh, ok := formatter.(ResponseHandler); ok { // If the formatter is also a ResponseHandler, then handle the response
+			err = rh.HandleResponse(resp)
+		}
 	}
 
-	return nil
+	return err
 }
 
 func (h *HTTPOutlet) timeRequest(req *http.Request) (resp *http.Response, err error) {

@@ -22,6 +22,14 @@ type HTTPFormatter interface {
 	SubFormatter
 }
 
+// ResponseHandler needs to handle responses to the requests an outlet submits.
+// If a HTTPFormatter is also a ResponseHandler, and the request didn't error,
+// an outlet must call HandleResponse with the response to the generated
+// request.
+type ResponseHandler interface {
+	HandleResponse(*http.Response) error
+}
+
 // NewHTTPFormatterFunc defines the function type for defining creating and
 // returning a new Formatter
 type NewHTTPFormatterFunc func(b Batch, eData []errData, config *Config) HTTPFormatter
