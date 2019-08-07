@@ -34,7 +34,7 @@ ver: glv
 	$(eval VERSION := $(shell echo ${GO_LINKER_VALUE} | sed s/^v//))
 
 docker: ldflags ver clean-docker-build
-	${GO_BUILD_ENV} go build -v -o .docker_build/log-shuttle ${LDFLAGS} ./cmd/log-shuttle
+	${GO_BUILD_ENV} CGO_ENABLED=0 go build -v -o .docker_build/log-shuttle ${LDFLAGS} ./cmd/log-shuttle
 	docker build -t heroku/log-shuttle:${VERSION} ./
 	${MAKE} clean-docker-build
 
