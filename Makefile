@@ -1,5 +1,7 @@
-GO_LINKER_SYMBOL := main.version
-GO_BUILD_ENV := GOOS=linux GOARCH=amd64
+GO_LINKER_SYMBOL=main.version
+GOOS=linux
+GOARCH=amd64
+GO_BUILD_ENV="GOOS=$(GOOS) GOARCH=$(GOARCH)"
 
 all: test
 
@@ -9,12 +11,6 @@ test:
 
 install: ldflags
 	go install -v ${LDFLAGS} ./...
-
-update-deps: govendor
-	govendor add +ex
-
-govendor:
-	go get -u github.com/kardianos/govendor
 
 debs: tmp ldflags ver
 	$(eval DEB_ROOT := "${TMP}/DEBIAN")
@@ -28,18 +24,16 @@ glv:
 	$(eval GO_LINKER_VALUE := $(shell git describe --tags --always))
 
 ldflags: glv
-	$(eval LDFLAGS := -ldflags "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}")
+	$(eval LDFLAGS := "-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}")
 
 ver: glv
 	$(eval VERSION := $(shell echo ${GO_LINKER_VALUE} | sed s/^v//))
 
-docker: ldflags ver clean-docker-build
-	${GO_BUILD_ENV} go build -v -o .docker_build/log-shuttle ${LDFLAGS} ./cmd/log-shuttle
-	docker build -t heroku/log-shuttle:${VERSION} ./
-	${MAKE} clean-docker-build
-
-clean-docker-build:
-	rm -rf .docker_build
+docker: glv ver
+	docker build --build-arg GO_LINKER_SYMBOL=$(GO_LINKER_SYMBOL) \
+		--build-arg GO_LINKER_VALUE=$(GO_LINKER_VALUE) \
+		--build-arg GOOS=$(GOOS) --build-arg GARCH=$(GOARCH) \
+		-t heroku/log-shuttle:${VERSION} ./
 
 docker-push: docker ver
 	docker push heroku/log-shuttle:${VERSION}

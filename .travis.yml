@@ -1,16 +1,16 @@
 language: go
 services:
-- docker
+  - docker
 sudo: required
 go:
-- go1.11.5
+  - go1.12.x
 script:
-- make test
+  - make test
 before_deploy:
-- make debs
-- export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
-- docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-- make docker-push
+  - make debs
+  - export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - make docker-push
 deploy:
   - provider: releases
     skip_cleanup: true
@@ -33,6 +33,6 @@ deploy:
       repo: heroku/log-shuttle
 env:
   global:
-  - secure: PGlgN8iLUyf0+JgPS774jVms0RxlLvyF9mH0mofca/kGb2tgCrSkbZMFMPhBmcPISNP/RPKugrO6rrAGMvm+C04VC+NCfr32im5Al4Of0inhlwi6Xk015LfDYs6Oo8GHRMa4XSCnfhkIx+/xUO1w9JeE5vtVGEPTGcLnNbRZQ84=
-  - secure: I6Yk2OKzgelw1mkwZyq5kUxt8UOfFM3TEf9Wa4NpInshmbP8fxUZEeD+gMAQOneuICiM0RwfOomikqGeEcYiery2/WDILZ5j4+0MqyKthoBqTDRHhVw/r9Y7hQ3gGiSq1s2CihiEL++Jkatxm9PaxxOxaYiFDvtk8ALCC4rc1AA=
-  - secure: dTATw5SQCuegg8ZDvlOe+P0op4aE++CGKujKBJhCbbsvf6nU5m1ykb5DIM4Gbb+qD76rTaqafU2l75ag8hhBIeGDTgwSmNHgGbJU/HapI65UVaupmH5SY7kMnIsL5jbiAlLPWPaMABQFN588UVxcWF71CekD0zGVd6i5fAGYjA0=
+    - secure: PGlgN8iLUyf0+JgPS774jVms0RxlLvyF9mH0mofca/kGb2tgCrSkbZMFMPhBmcPISNP/RPKugrO6rrAGMvm+C04VC+NCfr32im5Al4Of0inhlwi6Xk015LfDYs6Oo8GHRMa4XSCnfhkIx+/xUO1w9JeE5vtVGEPTGcLnNbRZQ84=
+    - secure: I6Yk2OKzgelw1mkwZyq5kUxt8UOfFM3TEf9Wa4NpInshmbP8fxUZEeD+gMAQOneuICiM0RwfOomikqGeEcYiery2/WDILZ5j4+0MqyKthoBqTDRHhVw/r9Y7hQ3gGiSq1s2CihiEL++Jkatxm9PaxxOxaYiFDvtk8ALCC4rc1AA=
+    - secure: dTATw5SQCuegg8ZDvlOe+P0op4aE++CGKujKBJhCbbsvf6nU5m1ykb5DIM4Gbb+qD76rTaqafU2l75ag8hhBIeGDTgwSmNHgGbJU/HapI65UVaupmH5SY7kMnIsL5jbiAlLPWPaMABQFN588UVxcWF71CekD0zGVd6i5fAGYjA0=
