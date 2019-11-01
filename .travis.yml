@@ -1,9 +1,8 @@
 language: go
 services:
 - docker
-sudo: required
 go:
-- go1.11.5
+- go1.13.x
 script:
 - make test
 before_deploy:
@@ -12,27 +11,27 @@ before_deploy:
 - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
 - make docker-push
 deploy:
-  - provider: releases
-    skip_cleanup: true
-    api_key:
-      secure: XLs592eds4fC6/dqefrOC8w8lZIK1/Hj+u3EFW3HSdgFI/5lMNG+DaN9GLDKLdm8mYkAf+te6vdiai3e2jg48Tox17nGzia280WRn2mGUWx4HaDvKOPsprQCnMNz7mLeKokaP7YnwFhqd6bjWD6xpS53I6OSjbW9wM+V0sN21Vo=
-    file: log-shuttle_${DEB_VERSION}_amd64.deb
-    on:
-      tags: true
-      repo: heroku/log-shuttle
-  - provider: packagecloud
-    skip_cleanup: true
-    repository: "open"
-    username: "heroku"
-    token:
-      secure: "GcoejgkhMk8JC9KJQwKho0XDST2adk/7HzEM1+5CiftXgc+Y17+GLIBm4uKaVIqugkMPU5av3IbAMJkcyoSN9rpiPoYBbc/cCxoR8OCMYWASuD25+U75ptMTV692jLYr2VKa4wJ+vg1IIwsNJ5ypGuxLFpc7SOd4LylaBQ3S0go="
-    dist: ubuntu/trusty
-    package_glob: "*.deb"
-    on:
-      tags: true
-      repo: heroku/log-shuttle
+- provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: XLs592eds4fC6/dqefrOC8w8lZIK1/Hj+u3EFW3HSdgFI/5lMNG+DaN9GLDKLdm8mYkAf+te6vdiai3e2jg48Tox17nGzia280WRn2mGUWx4HaDvKOPsprQCnMNz7mLeKokaP7YnwFhqd6bjWD6xpS53I6OSjbW9wM+V0sN21Vo=
+  file: log-shuttle_${DEB_VERSION}_amd64.deb
+  on:
+    tags: true
+    repo: heroku/log-shuttle
+- provider: packagecloud
+  skip_cleanup: true
+  repository: open
+  username: heroku
+  token:
+    secure: GcoejgkhMk8JC9KJQwKho0XDST2adk/7HzEM1+5CiftXgc+Y17+GLIBm4uKaVIqugkMPU5av3IbAMJkcyoSN9rpiPoYBbc/cCxoR8OCMYWASuD25+U75ptMTV692jLYr2VKa4wJ+vg1IIwsNJ5ypGuxLFpc7SOd4LylaBQ3S0go=
+  dist: ubuntu/trusty
+  package_glob: "*.deb"
+  on:
+    tags: true
+    repo: heroku/log-shuttle
 env:
-  global:
-  - secure: PGlgN8iLUyf0+JgPS774jVms0RxlLvyF9mH0mofca/kGb2tgCrSkbZMFMPhBmcPISNP/RPKugrO6rrAGMvm+C04VC+NCfr32im5Al4Of0inhlwi6Xk015LfDYs6Oo8GHRMa4XSCnfhkIx+/xUO1w9JeE5vtVGEPTGcLnNbRZQ84=
-  - secure: I6Yk2OKzgelw1mkwZyq5kUxt8UOfFM3TEf9Wa4NpInshmbP8fxUZEeD+gMAQOneuICiM0RwfOomikqGeEcYiery2/WDILZ5j4+0MqyKthoBqTDRHhVw/r9Y7hQ3gGiSq1s2CihiEL++Jkatxm9PaxxOxaYiFDvtk8ALCC4rc1AA=
-  - secure: dTATw5SQCuegg8ZDvlOe+P0op4aE++CGKujKBJhCbbsvf6nU5m1ykb5DIM4Gbb+qD76rTaqafU2l75ag8hhBIeGDTgwSmNHgGbJU/HapI65UVaupmH5SY7kMnIsL5jbiAlLPWPaMABQFN588UVxcWF71CekD0zGVd6i5fAGYjA0=
+  global: #DOCKER_EMAIL, DOCKER_PASSWORD, DOCKER_USERNAME
+  - secure: pNIDqDmqOWV3afbSY11QaIAdnsZyQ+/OA+gMLpeA44EPkj4yoTbDVBv8Y5sHlpPkP1fmPsfZKPNTbVXUnGPkJ4Y2dFVt8n5sJYtlV+pHzPf50JUmGNzxuxb9bWxKP5XM/ka3wujAibZMQdJDeMhP9Q0CSi8x5L/wQN+8hB56DhY=
+  - secure: Ps5ZA+Tg6k3dwkGcabl+4ci47ARwzzQDKka/3TgnSBroHqvuF6yx0/XnDv3GNe9kUE402apAO4Kt1aEBSQ8DExwCdyCv8f8RzsiygjrkYEPiDbVPgIvmru6xMWAr/MPWv3xWQF1Yf1AzOtDvXOgRiFgGIBLMYVAPYMCgS8AuPFU=
+  - secure: jOlEUnly5Kvats37qv9/p0YtqToYgehV4SI9qQ6YW+Zzzmz3rwkH/ht/pcDnTcUMYb67HXtmutOTs/NG0F23S6RwCgioc7GEaUW21OXUNkKorSmizPzDv36NH0nzJVrG2WRTzoKErsBoVieT2MxOtQrASEwMSHtJdfOD5NCIijo=
