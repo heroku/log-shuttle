@@ -11,6 +11,7 @@ before_deploy:
   - export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - make docker-push
+  - echo abc
 deploy:
   - provider: releases
     skip_cleanup: true
