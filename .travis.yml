@@ -25,6 +25,17 @@ deploy:
   username: heroku
   token:
     secure: GcoejgkhMk8JC9KJQwKho0XDST2adk/7HzEM1+5CiftXgc+Y17+GLIBm4uKaVIqugkMPU5av3IbAMJkcyoSN9rpiPoYBbc/cCxoR8OCMYWASuD25+U75ptMTV692jLYr2VKa4wJ+vg1IIwsNJ5ypGuxLFpc7SOd4LylaBQ3S0go=
+  dist: ubuntu/focal
+  package_glob: "*.deb"
+  on:
+    tags: true
+    repo: heroku/log-shuttle
+- provider: packagecloud
+  skip_cleanup: true
+  repository: open
+  username: heroku
+  token:
+    secure: GcoejgkhMk8JC9KJQwKho0XDST2adk/7HzEM1+5CiftXgc+Y17+GLIBm4uKaVIqugkMPU5av3IbAMJkcyoSN9rpiPoYBbc/cCxoR8OCMYWASuD25+U75ptMTV692jLYr2VKa4wJ+vg1IIwsNJ5ypGuxLFpc7SOd4LylaBQ3S0go=
   dist: ubuntu/trusty
   package_glob: "*.deb"
   on:
