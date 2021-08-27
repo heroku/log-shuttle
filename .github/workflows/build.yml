@@ -12,14 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          path: ./src/github.com/${{ github.repository }}
           fetch-depth: 0
       - uses: actions/setup-go@v2
         with:
           go-version: 1.13
       - name: Set GO_LINKER_VALUE
         run: |
-          cd src/github.com/${{ github.repository}}
           echo "GO_LINKER_VALUE=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Set env
         run: |
