@@ -18,7 +18,6 @@ jobs:
           go-version: 1.13
       - name: Set ENV
         run: |
-          echo "GOPATH=$(dirname $GITHUB_WORKSPACE)" >> $GITHUB_ENV
           echo "GO_LINKER_VALUE=$(git describe --tags --always)" >> $GITHUB_ENV
           echo "VERSION=$(echo ${GO_LINKER_VALUE} | sed s/^v//)" >> $GITHUB_ENV
           echo "LDFLAGS=-ldflags \"-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}\"" >> $GITHUB_ENV
