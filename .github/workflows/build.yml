@@ -22,10 +22,9 @@ jobs:
       - name: Set env
         run: |
           echo "VERSION=$(echo ${GO_LINKER_VALUE} | sed s/^v//)" >> $GITHUB_ENV
-          echo "LDFLAGS=-ldflags \"-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}\"" >> $GITHUB_ENV
           echo "TMP=$(mktemp -d -t log_shuttle.XXXXX)" >> $GITHUB_ENV
       - name: Build log-shuttle
         run: |
           mkdir -p ${TMP}/DEBIAN
-          go build -v -o ${TMP}/usr/bin/log-shuttle ${LDFLAGS} ./cmd/log-shuttle
+          go build -v -o ${TMP}/usr/bin/log-shuttle -ldflags='-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}' ./cmd/log-shuttle
           cat ./misc/DEBIAN.control | sed s/{{VERSION}}/${VERSION}/ > ${TMP}/DEBIAN/control
