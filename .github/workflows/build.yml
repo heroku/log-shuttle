@@ -5,7 +5,7 @@ env:
   GO_BUILD_ENV: GOOS=linux GOARCH=amd64
 jobs:
   build-ubuntu-packages:
-    runs-on: [ubuntu-latest, self-hosted]
+    runs-on: [ubuntu-latest]
     strategy:
       matrix:
         releases: [trusty]
