@@ -16,14 +16,15 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.13
-      - name: Set ENV
+      - name: Set GO_LINKER_VALUE
         run: |
           cd src/github.com/${{ github.repository}}
           echo "GO_LINKER_VALUE=$(git describe --tags --always)" >> $GITHUB_ENV
-          echo "VERSION=$(git describe --tags --always | sed s/^v//)" >> $GITHUB_ENV
+      - name: Set env
+        run: |
+          echo "VERSION=$(echo ${GO_LINKER_VALUE} | sed s/^v//)" >> $GITHUB_ENV
           echo "LDFLAGS=-ldflags \"-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}\"" >> $GITHUB_ENV
           echo "TMP=$(mktemp -d -t log_shuttle.XXXXX)" >> $GITHUB_ENV
-          echo $env
       - name: Build log-shuttle
         run: |
           mkdir -p ${TMP}/DEBIAN
