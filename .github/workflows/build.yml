@@ -1,7 +1,6 @@
 name: Build packages
 on: [push]
 env:
-  GO_LINKER_SYMBOL: main.version
   GO_BUILD_ENV: GOOS=linux GOARCH=amd64
 jobs:
   build-ubuntu-packages:
@@ -26,5 +25,5 @@ jobs:
       - name: Build log-shuttle
         run: |
           mkdir -p ${TMP}/DEBIAN
-          go build -v -o ${TMP}/usr/bin/log-shuttle -ldflags='-X ${GO_LINKER_SYMBOL}=${GO_LINKER_VALUE}' ./cmd/log-shuttle
+          go build -v -o ${TMP}/usr/bin/log-shuttle -ldflags="-X main.version=${GO_LINKER_VALUE}" ./cmd/log-shuttle
           cat ./misc/DEBIAN.control | sed s/{{VERSION}}/${VERSION}/ > ${TMP}/DEBIAN/control
