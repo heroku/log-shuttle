@@ -5,9 +5,6 @@ env:
 jobs:
   build-ubuntu-packages:
     runs-on: [ubuntu-latest]
-    strategy:
-      matrix:
-        releases: [trusty]
     steps:
       - uses: actions/checkout@v2
         with:
@@ -27,3 +24,6 @@ jobs:
           mkdir -p ${TMP}/DEBIAN
           go build -v -o ${TMP}/usr/bin/log-shuttle -ldflags="-X main.version=${GO_LINKER_VALUE}" ./cmd/log-shuttle
           cat ./misc/DEBIAN.control | sed s/{{VERSION}}/${VERSION}/ > ${TMP}/DEBIAN/control
+          dpkg-deb -Zgzip -b ${TMP} log-shuttle_${VERSION}_amd64.deb
+          ls -laR
+
