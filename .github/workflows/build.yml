@@ -11,6 +11,6 @@ jobs:
         run: apt-get install -y dh-golang git vim devscripts equivs
       - name: build package
         run: |
-        mk-build-deps --install debian/control
-        debuild -i -us -uc -b
-        dpkg -i ../log-shuttle*.deb
+          mk-build-deps --install debian/control
+          debuild -i -us -uc -b
+          dpkg -i ../log-shuttle*.deb
