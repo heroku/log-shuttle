@@ -8,7 +8,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: install dependencies
-        run: apt-get install -y dh-golang git vim devscripts equivs
+        run: sudo apt-get install -y dh-golang git vim devscripts equivs
       - name: build package
         run: |
           mk-build-deps --install debian/control
