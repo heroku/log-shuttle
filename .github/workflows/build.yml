@@ -1,29 +1,32 @@
 name: Build packages
-on: [push]
-env:
-  GO_BUILD_ENV: GOOS=linux GOARCH=amd64
+on:
+  push:
+    tags:
+      - '*'
 jobs:
   build-ubuntu-packages:
     runs-on: [ubuntu-latest]
     steps:
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.13
-      - name: Set GO_LINKER_VALUE
+      - name: install dependencies
+        run: sudo apt-get update && apt-get install -y dh-golang git vim devscripts equivs build-essential golang-1.13-go golang-1.13-src golang-any golang-go golang-src
+      - name: Install packagecloud
+        run: gem install package_cloud
+      - name: build packagemk-build-deps
         run: |
-          echo "GO_LINKER_VALUE=$(git describe --tags --always)" >> $GITHUB_ENV
-      - name: Set env
+          sudo mk-build-deps --install debian/control
+          sudo debuild -i -us -uc -b
+
+      - name: push package to packagecloud
         run: |
-          echo "VERSION=$(echo ${GO_LINKER_VALUE} | sed s/^v//)" >> $GITHUB_ENV
-          echo "TMP=$(mktemp -d -t log_shuttle.XXXXX)" >> $GITHUB_ENV
-      - name: Build log-shuttle
-        run: |
-          mkdir -p ${TMP}/DEBIAN
-          go build -v -o ${TMP}/usr/bin/log-shuttle -ldflags="-X main.version=${GO_LINKER_VALUE}" ./cmd/log-shuttle
-          cat ./misc/DEBIAN.control | sed s/{{VERSION}}/${VERSION}/ > ${TMP}/DEBIAN/control
-          dpkg-deb -Zgzip -b ${TMP} log-shuttle_${VERSION}_amd64.deb
-          ls -laR
+          SUPPORTED_UBUNTU_VERSIONS="trusty focal"
+          for ubuntu_version in ${SUPPORTED_UBUNTU_VERSIONS}
+          do
+            package_cloud push --skip-errors --yes ${PACKAGECLOUD_REPO}/ubuntu/${ubuntu_version} ../*.deb
+          done
 
