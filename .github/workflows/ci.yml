@@ -1,0 +1,24 @@
+name: actions/ci
+
+on: [push]
+
+env:
+  DOCKER_EMAIL: ""
+  DOCKER_PASSWORD: ""
+  DOCKER_USERNAME: ""
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        env:
+          ImageOS: ubuntu20
+        with:
+          go-verion: 1.18
+          check-latests: true
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Run Test
+        run: make test
