@@ -2,11 +2,6 @@ name: actions/ci
 
 on: [push]
 
-env:
-  DOCKER_EMAIL: ""
-  DOCKER_PASSWORD: ""
-  DOCKER_USERNAME: ""
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -22,3 +17,16 @@ jobs:
         uses: actions/checkout@v3
       - name: Run Test
         run: make test
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Make Debs
+        run: |
+          make debs
+          export DEB_VERSION=$(git describe --tags --always | sed s.^v//)
+          docker login -u=${{ secrets.DOCKER_USERNAME }} -p=${{ secrets.DOCKER_PASSWORD }}
+          make docker-push
+          echo $DEB_VERSION
