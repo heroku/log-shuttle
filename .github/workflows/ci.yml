@@ -21,12 +21,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Make Debs
         run: |
           make debs
-          export DEB_VERSION=$(git describe --tags --always | sed s.^v//)
-          docker login -u=${{ secrets.DOCKER_USERNAME }} -p=${{ secrets.DOCKER_PASSWORD }}
+          export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
+          echo "DEB VERSION: " $DEB_VERSION
           make docker-push
-          echo $DEB_VERSION
