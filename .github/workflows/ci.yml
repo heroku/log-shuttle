@@ -18,7 +18,7 @@ jobs:
       - name: Run Test
         run: make test
 
-  deploy:
+  docker:
     runs-on: ubuntu-latest
     steps:
       - name: Login to Docker Hub
@@ -28,9 +28,27 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: Make Debs
-        run: |
-          make debs
-          export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
-          echo "DEB VERSION: " $DEB_VERSION
-          make docker-push
+      - name: Push to Docker Hub
+        run: make docker-push
+
+name: actions/release
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+   release:
+     runs-on: ubuntu-latest
+     steps:
+       - name: Make Debs
+         uses: actions/checkout@v3
+         run: |
+           make debs
+           export DEB_VERSION=$(git describe --tags --always | sed s/^v//)
+       - name: Make Release
+         uses: actions/checkout@v3
+         uses: ncipollo/release-action@v1
+         with:
+           artifacts: "log-shuttle_${DEB_VERSION}_amd64.deb"
