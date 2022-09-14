@@ -1,0 +1,22 @@
+name: actions/release
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+   release:
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v3
+       - name: Make Debs
+         run: |
+           make debs
+           echo DEB_VERSION=$(git describe --tags --always | sed s/^v//) >> $GITHUB_ENV
+       - name: Make Release
+         uses: ncipollo/release-action@v1
+         env:
+           ARTIFACT: log-shuttle_${{ env.DEB_VERSION }}_amd64.deb
+         with:
+           artifacts: ${{ env.ARTIFACT }}
