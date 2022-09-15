@@ -6,17 +6,41 @@ on:
     - '*'
 
 jobs:
-   release:
-     runs-on: ubuntu-latest
-     steps:
-       - uses: actions/checkout@v3
-       - name: Make Debs
-         run: |
-           make debs
-           echo DEB_VERSION=$(git describe --tags --always | sed s/^v//) >> $GITHUB_ENV
-       - name: Make Release
-         uses: ncipollo/release-action@v1
-         env:
-           ARTIFACT: log-shuttle_${{ env.DEB_VERSION }}_amd64.deb
-         with:
-           artifacts: ${{ env.ARTIFACT }}
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Make Debs
+        run: |
+          make debs
+          echo DEB_VERSION=$(git describe --tags --always | sed s/^v//) >> $GITHUB_ENV
+      - name: Make Release
+        uses: ncipollo/release-action@v1
+        env:
+          ARTIFACT: log-shuttle_${{ env.DEB_VERSION }}_amd64.deb
+        with:
+          artifacts: ${{ env.ARTIFACT }}
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7.2
+      - name: Push to packagecloud.io
+        env:
+          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN  }}
+          ARTIFACT: log-shuttle_${{ env.DEB_VERSION }}_amd64.deb
+        run: |
+          gem install package_cloud
+          package_cloud push heroku/open/ubuntu/trusty ./${{ env.ARTIFACT }}
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Push to Docker Hub
+        run: make docker-push
