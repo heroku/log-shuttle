@@ -26,7 +26,7 @@ jobs:
           ruby-version: 2.7.2
       - name: Push to packagecloud.io
         env:
-          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN  }}
+          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN_TEST  }}
           ARTIFACT: log-shuttle_${{ env.DEB_VERSION }}_amd64.deb
         run: |
           gem install package_cloud
