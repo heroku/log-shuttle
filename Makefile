@@ -16,14 +16,6 @@ update-deps: govendor
 govendor:
 	go get -u github.com/kardianos/govendor
 
-debs: tmp ldflags ver
-	$(eval DEB_ROOT := "${TMP}/DEBIAN")
-	${GO_BUILD_ENV} go build -v -o ${TMP}/usr/bin/log-shuttle ${LDFLAGS} ./cmd/log-shuttle
-	mkdir -p ${DEB_ROOT}
-	cat misc/DEBIAN.control | sed s/{{VERSION}}/${VERSION}/ > ${DEB_ROOT}/control
-	dpkg-deb -Zgzip -b ${TMP} log-shuttle_${VERSION}_amd64.deb
-	rm -rf ${TMP}
-
 glv:
 	$(eval GO_LINKER_VALUE := $(shell git describe --tags --always))
 
