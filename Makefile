@@ -1,11 +1,18 @@
 GO_LINKER_SYMBOL := main.version
 GO_BUILD_ENV := GOOS=linux GOARCH=amd64
+OUTDIR := .out
 
 all: test
 
 test:
 	go test -v ./...
 	go test -v -race ./...
+
+build: clean ldflags ver
+	go build -v -o ${OUTDIR}/log-shuttle ${LDFLAGS} ./cmd/log-shuttle
+
+clean:
+	rm -rf ${OUTDIR}
 
 install: ldflags
 	go install -v ${LDFLAGS} ./...

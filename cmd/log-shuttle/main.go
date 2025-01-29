@@ -93,6 +93,7 @@ func parseFlags(c shuttle.Config) (shuttle.Config, error) {
 	flag.StringVar(&c.Msgid, "msgid", c.Msgid, "The msgid field for the syslog header.")
 	flag.StringVar(&c.LogsURL, "logs-url", c.LogsURL, "The receiver of the log data.")
 	flag.StringVar(&c.StatsSource, "stats-source", c.StatsSource, "When emitting stats, add source=<stats-source> to the stats.")
+	flag.StringVar(&c.BearerAuthToken, "bearer-token", c.BearerAuthToken, "Token for bearer auth, overrides basic auth in logs-url")
 
 	flag.StringVar(&inputFormat, "input-format", "raw", "'raw' (default; newline termined text), 'rfc5424' (newline terminated rfc5424), 'lprfc5424' (length prefixed rfc5424).")
 	flag.StringVar(&statsAddr, "stats-addr", "", "DEPRECATED, WILL BE REMOVED, HAS NO EFFECT.")

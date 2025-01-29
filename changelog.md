@@ -1,3 +1,7 @@
+### Unreleased
+
+* Add -bearer-token to support Bearer auth
+
 ### 0.18.0 2019-02-14 Edward Muller (emuller@salesforce.com)
 
 * Build with 1.11.5
