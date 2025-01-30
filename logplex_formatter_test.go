@@ -1,7 +1,7 @@
 package shuttle
 
 import (
-	"io/ioutil"
+	"io"
 	"regexp"
 	"strings"
 	"testing"
@@ -37,7 +37,7 @@ func TestLogplexBatchFormatter(t *testing.T) {
 	b.Add(LogLineOne)
 	b.Add(LogLineTwo)
 	br := NewLogplexBatchFormatter(b, noErrData, &config)
-	d, err := ioutil.ReadAll(br)
+	d, err := io.ReadAll(br)
 	if err != nil {
 		t.Fatalf("Error reading everything from batch: %q", err)
 	}
@@ -99,7 +99,7 @@ func TestLogplexBatchFormatter_LongLine(t *testing.T) {
 	b.Add(LogLineTwo)  // 1 frame
 
 	br := NewLogplexBatchFormatter(b, noErrData, &config)
-	d, err := ioutil.ReadAll(br)
+	d, err := io.ReadAll(br)
 	if err != nil {
 		t.Fatalf("Error reading everything from batch: %q", err)
 	}
@@ -118,7 +118,7 @@ func TestLogplexBatchFormatter_LongLine(t *testing.T) {
 func TestLogplexLineFormatter_Basic(t *testing.T) {
 	config := newTestConfig()
 	llr := NewLogplexLineFormatter(LogLineOne, &config)
-	d, err := ioutil.ReadAll(llr)
+	d, err := io.ReadAll(llr)
 	if err != nil {
 		t.Fatalf("Error reading everything from line: %q", err)
 	}
@@ -150,7 +150,7 @@ func TestLogplexBatchFormatter_RFC5424_WithHead(t *testing.T) {
 	defer func() { config.InputFormat = InputFormatRaw }()
 
 	bf := NewLogplexBatchFormatter(b, noErrData, &config)
-	d, err := ioutil.ReadAll(bf)
+	d, err := io.ReadAll(bf)
 	if err != nil {
 		t.Fatalf("Error reading everything from batch: %q", err)
 	}
@@ -173,7 +173,7 @@ func TestLogplexBatchFormatter_RFC5424_LengthPrefixed(t *testing.T) {
 	defer func() { config.InputFormat = InputFormatRaw }()
 
 	bf := NewLogplexBatchFormatter(b, noErrData, &config)
-	d, err := ioutil.ReadAll(bf)
+	d, err := io.ReadAll(bf)
 	if err != nil {
 		t.Fatalf("Error reading everything from batch: %q", err)
 	}
@@ -190,7 +190,7 @@ func BenchmarkLogplexLineFormatter(b *testing.B) {
 	config := newTestConfig()
 	for i := 0; i < b.N; i++ {
 		lf := NewLogplexLineFormatter(LogLineOne, &config)
-		_, err := ioutil.ReadAll(lf)
+		_, err := io.ReadAll(lf)
 		if err != nil {
 			b.Fatalf("Error reading everything from line: %q", err)
 		}
@@ -201,7 +201,7 @@ func BenchmarkLogplexLineFormatter_WithHeaders(b *testing.B) {
 	config := newTestConfig()
 	for i := 0; i < b.N; i++ {
 		lf := NewLogplexLineFormatter(LogLineOneWithHeaders, &config)
-		_, err := ioutil.ReadAll(lf)
+		_, err := io.ReadAll(lf)
 		if err != nil {
 			b.Fatalf("Error reading everything from line: %q", err)
 		}
@@ -220,7 +220,7 @@ func BenchmarkLogplexBatchFormatter(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		bf := NewLogplexBatchFormatter(batch, noErrData, &config)
-		_, err := ioutil.ReadAll(bf)
+		_, err := io.ReadAll(bf)
 		if err != nil {
 			b.Fatalf("Error reading everything from line: %q", err)
 		}
@@ -238,7 +238,7 @@ func BenchmarkLogplexBatchFormatter_WithHeaders(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		bf := NewLogplexBatchFormatter(batch, noErrData, &config)
-		_, err := ioutil.ReadAll(bf)
+		_, err := io.ReadAll(bf)
 		if err != nil {
 			b.Fatalf("Error reading everything from line: %q", err)
 		}

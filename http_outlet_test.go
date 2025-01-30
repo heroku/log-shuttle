@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -32,7 +31,7 @@ func (ts *testEOFHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
-	d, err := ioutil.ReadAll(r.Body)
+	d, err := io.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}

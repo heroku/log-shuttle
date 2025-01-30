@@ -1,5 +1,8 @@
 ### Unreleased
 
+* Broad update of deps
+* Remove deprecated use of io/ioutil
+
 ### 0.21.2 2025-02-07 Matt Blewitt (matthew.blewitt@salesforce.com)
 
 * Remove ncipollo/release-action

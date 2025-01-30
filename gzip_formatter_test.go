@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -36,7 +35,7 @@ func TestGzipFormatter(t *testing.T) {
 	}
 
 	// read the compressed bytes
-	compressed, err := ioutil.ReadAll(gr)
+	compressed, err := io.ReadAll(gr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +45,7 @@ func TestGzipFormatter(t *testing.T) {
 		t.Fatal(err)
 	}
 	// read the uncompressed bytes
-	uncompressed, err := ioutil.ReadAll(gunzipper)
+	uncompressed, err := io.ReadAll(gunzipper)
 	if err != nil {
 		t.Fatal(err)
 	}

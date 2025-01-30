@@ -2,7 +2,6 @@ package shuttle
 
 import (
 	"io"
-	"io/ioutil"
 	"log"
 	"sync"
 
@@ -11,7 +10,7 @@ import (
 
 // Default logger to /dev/null
 var (
-	discardLogger = log.New(ioutil.Discard, "", 0)
+	discardLogger = log.New(io.Discard, "", 0)
 )
 
 // Shuttle is the main entry point into the library
