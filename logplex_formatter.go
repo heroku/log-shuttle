@@ -35,6 +35,10 @@ func NewLogplexBatchFormatter(b Batch, eData []errData, config *Config) HTTPForm
 	bf.headers.Add("Content-Type", LogplexContentType)
 	bf.headers.Add("X-Request-Id", b.UUID)
 
+	if config.BearerAuthToken != "" {
+		bf.headers.Add("Authorization", fmt.Sprintf("Bearer %s", config.BearerAuthToken))
+	}
+
 	var r SubFormatter
 	readers := make([]io.Reader, 0, b.MsgCount()+len(eData))
 
@@ -80,6 +84,8 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 		return nil, err
 	}
 
+	authHeadersPresent := bf.headers.Get("Authorization") != ""
+
 	req, err := http.NewRequest("POST", u.String(), bf)
 	if err != nil {
 		return nil, err
@@ -88,8 +94,10 @@ func (bf *LogplexBatchFormatter) Request() (*http.Request, error) {
 	// Assign headers before we potentially BasicAuth
 	req.Header = bf.headers
 
-	if user != "" || pass != "" {
-		req.SetBasicAuth(user, pass)
+	if !authHeadersPresent {
+		if user != "" || pass != "" {
+			req.SetBasicAuth(user, pass)
+		}
 	}
 
 	return req, nil
@@ -100,7 +108,7 @@ func (bf *LogplexBatchFormatter) MsgCount() int {
 	return bf.msgCount
 }
 
-//Splits the line into a batch of loglines of max(mll) lengths
+// Splits the line into a batch of loglines of max(mll) lengths
 func splitLine(ll LogLine, mll int) Batch {
 	l := ll.Length()
 	batch := NewBatch(int(l/mll) + 1)

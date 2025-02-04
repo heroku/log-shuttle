@@ -76,6 +76,7 @@ type Config struct {
 	Appname                             string
 	Msgid                               string
 	StatsSource                         string
+	BearerAuthToken                     string
 	SkipVerify                          bool
 	Verbose                             bool
 	UseGzip                             bool

@@ -3,3 +3,4 @@ tags
 log-shuttle.exe
 log-shuttle.test
 .env
+.out

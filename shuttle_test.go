@@ -2,6 +2,7 @@ package shuttle
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -313,6 +314,33 @@ func TestRequestId(t *testing.T) {
 	_, ok := th.Headers["X-Request-Id"]
 	if !ok {
 		t.Fatalf("Header X-Request-ID not found in response")
+	}
+}
+
+func TestBearerAuthHeader(t *testing.T) {
+	th := new(testHelper)
+	ts := httptest.NewServer(th)
+	defer ts.Close()
+
+	config := newTestConfig()
+	config.LogsURL = ts.URL
+	config.InputFormat = InputFormatRaw
+	config.BearerAuthToken = "my-secret-token"
+
+	shut := NewShuttle(config)
+	input := NewTestInput()
+	shut.LoadReader(input)
+	shut.Launch()
+	shut.WaitForReadersToFinish()
+	shut.Land()
+
+	token, ok := th.Headers["Authorization"]
+	if !ok {
+		t.Fatalf("Header Authorization not found in req")
+	}
+
+	if token[0] != fmt.Sprintf("Bearer %s", config.BearerAuthToken) {
+		t.Fatalf("Header Authorization did not match expected. Actual: %s\n", token[0])
 	}
 }
 
