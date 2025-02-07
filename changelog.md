@@ -1,5 +1,7 @@
 ### Unreleased
 
+* Remove ncipollo/release-action
+
 ### 0.21.1 2025-02-07 Matt Blewitt (matthew.blewitt@salesforce.com)
 
 * Update GHA
