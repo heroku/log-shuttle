@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -91,20 +90,20 @@ func NewTestInput() io.ReadCloser {
 	data := []byte(`Hello World
 Test Line 2
 `)
-	return ioutil.NopCloser(bytes.NewReader(data))
+	return io.NopCloser(bytes.NewReader(data))
 }
 
 func NewTestInputWithHeaders() io.ReadCloser {
 	data := []byte(`<13>1 2013-09-25T01:16:49.371356+00:00 host token web.1 - [meta sequenceId="1"] message 1
 <13>1 2013-09-25T01:16:49.402923+00:00 host token web.1 - [meta sequenceId="2"] message 2
 `)
-	return ioutil.NopCloser(bytes.NewReader(data))
+	return io.NopCloser(bytes.NewReader(data))
 }
 
 type noopTestHelper struct{}
 
 func (th *noopTestHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, err := ioutil.ReadAll(r.Body)
+	_, err := io.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -119,7 +118,7 @@ type testHelper struct {
 
 func (ts *testHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
-	d, err := ioutil.ReadAll(r.Body)
+	d, err := io.ReadAll(r.Body)
 	if err != nil {
 		panic(err)
 	}

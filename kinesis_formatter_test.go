@@ -2,7 +2,7 @@ package shuttle
 
 import (
 	"compress/gzip"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -13,7 +13,7 @@ func TestKinesisFormatter(t *testing.T) {
 	b.Add(LogLineOne)
 	b.Add(LogLineTwo)
 	br := NewKinesisFormatter(b, noErrData, &config)
-	d, err := ioutil.ReadAll(br)
+	d, err := io.ReadAll(br)
 	if err != nil {
 		t.Fatalf("Error reading everything from batch: %q", err)
 	}
@@ -34,7 +34,7 @@ func TestKinesisFormatterRequest(t *testing.T) {
 	}
 
 	// Read the body of the request
-	d, err := ioutil.ReadAll(r.Body)
+	d, err := io.ReadAll(r.Body)
 	if err != nil {
 		t.Fatalf("Error reading everything from the request: %q", err)
 	}
@@ -58,7 +58,7 @@ func TestKinesisGzip(t *testing.T) {
 	}
 
 	// read the uncompressed bytes
-	uncompressed, err := ioutil.ReadAll(gunzipper)
+	uncompressed, err := io.ReadAll(gunzipper)
 	if err != nil {
 		t.Fatal("Errors reading the compressed bytes: ", err)
 	}

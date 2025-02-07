@@ -3,7 +3,6 @@ package shuttle
 import (
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"sync"
 )
@@ -53,7 +52,7 @@ func (g *GzipFormatter) Request() (*http.Request, error) {
 		return request, err
 	}
 
-	request.Body = ioutil.NopCloser(g)
+	request.Body = io.NopCloser(g)
 	request.Header.Add("Content-Encoding", "gzip")
 	return request, nil
 }

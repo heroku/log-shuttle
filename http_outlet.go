@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -137,7 +136,7 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 	cr := &countingReader{
 		reader: req.Body,
 	}
-	req.Body = ioutil.NopCloser(cr)
+	req.Body = io.NopCloser(cr)
 
 	uuid := req.Header.Get("X-Request-Id")
 	req.Header.Add("User-Agent", h.userAgent)
@@ -156,7 +155,7 @@ func (h *HTTPOutlet) post(formatter HTTPFormatter) error {
 
 	switch status := resp.StatusCode; {
 	case status >= 400:
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			h.errLogger.Printf("at=post request_id=%q content_length=%d msgcount=%d status=%d reading_body=true error=%q\n", uuid, cr.count, formatter.MsgCount(), status, err)
 		} else {

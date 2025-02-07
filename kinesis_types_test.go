@@ -3,7 +3,7 @@ package shuttle
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"testing"
 )
 
@@ -36,7 +36,7 @@ func TestKinesisRecord_MarshalJSONToWriter(t *testing.T) {
 
 	llf.Reset()
 
-	d, _ := ioutil.ReadAll(llf)
+	d, _ := io.ReadAll(llf)
 
 	if string(tr.Data) != string(d) {
 		t.Logf("tr.Data: %q\n, d: %q\n", string(tr.Data), string(d))
