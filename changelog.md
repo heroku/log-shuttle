@@ -1,5 +1,8 @@
 ### Unreleased
 
+* Update GHA
+* Update dist targets to focal and noble
+
 ### 0.21.0 2025-02-03 Matt Blewitt (matthew.blewitt@salesforce.com)
 
 * Add -bearer-token to support Bearer auth
