@@ -1,5 +1,7 @@
 ### Unreleased
 
+### 0.21.2 2025-02-07 Matt Blewitt (matthew.blewitt@salesforce.com)
+
 * Remove ncipollo/release-action
 
 ### 0.21.1 2025-02-07 Matt Blewitt (matthew.blewitt@salesforce.com)
