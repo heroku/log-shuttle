@@ -1,0 +1,22 @@
+Source: log-shuttle
+Section: devel
+Priority: optional
+Maintainer: Heroku <heroku-runtime-team@salesforce.com>
+Uploaders: Will Farrington <wfarrington@salesforce.com>
+Rules-Requires-Root: no
+Build-Depends: debhelper-compat (= 12),
+               golang-any
+Standards-Version: 4.4.0
+XS-Go-Import-Path: github.com/heroku/log-shuttle
+Vcs-Browser: https://github.com/heroku/log-shuttle
+Vcs-Git: https://github.com/heroku/log-shuttle.git
+Testsuite: autopkgtest-pkg-go
+
+Package: log-shuttle
+Architecture: any
+Depends: dpkg-dev,
+         ${misc:Depends},
+         ${shlibs:Depends},
+Built-Using: ${misc:Built-Using},
+Description: Heroku log-shuttle
+ Log-shuttle is an open source UNIX program that delivers messages from applications and daemons to log routers and processors via HTTPs.
