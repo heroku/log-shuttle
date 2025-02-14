@@ -6,7 +6,7 @@ jobs:
   test:
     strategy:
       matrix:
-          runner: ["ubuntu-latest", "ubuntu-24.04-arm"]
+          runner: ["ubuntu-latest", "ubuntu-24.04", "ubuntu-20.04"]
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Repo
