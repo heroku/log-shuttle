@@ -1,5 +1,7 @@
 ### Unreleased
 
+* Build the Ubuntu debs on the Correct Ubuntu Version
+
 ### 0.21.2 2025-02-07 Matt Blewitt (matthew.blewitt@salesforce.com)
 
 * Remove ncipollo/release-action
