@@ -2,7 +2,8 @@
 
 ### 0.22.0 2025-02-17 Dan Starner (dstarner@salesforce.com)
 
-* Build the Ubuntu debs on the Correct Ubuntu Version
+* Disable cgo for the purpose of an omni-linux binary (#117)
+* Build the Ubuntu debs on the Correct Ubuntu Version (#115)
 
 ### 0.21.2 2025-02-07 Matt Blewitt (matthew.blewitt@salesforce.com)
 
