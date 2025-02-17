@@ -7,14 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - runner: ubuntu-20.04
-            codename: focal
-          - runner: ubuntu-24.04
-            codename: noble
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -36,7 +29,8 @@ jobs:
           ARTIFACT: log-shuttle_${{ env.DEB_VERSION }}_amd64.deb
         run: |
           gem install package_cloud
-          package_cloud push heroku/open/ubuntu/${{ matrix.codename }} ./${{ env.ARTIFACT }}
+          package_cloud push heroku/open/ubuntu/focal ./${{ env.ARTIFACT }}
+          package_cloud push heroku/open/ubuntu/noble ./${{ env.ARTIFACT }}
 
   docker:
     runs-on: ubuntu-latest
