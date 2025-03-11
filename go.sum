@@ -4,12 +4,14 @@ github.com/bmizerany/aws4 v0.0.0-20141025110357-5fb2e7239626 h1:+BShUYeLVWnZfJBz
 github.com/bmizerany/aws4 v0.0.0-20141025110357-5fb2e7239626/go.mod h1:1qbMWKr5WUBWWACRFRTMcN2ntzeuWyevPq0e1YplD3Y=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/google/uuid v1.0.0 h1:b4Gk+7WdP/d3HZH8EJsZpvV7EtDOgaZLtnaNGIu1adA=
+github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/heroku/slog v0.0.0-20150110001655-7746152d9340 h1:RcV/X9d7zCqZTN5a+ZdeCSw8H7msK0OGxcMjc5bLkA4=
 github.com/heroku/slog v0.0.0-20150110001655-7746152d9340/go.mod h1:qakOkduMaAhe2ypljIuLEinhnl5nCnyz7iXMZHwdr14=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af h1:pmfjZENx5imkbgOkpRUYLnmbU7UEFbjtDA2hxJ1ichM=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
-github.com/pborman/uuid v0.0.0-20150824212802-cccd189d45f7 h1:7Nb5cK6zZrR39niF9np62PLldWkL0R0XJGDbmsRQ96E=
-github.com/pborman/uuid v0.0.0-20150824212802-cccd189d45f7/go.mod h1:VyrYX9gd7irzKovcSS6BIIEwPRkP2Wm2m9ufcdFSJ34=
+github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
+github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pebbe/util v0.0.0-20140716220158-e0e04dfe647c h1:v8sa96tiKlyli7NB08SpQAFLsvMhrYupxhpdBrCYH/E=
 github.com/pebbe/util v0.0.0-20140716220158-e0e04dfe647c/go.mod h1:X/ocweApVYXiDQEEfsunYRI4UXw60Ea8u7fYf+aAaEU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
