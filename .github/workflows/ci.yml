@@ -6,7 +6,7 @@ jobs:
   test:
     strategy:
       matrix:
-        runner: ["latest", "24.04", "20.04"]
+        image: ["latest", "24.04", "20.04"]
     runs-on: ubuntu-latest
     container:
       image: ubuntu:${{ matrix.image }}
