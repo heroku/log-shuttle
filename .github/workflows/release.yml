@@ -7,14 +7,16 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - runner: ubuntu-20.04
+          - image: 20.04
             codename: focal
-          - runner: ubuntu-24.04
+          - image: 24.04
             codename: noble
+    container:
+      image: ubuntu:${{ matrix.image }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
