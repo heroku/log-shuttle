@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         runner: ["latest", "24.04", "20.04"]
-    runs-on: sfdc-hk-ubuntu-latest
+    runs-on: ubuntu-latest
     container:
       image: ubuntu:${{ matrix.image }}
     steps:
