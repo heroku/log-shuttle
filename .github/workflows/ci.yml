@@ -6,9 +6,16 @@ jobs:
   test:
     strategy:
       matrix:
-          runner: ["ubuntu-latest", "ubuntu-24.04", "ubuntu-20.04"]
-    runs-on: ${{ matrix.runner }}
+        image: ["latest", "24.04", "20.04"]
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:${{ matrix.image }}
     steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git build-essential
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Checkout Repo
         uses: actions/checkout@v4
       - name: Setup Go
