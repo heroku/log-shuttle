@@ -8,7 +8,7 @@ require (
 	github.com/pebbe/util v0.0.0-20140716220158-e0e04dfe647c
 	github.com/rcrowley/go-metrics v0.0.0-20141108142129-dee209f2455f
 	github.com/stretchr/testify v1.3.0 // indirect
-	golang.org/x/net v0.0.0-20190311183353-d8887717615a // indirect
+	golang.org/x/net v0.38.0 // indirect
 )
 
 go 1.13
