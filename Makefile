@@ -1,5 +1,5 @@
 GO_LINKER_SYMBOL := main.version
-GO_BUILD_ENV := GOOS=linux GOARCH=amd64
+GO_BUILD_ENV := GOOS=linux GOARCH=amd64 CGO_ENABLED=0
 OUTDIR := .out
 
 all: test
