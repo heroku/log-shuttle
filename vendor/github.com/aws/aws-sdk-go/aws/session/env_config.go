@@ -1,12 +1,15 @@
 package session
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/defaults"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 )
 
 // EnvProviderName provides a name of the provider when config is loaded from environment.
@@ -98,11 +101,23 @@ type envConfig struct {
 	//  AWS_CA_BUNDLE=$HOME/my_custom_ca_bundle
 	CustomCABundle string
 
+	// Sets the TLC client certificate that should be used by the SDK's HTTP transport
+	// when making requests. The certificate must be paired with a TLS client key file.
+	//
+	//  AWS_SDK_GO_CLIENT_TLS_CERT=$HOME/my_client_cert
+	ClientTLSCert string
+
+	// Sets the TLC client key that should be used by the SDK's HTTP transport
+	// when making requests. The key must be paired with a TLS client certificate file.
+	//
+	//  AWS_SDK_GO_CLIENT_TLS_KEY=$HOME/my_client_key
+	ClientTLSKey string
+
 	csmEnabled  string
-	CSMEnabled  bool
+	CSMEnabled  *bool
 	CSMPort     string
-	CSMClientID string
 	CSMHost     string
+	CSMClientID string
 
 	// Enables endpoint discovery via environment variables.
 	//
@@ -125,6 +140,54 @@ type envConfig struct {
 	//
 	//  AWS_ROLE_SESSION_NAME=session_name
 	RoleSessionName string
+
+	// Specifies the STS Regional Endpoint flag for the SDK to resolve the endpoint
+	// for a service.
+	//
+	// AWS_STS_REGIONAL_ENDPOINTS=regional
+	// This can take value as `regional` or `legacy`
+	STSRegionalEndpoint endpoints.STSRegionalEndpoint
+
+	// Specifies the S3 Regional Endpoint flag for the SDK to resolve the
+	// endpoint for a service.
+	//
+	// AWS_S3_US_EAST_1_REGIONAL_ENDPOINT=regional
+	// This can take value as `regional` or `legacy`
+	S3UsEast1RegionalEndpoint endpoints.S3UsEast1RegionalEndpoint
+
+	// Specifies if the S3 service should allow ARNs to direct the region
+	// the client's requests are sent to.
+	//
+	// AWS_S3_USE_ARN_REGION=true
+	S3UseARNRegion bool
+
+	// Specifies the EC2 Instance Metadata Service endpoint to use. If specified it overrides EC2IMDSEndpointMode.
+	//
+	// AWS_EC2_METADATA_SERVICE_ENDPOINT=http://[::1]
+	EC2IMDSEndpoint string
+
+	// Specifies the EC2 Instance Metadata Service default endpoint selection mode (IPv4 or IPv6)
+	//
+	// AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE=IPv6
+	EC2IMDSEndpointMode endpoints.EC2IMDSEndpointModeState
+
+	// Specifies that IMDS clients should not fallback to IMDSv1 if token
+	// requests fail.
+	//
+	// AWS_EC2_METADATA_V1_DISABLED=true
+	EC2IMDSv1Disabled *bool
+
+	// Specifies that SDK clients must resolve a dual-stack endpoint for
+	// services.
+	//
+	// AWS_USE_DUALSTACK_ENDPOINT=true
+	UseDualStackEndpoint endpoints.DualStackEndpointState
+
+	// Specifies that SDK clients must resolve a FIPS endpoint for
+	// services.
+	//
+	// AWS_USE_FIPS_ENDPOINT=true
+	UseFIPSEndpoint endpoints.FIPSEndpointState
 }
 
 var (
@@ -179,6 +242,39 @@ var (
 	roleSessionNameEnvKey = []string{
 		"AWS_ROLE_SESSION_NAME",
 	}
+	stsRegionalEndpointKey = []string{
+		"AWS_STS_REGIONAL_ENDPOINTS",
+	}
+	s3UsEast1RegionalEndpoint = []string{
+		"AWS_S3_US_EAST_1_REGIONAL_ENDPOINT",
+	}
+	s3UseARNRegionEnvKey = []string{
+		"AWS_S3_USE_ARN_REGION",
+	}
+	ec2IMDSEndpointEnvKey = []string{
+		"AWS_EC2_METADATA_SERVICE_ENDPOINT",
+	}
+	ec2IMDSEndpointModeEnvKey = []string{
+		"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE",
+	}
+	ec2MetadataV1DisabledEnvKey = []string{
+		"AWS_EC2_METADATA_V1_DISABLED",
+	}
+	useCABundleKey = []string{
+		"AWS_CA_BUNDLE",
+	}
+	useClientTLSCert = []string{
+		"AWS_SDK_GO_CLIENT_TLS_CERT",
+	}
+	useClientTLSKey = []string{
+		"AWS_SDK_GO_CLIENT_TLS_KEY",
+	}
+	awsUseDualStackEndpoint = []string{
+		"AWS_USE_DUALSTACK_ENDPOINT",
+	}
+	awsUseFIPSEndpoint = []string{
+		"AWS_USE_FIPS_ENDPOINT",
+	}
 )
 
 // loadEnvConfig retrieves the SDK's environment configuration.
@@ -187,7 +283,7 @@ var (
 // If the environment variable `AWS_SDK_LOAD_CONFIG` is set to a truthy value
 // the shared SDK config will be loaded in addition to the SDK's specific
 // configuration values.
-func loadEnvConfig() envConfig {
+func loadEnvConfig() (envConfig, error) {
 	enableSharedConfig, _ := strconv.ParseBool(os.Getenv("AWS_SDK_LOAD_CONFIG"))
 	return envConfigLoad(enableSharedConfig)
 }
@@ -198,11 +294,11 @@ func loadEnvConfig() envConfig {
 // Loads the shared configuration in addition to the SDK's specific configuration.
 // This will load the same values as `loadEnvConfig` if the `AWS_SDK_LOAD_CONFIG`
 // environment variable is set.
-func loadSharedEnvConfig() envConfig {
+func loadSharedEnvConfig() (envConfig, error) {
 	return envConfigLoad(true)
 }
 
-func envConfigLoad(enableSharedConfig bool) envConfig {
+func envConfigLoad(enableSharedConfig bool) (envConfig, error) {
 	cfg := envConfig{}
 
 	cfg.EnableSharedConfig = enableSharedConfig
@@ -230,7 +326,11 @@ func envConfigLoad(enableSharedConfig bool) envConfig {
 	setFromEnvVal(&cfg.CSMHost, csmHostEnvKey)
 	setFromEnvVal(&cfg.CSMPort, csmPortEnvKey)
 	setFromEnvVal(&cfg.CSMClientID, csmClientIDEnvKey)
-	cfg.CSMEnabled = len(cfg.csmEnabled) > 0
+
+	if len(cfg.csmEnabled) != 0 {
+		v, _ := strconv.ParseBool(cfg.csmEnabled)
+		cfg.CSMEnabled = &v
+	}
 
 	regionKeys := regionEnvKeys
 	profileKeys := profileEnvKeys
@@ -258,16 +358,142 @@ func envConfigLoad(enableSharedConfig bool) envConfig {
 		cfg.SharedConfigFile = defaults.SharedConfigFilename()
 	}
 
-	cfg.CustomCABundle = os.Getenv("AWS_CA_BUNDLE")
+	setFromEnvVal(&cfg.CustomCABundle, useCABundleKey)
+	setFromEnvVal(&cfg.ClientTLSCert, useClientTLSCert)
+	setFromEnvVal(&cfg.ClientTLSKey, useClientTLSKey)
 
-	return cfg
+	var err error
+	// STS Regional Endpoint variable
+	for _, k := range stsRegionalEndpointKey {
+		if v := os.Getenv(k); len(v) != 0 {
+			cfg.STSRegionalEndpoint, err = endpoints.GetSTSRegionalEndpoint(v)
+			if err != nil {
+				return cfg, fmt.Errorf("failed to load, %v from env config, %v", k, err)
+			}
+		}
+	}
+
+	// S3 Regional Endpoint variable
+	for _, k := range s3UsEast1RegionalEndpoint {
+		if v := os.Getenv(k); len(v) != 0 {
+			cfg.S3UsEast1RegionalEndpoint, err = endpoints.GetS3UsEast1RegionalEndpoint(v)
+			if err != nil {
+				return cfg, fmt.Errorf("failed to load, %v from env config, %v", k, err)
+			}
+		}
+	}
+
+	var s3UseARNRegion string
+	setFromEnvVal(&s3UseARNRegion, s3UseARNRegionEnvKey)
+	if len(s3UseARNRegion) != 0 {
+		switch {
+		case strings.EqualFold(s3UseARNRegion, "false"):
+			cfg.S3UseARNRegion = false
+		case strings.EqualFold(s3UseARNRegion, "true"):
+			cfg.S3UseARNRegion = true
+		default:
+			return envConfig{}, fmt.Errorf(
+				"invalid value for environment variable, %s=%s, need true or false",
+				s3UseARNRegionEnvKey[0], s3UseARNRegion)
+		}
+	}
+
+	setFromEnvVal(&cfg.EC2IMDSEndpoint, ec2IMDSEndpointEnvKey)
+	if err := setEC2IMDSEndpointMode(&cfg.EC2IMDSEndpointMode, ec2IMDSEndpointModeEnvKey); err != nil {
+		return envConfig{}, err
+	}
+	setBoolPtrFromEnvVal(&cfg.EC2IMDSv1Disabled, ec2MetadataV1DisabledEnvKey)
+
+	if err := setUseDualStackEndpointFromEnvVal(&cfg.UseDualStackEndpoint, awsUseDualStackEndpoint); err != nil {
+		return cfg, err
+	}
+
+	if err := setUseFIPSEndpointFromEnvVal(&cfg.UseFIPSEndpoint, awsUseFIPSEndpoint); err != nil {
+		return cfg, err
+	}
+
+	return cfg, nil
 }
 
 func setFromEnvVal(dst *string, keys []string) {
 	for _, k := range keys {
-		if v := os.Getenv(k); len(v) > 0 {
+		if v := os.Getenv(k); len(v) != 0 {
 			*dst = v
 			break
 		}
 	}
+}
+
+func setBoolPtrFromEnvVal(dst **bool, keys []string) {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue
+		}
+
+		switch {
+		case strings.EqualFold(value, "false"):
+			*dst = new(bool)
+			**dst = false
+		case strings.EqualFold(value, "true"):
+			*dst = new(bool)
+			**dst = true
+		}
+	}
+}
+
+func setEC2IMDSEndpointMode(mode *endpoints.EC2IMDSEndpointModeState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue
+		}
+		if err := mode.SetFromString(value); err != nil {
+			return fmt.Errorf("invalid value for environment variable, %s=%s, %v", k, value, err)
+		}
+		return nil
+	}
+	return nil
+}
+
+func setUseDualStackEndpointFromEnvVal(dst *endpoints.DualStackEndpointState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue // skip if empty
+		}
+
+		switch {
+		case strings.EqualFold(value, "true"):
+			*dst = endpoints.DualStackEndpointStateEnabled
+		case strings.EqualFold(value, "false"):
+			*dst = endpoints.DualStackEndpointStateDisabled
+		default:
+			return fmt.Errorf(
+				"invalid value for environment variable, %s=%s, need true, false",
+				k, value)
+		}
+	}
+	return nil
+}
+
+func setUseFIPSEndpointFromEnvVal(dst *endpoints.FIPSEndpointState, keys []string) error {
+	for _, k := range keys {
+		value := os.Getenv(k)
+		if len(value) == 0 {
+			continue // skip if empty
+		}
+
+		switch {
+		case strings.EqualFold(value, "true"):
+			*dst = endpoints.FIPSEndpointStateEnabled
+		case strings.EqualFold(value, "false"):
+			*dst = endpoints.FIPSEndpointStateDisabled
+		default:
+			return fmt.Errorf(
+				"invalid value for environment variable, %s=%s, need true, false",
+				k, value)
+		}
+	}
+	return nil
 }
