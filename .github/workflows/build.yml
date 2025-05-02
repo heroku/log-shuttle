@@ -1,0 +1,32 @@
+name: Build packages
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build-ubuntu-packages:
+    runs-on: [ubuntu-latest]
+    steps:
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: install dependencies
+        run: sudo apt-get update && apt-get install -y dh-golang git vim devscripts equivs build-essential golang-1.13-go golang-1.13-src golang-any golang-go golang-src
+      - name: Install packagecloud
+        run: gem install package_cloud
+      - name: build packagemk-build-deps
+        run: |
+          sudo mk-build-deps --install debian/control
+          sudo debuild -i -us -uc -b
+
+      - name: push package to packagecloud
+        run: |
+          SUPPORTED_UBUNTU_VERSIONS="trusty focal"
+          for ubuntu_version in ${SUPPORTED_UBUNTU_VERSIONS}
+          do
+            package_cloud push --skip-errors --yes ${PACKAGECLOUD_REPO}/ubuntu/${ubuntu_version} ../*.deb
+          done
+
