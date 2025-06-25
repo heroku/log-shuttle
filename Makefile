@@ -48,8 +48,5 @@ docker: ldflags ver clean-docker-build
 clean-docker-build:
 	rm -rf .docker_build
 
-docker-push: docker ver
-	docker push heroku/log-shuttle:${VERSION}
-
 tmp:
 	$(eval TMP := $(shell mktemp -d -t log_shuttle.XXXXX))
