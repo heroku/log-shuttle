@@ -1,6 +1,6 @@
 # Log Shuttle
 
-[![Travis](https://img.shields.io/travis/heroku/log-shuttle.svg)](https://travis-ci.org/heroku/log-shuttle)
+[![actions/ci](https://github.com/heroku/log-shuttle/actions/workflows/ci.yml/badge.svg)](https://github.com/heroku/log-shuttle/actions/workflows/ci.yml)
 [![Releases](https://img.shields.io/github/release/heroku/log-shuttle.svg)](https://github.com/heroku/log-shuttle/releases)
 [![GoDoc](https://godoc.org/github.com/heroku/log-shuttle?status.svg)](http://godoc.org/github.com/heroku/log-shuttle)
 
