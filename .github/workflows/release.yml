@@ -13,6 +13,8 @@ jobs:
         include:
           - image: 20.04
             codename: focal
+          - image: 22.04
+            codename: jammy
           - image: 24.04
             codename: noble
     container:
