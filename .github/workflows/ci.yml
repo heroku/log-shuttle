@@ -17,7 +17,7 @@ jobs:
           apt-get install -y git build-essential
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
