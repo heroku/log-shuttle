@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: sfdc-hk-ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
@@ -26,10 +26,6 @@ jobs:
         with:
           go-version: 1.23.1
           check-latest: true
-      - name: Install build dependencies
-        run: |
-          apt-get update
-          apt-get install -y make dpkg-dev
       - name: Make Debs
         run: |
           make debs
