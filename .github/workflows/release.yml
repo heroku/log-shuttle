@@ -20,6 +20,11 @@ jobs:
     container:
       image: ubuntu:${{ matrix.image }}
     steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git build-essential ruby ruby-dev
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -30,10 +35,6 @@ jobs:
         run: |
           make debs
           echo DEB_VERSION=$(git describe --tags --always | sed s/^v//) >> $GITHUB_ENV
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.3.7
       - name: Push to packagecloud.io
         env:
           PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
