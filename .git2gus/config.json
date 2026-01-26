@@ -1,0 +1,10 @@
+{
+  "productTag": "a1aEE000000q0WzYAI",
+  "defaultBuild": "Heroku Runtime Telemetry Build",
+  "issueTypeLabels": {
+    "feature": "USER STORY",
+    "regression": "BUG P0",
+    "bug": "BUG P2",
+    "dependencies": "BUG P2"
+  }
+}
