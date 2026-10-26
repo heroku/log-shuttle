@@ -11,7 +11,6 @@ import (
 
 	shuttle "github.com/heroku/log-shuttle"
 	"github.com/heroku/log-shuttle/cmd/log-shuttle/internal"
-	"github.com/pebbe/util"
 )
 
 // Default loggers to stdout and stderr
@@ -26,7 +25,8 @@ var version = "" // log-shuttle version, set with linker
 
 // useStdin determines if we're using the terminal's stdin or not
 func useStdin() bool {
-	return !util.IsTerminal(os.Stdin)
+	info, err := os.Stdin.Stat()
+	return err == nil && info.Mode()&os.ModeCharDevice == 0
 }
 
 func mapInputFormat(i string) (int, error) {

@@ -112,7 +112,7 @@ func TestOutletEOFRetryMax(t *testing.T) {
 
 	outlet.retryPost(batch)
 	if th.called != config.MaxAttempts {
-		t.Errorf("th.called != %q, == %d\n", config.MaxAttempts, th.called)
+		t.Errorf("th.called != %d, == %d\n", config.MaxAttempts, th.called)
 	}
 
 	if lost := s.Lost.Read(); lost != 1 {
